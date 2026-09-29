@@ -55,3 +55,5 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 - Messages delivered to a Claude session arrive framed as "another Claude session sent a message", and a model may refuse to act on them (seen with haiku). The conformance driver appends a system prompt telling test sessions to follow them.
 - A message delivered mid-turn shows in the Claude transcript as an `attachment` of type `queued_command`, not as a `user` entry.
 - `claude agents --json --cwd <dir>` filters by the repository the folder belongs to, not by folder.
+- Claude Code (2.1.284): a killed session drops out of `claude agents --json` a few seconds after the kill (only `--all` keeps it), and `claude stop` runs the `SessionEnd` hook, so its record is removed and `porch observe` then answers not found. Consumers must read not found as not running.
+- Claude Code (2.1.284): `Stop` does not fire when an attached person interrupts a turn (Escape), so the record stays busy while the listing says idle. Reproduce by attaching through a pseudo-terminal (`claude attach <short id>`) and sending Escape mid-turn.
