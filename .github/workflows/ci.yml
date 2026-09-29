@@ -1,0 +1,36 @@
+# Unit and contract tests on every PR (and on pushes to the long-lived branches).
+# The job name "unit and contract tests" is the check a branch rule requires; see
+# docs/operations/ci.md before renaming it.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, "dyl/TRV-1133-porch"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: unit and contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      # Builds, then runs unit, contract, replay and fake-adapter conformance tests.
+      - run: npm test
+      # The published package must hold only dist/, schemas/ and README.md.
+      - run: npm pack --dry-run

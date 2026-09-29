@@ -1,0 +1,65 @@
+{
+  "name": "@dylankuhlenthal/porch",
+  "version": "0.1.0",
+  "description": "Wake any agent session with a message and read its state, across harnesses.",
+  "license": "UNLICENSED",
+  "author": "Dylan Kuhlenthal",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dylankuhlenthal/porch.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "porch": "dist/cli/main.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./conformance": {
+      "types": "./dist/conformance/index.d.ts",
+      "default": "./dist/conformance/index.js"
+    },
+    "./schemas/*": "./schemas/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "schemas",
+    "README.md"
+  ],
+  "scripts": {
+    "//build": "Compile TypeScript from src/ into dist/.",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/cli/main.js",
+    "//typecheck": "Type-check src/ and tests/ without writing output.",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "//lint": "ESLint over the given files, or the whole repo with no arguments. CI runs it on everything.",
+    "lint": "eslint",
+    "//test": "Unit, contract, replay and fake-adapter conformance tests. Builds first because the CLI tests run dist/cli/main.js.",
+    "test": "npm run build && vitest run",
+    "//conformance": "Run the conformance suite against one harness: npm run conformance -- --harness fake [--record]. See docs/patterns/conformance.md.",
+    "conformance": "npm run build && node dist/conformance/main.js",
+    "//prepack": "Make sure a packed tarball always contains a fresh build.",
+    "prepack": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.20.4",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "eslint": "^9.39.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.2"
+  }
+}

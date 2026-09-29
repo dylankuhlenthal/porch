@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-typecheck/
+coverage/
+*.tgz
+.claude/
+# Conformance runs write their working files here; reports and fixtures that
+# are meant to be kept are copied into conformance/ by the runner.
+.conformance-tmp/

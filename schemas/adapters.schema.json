@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/adapters.schema.json",
+  "title": "Porch adapters output (schema 1)",
+  "type": "object",
+  "required": ["schema", "adapters"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "adapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["harness", "available", "version", "reason", "capabilities", "inside"],
+        "additionalProperties": false,
+        "properties": {
+          "harness": { "type": "string" },
+          "available": { "type": "boolean" },
+          "version": { "type": ["string", "null"] },
+          "reason": { "type": ["string", "null"] },
+          "capabilities": {
+            "type": "object",
+            "required": ["queuesWhileBusy", "seesPrompts", "outsideListing", "insidePart", "pollIntervalMs"],
+            "additionalProperties": false,
+            "properties": {
+              "queuesWhileBusy": { "type": "boolean" },
+              "seesPrompts": { "type": "boolean" },
+              "outsideListing": { "type": "boolean" },
+              "insidePart": { "type": "boolean" },
+              "pollIntervalMs": { "type": ["integer", "null"] }
+            }
+          },
+          "inside": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "required": ["kind", "description", "setup"],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": { "type": "string" },
+                  "description": { "type": "string" },
+                  "setup": { "type": "string" }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

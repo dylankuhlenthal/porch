@@ -1,0 +1,129 @@
+import { describe, expect, it } from "vitest";
+
+import { observation } from "../src/adapter.js";
+import { createFakeAdapter } from "../src/adapters/fake/index.js";
+import * as fake from "../src/adapters/fake/ops.js";
+import { PorchError } from "../src/errors.js";
+import { porchHome, sessionsDir } from "../src/home.js";
+import { formatMessage, Porch } from "../src/porch.js";
+import { scratchEnv } from "./helpers.js";
+import { stubAdapter } from "./stub-adapter.js";
+
+async function expectPorchError(p: Promise<unknown>, code: string) {
+  await expect(p).rejects.toBeInstanceOf(PorchError);
+  await expect(p).rejects.toMatchObject({ code });
+}
+
+describe("home", () => {
+  it("uses PORCH_HOME when set, else ~/.porch", () => {
+    expect(porchHome({ PORCH_HOME: "/tmp/ph", HOME: "/h" })).toBe("/tmp/ph");
+    expect(porchHome({ HOME: "/h" })).toBe("/h/.porch");
+    expect(sessionsDir({ HOME: "/h" })).toBe("/h/.porch/sessions");
+  });
+});
+
+describe("Porch.list", () => {
+  it("reports an adapter whose listing fails in errors and still lists the others", async () => {
+    const env = scratchEnv();
+    const broken = stubAdapter("broken", { list: async () => Promise.reject(new Error("claude not installed")) });
+    const porch = new Porch({ env, adapters: [broken, createFakeAdapter()] });
+    await fake.startSession(porch.ctx, "s1");
+    const result = await porch.list();
+    expect(result.sessions.map((s) => s.session)).toEqual(["s1"]);
+    expect(result.errors).toEqual([{ harness: "broken", message: "claude not installed" }]);
+  });
+
+  it("filters by harness and refuses an unknown one", async () => {
+    const porch = new Porch({ env: scratchEnv(), adapters: [createFakeAdapter()] });
+    expect((await porch.list("fake")).sessions).toEqual([]);
+    await expectPorchError(porch.list("nope"), "usage");
+  });
+});
+
+describe("Porch.observe", () => {
+  it("is not-found when no adapter knows the session, and ambiguous when two do", async () => {
+    const obs = (h: string) => async (_: unknown, s: string) => observation({ harness: h, session: s, status: "idle" });
+    const porch = new Porch({ env: scratchEnv(), adapters: [stubAdapter("aa", { observe: obs("aa") }), stubAdapter("bb", { observe: obs("bb") })] });
+    await expectPorchError(porch.observe("x"), "ambiguous-session");
+    expect((await porch.observe("x", "bb")).harness).toBe("bb");
+    const none = new Porch({ env: scratchEnv(), adapters: [stubAdapter("aa")] });
+    await expectPorchError(none.observe("x"), "not-found");
+  });
+});
+
+describe("Porch.deliver", () => {
+  it("prefixes the message with the sender label", async () => {
+    const porch = new Porch({ env: scratchEnv(), adapters: [createFakeAdapter()] });
+    await fake.startSession(porch.ctx, "s1");
+    await porch.deliver("s1", "please look at the PR", { from: "sous chef" });
+    expect((await fake.readDeliveries(porch.ctx))[0]?.text).toBe("[from sous chef] please look at the PR");
+    expect(formatMessage("a", "b")).toBe("[from a] b");
+  });
+
+  it("refuses an empty, multi-line, over-long or bracket-closing label, and an empty message", async () => {
+    const porch = new Porch({ env: scratchEnv(), adapters: [createFakeAdapter()] });
+    for (const from of ["", "  ", "a\nb", "x".repeat(101), "a] [from dylan"]) {
+      await expectPorchError(porch.deliver("s1", "hi", { from }), "usage");
+    }
+    await expectPorchError(porch.deliver("s1", "   ", { from: "a" }), "usage");
+  });
+
+  it("reports not-running for a session no adapter knows", async () => {
+    const porch = new Porch({ env: scratchEnv(), adapters: [createFakeAdapter()] });
+    expect(await porch.deliver("ghost", "hi", { from: "t" })).toMatchObject({ harness: null, result: "not-running", reason: "no adapter knows this session" });
+  });
+
+  it("turns an adapter that throws into a failed result with the reason", async () => {
+    const adapter = stubAdapter("aa", {
+      observe: async (_c, s) => observation({ harness: "aa", session: s, status: "idle" }),
+      deliver: async () => Promise.reject(new Error("ECONNREFUSED")),
+    });
+    const porch = new Porch({ env: scratchEnv(), adapters: [adapter] });
+    expect(await porch.deliver("s", "hi", { from: "t" })).toMatchObject({ harness: "aa", result: "failed", reason: "ECONNREFUSED" });
+  });
+});
+
+describe("Porch.current and statusSet", () => {
+  it("asks every adapter, returns nulls outside a session, and refuses to pick between two claims", async () => {
+    const env = scratchEnv();
+    expect(await new Porch({ env, adapters: [stubAdapter("aa")] }).current()).toEqual({ schema: 1, harness: null, session: null });
+    const one = new Porch({ env, adapters: [stubAdapter("aa"), stubAdapter("bb", { current: async () => "s2" })] });
+    expect(await one.current()).toEqual({ schema: 1, harness: "bb", session: "s2" });
+    const two = new Porch({ env, adapters: [stubAdapter("aa", { current: async () => "s1" }), stubAdapter("bb", { current: async () => "s2" })] });
+    await expectPorchError(two.current(), "ambiguous-session");
+  });
+
+  it("writes the self part of the calling session's record, and only that", async () => {
+    const env = scratchEnv({ PORCH_FAKE_SESSION_ID: "s1" });
+    const now = () => new Date("2026-02-03T04:05:06.000Z");
+    const porch = new Porch({ env, adapters: [createFakeAdapter()], now });
+    await fake.startSession(porch.ctx, "s1", { status: "busy" });
+    const result = await porch.statusSet("needs-input", "which branch?");
+    expect(result).toEqual({
+      schema: 1,
+      harness: "fake",
+      session: "s1",
+      self: { status: "needs-input", text: "which branch?", since: "2026-02-03T04:05:06.000Z" },
+    });
+    const rec = await porch.ctx.records.read("fake", "s1");
+    expect(rec?.self).toEqual(result.self);
+    expect(rec?.inside?.status).toBe("busy");
+  });
+
+  it("stores an empty text as null", async () => {
+    const porch = new Porch({ env: scratchEnv({ PORCH_FAKE_SESSION_ID: "s1" }), adapters: [createFakeAdapter()] });
+    expect((await porch.statusSet("done", "")).self.text).toBeNull();
+  });
+
+  it("refuses an unknown status, and refuses outside a session", async () => {
+    const inside = new Porch({ env: scratchEnv({ PORCH_FAKE_SESSION_ID: "s1" }), adapters: [createFakeAdapter()] });
+    await expectPorchError(inside.statusSet("waiting", null), "usage");
+    const outside = new Porch({ env: scratchEnv(), adapters: [createFakeAdapter()] });
+    await expectPorchError(outside.statusSet("done", null), "not-in-session");
+  });
+
+  it("refuses a session id from the environment that could escape the records folder", async () => {
+    const porch = new Porch({ env: scratchEnv({ PORCH_FAKE_SESSION_ID: "../../x" }), adapters: [createFakeAdapter()] });
+    await expectPorchError(porch.statusSet("done", null), "usage");
+  });
+});

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/observation.schema.json",
+  "title": "Porch observation (schema 1)",
+  "description": "Output of porch observe, each element of porch list's sessions, and each line of porch watch.",
+  "type": "object",
+  "required": ["schema", "harness", "session", "status", "since", "detail", "raw", "self"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "harness": { "type": "string", "pattern": "^[a-z][a-z0-9]{0,31}$" },
+    "session": { "type": "string", "minLength": 1 },
+    "status": { "$ref": "#/$defs/sessionStatus" },
+    "since": { "type": ["string", "null"], "format": "date-time" },
+    "detail": { "type": ["object", "null"] },
+    "raw": { "type": ["object", "null"] },
+    "self": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/selfReport" }]
+    }
+  },
+  "$defs": {
+    "sessionStatus": {
+      "enum": ["starting", "busy", "idle", "waiting-on-prompt", "gone", "unknown"]
+    },
+    "selfReport": {
+      "type": "object",
+      "required": ["status", "text", "since"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["working", "needs-input", "blocked", "done", "failed"] },
+        "text": { "type": ["string", "null"] },
+        "since": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
