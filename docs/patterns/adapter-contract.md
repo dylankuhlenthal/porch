@@ -20,7 +20,9 @@ Register the adapter in `builtinAdapters()` (`src/adapters/index.ts`) and its dr
 
 ## The outside part
 
-Every method gets an `AdapterContext`. **Read the environment only from `ctx.env`, and read harness files and run harness commands only through `ctx.io`** (never `process.env`, `fs` or `child_process` directly). That is what lets a conformance run record what the harness returned and the per-PR tests replay it. Session records are read through `ctx.records`. Sending a message in `deliver` (writing to a socket, for example) is not a read and does not go through `ctx.io`.
+Every method gets an `AdapterContext`. **Read the environment only from `ctx.env`, and read harness files and run harness commands only through `ctx.io`** (never `process.env`, `fs` or `child_process` directly). That is what lets a conformance run record what the harness returned and the per-PR tests replay it. Session records are read through `ctx.records`.
+
+Delivery is the one exception: sending a message in `deliver` does not go through `ctx.io`, and neither does the file access that is part of sending. In the current adapters, that means the Claude adapter writing to the session's socket and, just before, checking with `fs.lstat` that the path is a socket owned by this user (`checkSocketOwner` in `src/adapters/claude/socket.ts`), and the fake adapter's `deliver` reading and rewriting its state file under a lock to record the delivery (`updateState` in `src/adapters/fake/state.ts`, which the `porch fake` commands also use).
 
 - `detect`: whether the harness is installed, and its version. It may be slow; nothing on the `list` path may depend on it.
 - `list`: every session the adapter can see, as observations. It must be fast (consumers call `porch list` every few seconds) and must not throw just because the harness is not installed: return an empty list.
@@ -45,7 +47,7 @@ Use the `observation()` and `deliverResult()` helpers from `src/adapter.ts`; the
 
 ### Delivering
 
-- Report only what you can know: `delivered` with `statusAtSend` (the status at the moment of sending), `not-running` when the session is gone or unknown to you, or `failed` with a reason. Never claim the message was read, started a turn or was queued (decision 0001 has the background).
+- Report only what you can know: `delivered` with `statusAtSend` (the status at the moment of sending), `not-running` when the session is gone or unknown to you, or `failed` with a reason. Never claim the message was read, started a turn or was queued. Why: decision 0001 ([each adapter's inside part writes a per-session record](../decisions/0001-inside-part-writes-session-records.md)) settled that delivery results report only what Porch can know, because Claude Code's socket sends nothing back.
 - Set `via` to the mechanism used. Set `guessed: true` when the address was worked out rather than recorded by the session's inside part.
 - Open any connection only when the text is ready, and never use credentials meant for the session itself.
 - Porch keeps no copy of the message; do not add one.

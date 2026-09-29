@@ -94,7 +94,7 @@ jobs:
           npm run conformance -- --harness "$HARNESS" --record
           code=$?
           if [ "$code" -eq 3 ]; then
-            echo "::notice::conformance for $HARNESS skipped: a required secret is not set, or the harness cannot run real turns here"
+            echo "::notice::conformance for $HARNESS skipped: a variable the harness requires is not set, or the harness cannot run real turns here (Claude Code: not logged in and ANTHROPIC_API_KEY empty); the step output above gives the reason"
             exit 0
           fi
           exit "$code"

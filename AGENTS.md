@@ -13,7 +13,7 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 - `src/`: the package. `src/cli/` is the `porch` command, `src/porch.ts` the library, `src/adapter.ts` the adapter contract, `src/records.ts` the session records, `src/watch.ts` watch, `src/adapters/<harness>/` one folder per adapter, `src/conformance/` the conformance suite.
 - `schemas/`: JSON Schema for every output and the record format. Shipped in the package.
 - `tests/`: per-PR tests (`*.test.ts`). `conformance/`: the recorded fixtures and reports from conformance runs, committed.
-- `docs/`: filed by lifetime, following the documentation standard in sous chef's `docs/patterns/documentation.md`: `architecture.md` is the overview; `domains/` says how parts work; `patterns/` sets out the approved way to do things; `operations/` holds runbooks; `reference/` holds contracts; `decisions/` holds append-only decision records (`NNNN-slug.md`, never edited after merge). Plans and specs stay in Linear, never in the repo. Every doc names the files it describes. Change the docs in the same PR as the code.
+- `docs/`: filed by lifetime, following the documentation standard in `docs/patterns/documentation.md`: `architecture.md` is the overview; `domains/` says how parts work; `patterns/` sets out the approved way to do things; `operations/` holds runbooks; `reference/` holds contracts; `decisions/` holds append-only decision records (`NNNN-slug.md`, never edited after merge). Plans and specs stay in Linear, never in the repo. Every doc names the files it describes. Change the docs in the same PR as the code.
 
 ## Terminology
 
@@ -42,18 +42,12 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 
 - Every output and every record carries `schema: 1` and has a JSON Schema in `schemas/` that the tests check real output against. A breaking change bumps the schema version. Read `docs/reference/cli-output.md` before changing any output.
 - The core talks to harnesses only through the adapter contract. Read `docs/patterns/adapter-contract.md` before writing or changing an adapter.
-- Adapters read env, files and commands only through their `AdapterContext` (`ctx.env`, `ctx.io`), never `process.env` or `fs` directly, so conformance runs can record and replay harness output.
+- Adapters read env, files and commands only through their `AdapterContext` (`ctx.env`, `ctx.io`), so conformance runs can record and replay harness output. Delivery is the one exception; `docs/patterns/adapter-contract.md` says what it covers.
 - `unknown` is a valid status and never a guess; deliver reports only what it can know.
 - Every adapter change comes with a conformance run and fixtures. Read `docs/patterns/conformance.md`.
+- Docs are filed by lifetime (plans stay in Linear, durable docs in `docs/`, instructions here), with one home per topic, each doc naming the files it describes, and doc changes in the same PR as the code. Read `docs/patterns/documentation.md` before adding, moving or restructuring a doc.
 
 ## Learnings
 
 - Records and the fake harness file are replaced by rename on every write, which breaks a file watch on the file itself. `src/watch.ts` watches the folder and filters by name.
-- Claude Code (2.1.284): `claude --bg` refuses to start in an untrusted folder ("Workspace not trusted"); trust is inherited from a trusted parent. Conformance case folders therefore live in `.conformance-tmp/` inside the checkout, not in the system temp folder.
-- Claude Code finds its login in the macOS keychain by `USER`: with only `PATH` and `HOME`, `claude auth status` says not logged in. The conformance runner passes `USER`.
-- A `claude --bg` session may start in a spare process prepared earlier, with an earlier launch's environment, so an environment variable set on the launch command may not reach its hooks. `porch hooks claude --porch-home` bakes `PORCH_HOME` into the hook command instead.
-- Messages delivered to a Claude session arrive framed as "another Claude session sent a message", and a model may refuse to act on them (seen with haiku). The conformance driver appends a system prompt telling test sessions to follow them.
-- A message delivered mid-turn shows in the Claude transcript as an `attachment` of type `queued_command`, not as a `user` entry.
-- `claude agents --json --cwd <dir>` filters by the repository the folder belongs to, not by folder.
-- Claude Code (2.1.284): a killed session drops out of `claude agents --json` a few seconds after the kill (only `--all` keeps it), and `claude stop` runs the `SessionEnd` hook, so its record is removed and `porch observe` then answers not found. Consumers must read not found as not running.
-- Claude Code (2.1.284): `Stop` does not fire when an attached person interrupts a turn (Escape), so the record stays busy while the listing says idle. Reproduce by attaching through a pseudo-terminal (`claude attach <short id>`) and sending Escape mid-turn.
+- Claude Code behaviour that has caught us out (folder trust for `claude --bg`, the keychain login found by `USER`, spare processes carrying an earlier launch's environment, how delivered messages arrive and can be refused, `claude agents --json` quirks, `Stop` not firing on an interrupt) is recorded in `docs/domains/claude-adapter.md`, under "What it relies on from Claude Code", "Conformance" and "Known limits". Read it before changing the Claude adapter or its conformance driver.
