@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "porchVersion": "0.1.0",
+  "platform": "darwin-arm64 node v22.14.0",
+  "ranAt": "2026-09-29T15:31:05.246Z",
+  "passed": true,
+  "results": [
+    {
+      "name": "which-session-am-i",
+      "title": "which session am I",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 7
+    },
+    {
+      "name": "deliver-while-idle",
+      "title": "deliver while idle",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 5
+    },
+    {
+      "name": "deliver-while-busy",
+      "title": "deliver while busy",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 5
+    },
+    {
+      "name": "held-at-prompt",
+      "title": "held at a prompt or dialog",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 6
+    },
+    {
+      "name": "killed-session",
+      "title": "a killed session",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 4
+    },
+    {
+      "name": "without-inside-part",
+      "title": "a session without the inside part",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 3
+    },
+    {
+      "name": "watch-delivers-each-change",
+      "title": "watch delivers each change",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 640
+    },
+    {
+      "name": "self-reported-state",
+      "title": "self-reported state",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 8
+    },
+    {
+      "name": "unknown-session",
+      "title": "a session that does not exist",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 2
+    }
+  ]
+}

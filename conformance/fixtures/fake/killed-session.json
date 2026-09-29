@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "killed-session",
+  "recordedAt": "2026-09-29T15:31:04.590Z",
+  "snapshots": [
+    {
+      "label": "killed",
+      "at": "2026-09-29T15:31:04.589Z",
+      "records": {
+        "fake-conf-9cba4b33.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-9cba4b33",
+          "createdAt": "2026-09-29T15:31:04.588Z",
+          "updatedAt": "2026-09-29T15:31:04.588Z",
+          "inside": {
+            "pid": 39800,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-9cba4b33"
+            },
+            "since": "2026-09-29T15:31:04.588Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-9cba4b33\": {\n      \"alive\": false,\n      \"pid\": 39800,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": \"2026-09-29T15:31:04.588Z\",\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-9cba4b33",
+          "status": "gone",
+          "since": "2026-09-29T15:31:04.588Z",
+          "detail": {
+            "pid": 39800,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": null,
+            "lastTurnEnd": null
+          },
+          "raw": {
+            "listing": {
+              "alive": false,
+              "pid": 39800,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": "2026-09-29T15:31:04.588Z",
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-9cba4b33",
+              "createdAt": "2026-09-29T15:31:04.588Z",
+              "updatedAt": "2026-09-29T15:31:04.588Z",
+              "inside": {
+                "pid": 39800,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-9cba4b33"
+                },
+                "since": "2026-09-29T15:31:04.588Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}
