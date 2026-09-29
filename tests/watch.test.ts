@@ -140,4 +140,15 @@ describe("watch", () => {
     expect(lines().map((o) => o.status)).toEqual(["idle", "busy", "gone"]);
     lines().forEach((o) => v.observation!(o));
   });
+
+  it("exits 0 when the reader closes its stdout", async () => {
+    const env = scratchEnv();
+    await bin(["fake", "start", "p1"], env);
+    const child = spawn(process.execPath, [BIN, "watch"], { env: env as NodeJS.ProcessEnv });
+    const exit = new Promise<number | null>((resolve) => child.on("close", resolve));
+    await new Promise<void>((resolve) => child.stdout.once("data", () => resolve()));
+    child.stdout.destroy();
+    await bin(["fake", "set", "p1", "busy"], env);
+    expect(await exit).toBe(0);
+  });
 });

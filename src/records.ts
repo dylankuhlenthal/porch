@@ -91,8 +91,8 @@ export class RecordStore {
   constructor(dir: string, options: RecordStoreOptions = {}) {
     this.dir = dir;
     this.now = options.now ?? (() => new Date());
-    this.lockTimeoutMs = options.lockTimeoutMs ?? 3000;
-    this.staleLockMs = options.staleLockMs ?? 10000;
+    this.lockTimeoutMs = options.lockTimeoutMs ?? 5000;
+    this.staleLockMs = options.staleLockMs ?? 2000;
   }
 
   recordPath(harness: string, session: string): string {

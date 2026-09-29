@@ -14,12 +14,15 @@ export interface LockOptions {
 
 /**
  * Run `fn` while holding `<file>.lock`, created with O_EXCL so only one process
- * holds it at a time. Creates the file's folder if needed.
+ * holds it at a time. Creates the file's folder if needed. Writers hold the lock for
+ * a few milliseconds, so a lock older than `staleMs` (2 s) was left by a writer that
+ * crashed and is broken; that is shorter than `timeoutMs` (5 s), so a waiting
+ * writer gets through instead of failing.
  */
 export async function withLock<T>(file: string, fn: () => Promise<T>, options: LockOptions = {}): Promise<T> {
   const lock = `${file}.lock`;
-  const timeoutMs = options.timeoutMs ?? 3000;
-  const staleMs = options.staleMs ?? 10000;
+  const timeoutMs = options.timeoutMs ?? 5000;
+  const staleMs = options.staleMs ?? 2000;
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     try {

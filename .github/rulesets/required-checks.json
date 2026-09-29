@@ -1,0 +1,17 @@
+{
+  "name": "required: unit and contract tests",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": { "include": ["refs/heads/main", "refs/heads/dyl/TRV-1133-porch"], "exclude": [] }
+  },
+  "rules": [
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": false,
+        "required_status_checks": [{ "context": "unit and contract tests" }]
+      }
+    }
+  ]
+}
