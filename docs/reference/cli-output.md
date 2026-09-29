@@ -25,7 +25,9 @@ What tools that call `porch` as a subprocess can rely on. `porch --help` lists t
 
 An observation is `{ schema, harness, session, status, since, detail, raw, self }`. `detail` is adapter-specific and documented in each adapter's doc; `raw` is the harness output for debugging and may change with the harness. Consumers should not depend on `raw`.
 
-`errors` in `porch list` means one adapter could not list its sessions (for example the harness command failed). Its sessions are missing from `sessions`; they are not gone.
+`errors` in `porch list` means one adapter could not list its sessions (for example the harness command failed), or a session record could not be read (`harness` is the record's harness, or `porch` if the records folder itself could not be read). Those sessions are missing or incomplete in `sessions`; they are not gone.
+
+`porch deliver` answers `failed` (exit 4) rather than `not-running` when no adapter knows the session but one of them could not be asked; `porch observe` then gives an `internal` error (exit 1) naming the harness.
 
 ## Exit codes
 
@@ -33,7 +35,7 @@ An observation is `{ schema, harness, session, status, since, detail, raw, self 
 | --- | --- | --- |
 | 0 | success | |
 | 1 | unexpected internal error | `internal` |
-| 2 | usage: bad arguments, unknown command or harness, invalid session id or sender label | `usage` |
+| 2 | usage: bad arguments or flags (including on harness commands), unknown command or harness, invalid session id or sender label | `usage` |
 | 3 | `porch observe`: no adapter knows the session | `not-found` |
 | 4 | `porch deliver` ran but the result is `not-running` or `failed`; the deliver result is printed, not an error document | |
 | 5 | `porch status set` did not run inside a session Porch can identify | `not-in-session` |

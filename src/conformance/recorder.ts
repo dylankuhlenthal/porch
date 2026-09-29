@@ -13,7 +13,9 @@
  * adapter reads harness output is checked against real output without the harness.
  *
  * Paths are stored with placeholders ($PORCH_HOME, $WORK, $HOME) so a fixture
- * replays anywhere and does not carry the recording machine's home folder.
+ * replays anywhere and does not carry the recording machine's home folder, and
+ * the values of the extra environment variables a harness needs (its API key)
+ * are replaced with $REDACTED. Other harness output is kept as recorded.
  */
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -112,9 +114,13 @@ function substitutions(env: Env, workDir: string | null): [string, string][] {
   return pairs.filter(([p]) => p.length > 1).sort((x, y) => y[0].length - x[0].length);
 }
 
-/** Replace machine paths with placeholders in every string inside `value`. */
-export function toPlaceholders<T>(value: T, env: Env, workDir: string | null): T {
-  const subs = substitutions(env, workDir);
+/**
+ * Replace machine paths with placeholders in every string inside `value`, and
+ * any of `secrets` (such as the API key a harness needs) with `$REDACTED`.
+ */
+export function toPlaceholders<T>(value: T, env: Env, workDir: string | null, secrets: string[] = []): T {
+  const redact: [string, string][] = secrets.filter((x) => x.length >= 8).map((x) => [x, "$REDACTED"]);
+  const subs = [...redact, ...substitutions(env, workDir)];
   return mapStrings(value, (s) => subs.reduce((acc, [from, to]) => acc.split(from).join(to), s));
 }
 
@@ -140,6 +146,7 @@ export async function takeSnapshot(
   ctx: AdapterContext,
   io: RecordingIO,
   workDir: string,
+  secrets: string[] = [],
 ): Promise<Snapshot> {
   const records: Record<string, unknown> = {};
   let names: string[] = [];
@@ -160,7 +167,7 @@ export async function takeSnapshot(
   const at = ctx.now().toISOString();
   const frozen: AdapterContext = { ...ctx, now: () => new Date(at) };
   const observations = await adapter.list(frozen);
-  return toPlaceholders({ label, at, records, io: io.take(), observations }, ctx.env, workDir);
+  return toPlaceholders({ label, at, records, io: io.take(), observations }, ctx.env, workDir, secrets);
 }
 
 export interface ReplayMismatch {

@@ -60,16 +60,20 @@ const HARNESS_RE = /^[a-z][a-z0-9]{0,31}$/;
 const SESSION_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
 
 export class RecordError extends Error {}
+/** A harness name or session id that is not allowed (it could point outside the records folder). */
+export class InvalidIdError extends RecordError {}
+/** A record file that cannot be read as a schema 1 record. Writers refuse to overwrite it. */
+export class CorruptRecordError extends RecordError {}
 
 export function validateHarness(harness: string): void {
   if (!HARNESS_RE.test(harness)) {
-    throw new RecordError(`invalid harness name '${harness}' (lowercase letters and digits, starting with a letter)`);
+    throw new InvalidIdError(`invalid harness name '${harness}' (lowercase letters and digits, starting with a letter)`);
   }
 }
 
 export function validateSessionId(session: string): void {
   if (!SESSION_RE.test(session) || session.includes("..")) {
-    throw new RecordError(`invalid session id '${session}'`);
+    throw new InvalidIdError(`invalid session id '${session}'`);
   }
 }
 
@@ -154,7 +158,9 @@ export class RecordStore {
       if (typeof change === "function") {
         next = change(current === null ? null : structuredClone(current));
       } else {
-        next = { ...(current ?? {}), ...change };
+        // A key given as undefined means "not part of this patch", never "erase it".
+        const patch = Object.fromEntries(Object.entries(change).filter(([, v]) => v !== undefined)) as InsidePart;
+        next = { ...(current ?? {}), ...patch };
         if (change.data !== undefined) next.data = { ...(current?.data ?? {}), ...change.data };
       }
       const statusChanged = next.status != null && next.status !== current?.status;
@@ -220,8 +226,13 @@ async function readRecordFile(file: string): Promise<SessionRecord | null> {
     if (isNotFound(err)) return null;
     throw err;
   }
-  const parsed: unknown = JSON.parse(text);
-  if (!isRecord(parsed)) throw new RecordError(`${path.basename(file)} is not a schema ${SCHEMA_VERSION} session record`);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new CorruptRecordError(`${path.basename(file)} is not valid JSON`);
+  }
+  if (!isRecord(parsed)) throw new CorruptRecordError(`${path.basename(file)} is not a schema ${SCHEMA_VERSION} session record`);
   return parsed;
 }
 

@@ -8,7 +8,7 @@ import { parseArgs } from "node:util";
 import type { AdapterCommand, CommandContext } from "../../adapter.js";
 import { jsonLine } from "../../cli/output.js";
 import { PorchError } from "../../errors.js";
-import { RecordError } from "../../records.js";
+import { InvalidIdError } from "../../records.js";
 import { SCHEMA_VERSION } from "../../types.js";
 import { fakeObservation } from "./observe.js";
 import { fakeStatePath, parseState } from "./state.js";
@@ -44,7 +44,7 @@ async function guard(fn: () => Promise<number>): Promise<number> {
     return await fn();
   } catch (err) {
     if (err instanceof FakeSessionError) throw new PorchError("not-found", err.message);
-    if (err instanceof RecordError) throw new PorchError("usage", err.message);
+    if (err instanceof InvalidIdError) throw new PorchError("usage", err.message);
     throw err;
   }
 }
@@ -81,14 +81,41 @@ export const fakeCommands: AdapterCommand[] = [
   ),
   command(
     "set",
-    "the session's inside part reports a status",
-    "porch fake set <session> starting|busy|idle",
+    "the session's inside part reports a status (and, optionally, turn times)",
+    "porch fake set <session> starting|busy|idle [--last-turn-start <iso>] [--last-turn-end <iso>] [--background-tasks <n>]",
     async (args, ctx) => {
-      const [session, status, ...rest] = args;
+      const usage =
+        "porch fake set <session> starting|busy|idle [--last-turn-start <iso>] [--last-turn-end <iso>] [--background-tasks <n>]";
+      const { values, positionals } = parseArgs({
+        args,
+        allowPositionals: true,
+        options: {
+          "last-turn-start": { type: "string" },
+          "last-turn-end": { type: "string" },
+          "background-tasks": { type: "string" },
+        },
+      });
+      const [session, status, ...rest] = positionals;
       if (session === undefined || status === undefined || rest.length > 0 || !INSIDE_STATUSES.includes(status as FakeInsideStatus)) {
-        throw new PorchError("usage", "usage: porch fake set <session> starting|busy|idle");
+        throw new PorchError("usage", `usage: ${usage}`);
       }
-      await setInsideStatus(ctx.adapter, session, status as FakeInsideStatus);
+      const iso = (v: string | undefined, flag: string) => {
+        if (v === undefined) return undefined;
+        if (Number.isNaN(Date.parse(v))) throw new PorchError("usage", `${flag} must be an ISO 8601 time`);
+        return new Date(v).toISOString();
+      };
+      let backgroundTasks: number | undefined;
+      if (values["background-tasks"] !== undefined) {
+        backgroundTasks = Number(values["background-tasks"]);
+        if (!Number.isInteger(backgroundTasks) || backgroundTasks < 0) {
+          throw new PorchError("usage", "--background-tasks must be a whole number, 0 or more");
+        }
+      }
+      await setInsideStatus(ctx.adapter, session, status as FakeInsideStatus, {
+        lastTurnStart: iso(values["last-turn-start"], "--last-turn-start"),
+        lastTurnEnd: iso(values["last-turn-end"], "--last-turn-end"),
+        backgroundTasks,
+      });
       return printObservation(ctx, session);
     },
   ),

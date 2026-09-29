@@ -3,26 +3,26 @@
   "harness": "fake",
   "harnessVersion": "fake-1",
   "case": "which-session-am-i",
-  "recordedAt": "2026-09-29T15:31:04.569Z",
+  "recordedAt": "2026-09-29T15:46:15.152Z",
   "snapshots": [
     {
       "label": "started",
-      "at": "2026-09-29T15:31:04.568Z",
+      "at": "2026-09-29T15:46:15.152Z",
       "records": {
-        "fake-conf-08d3aad0.json": {
+        "fake-conf-2d36f00b.json": {
           "schema": 1,
           "harness": "fake",
-          "session": "conf-08d3aad0",
-          "createdAt": "2026-09-29T15:31:04.566Z",
-          "updatedAt": "2026-09-29T15:31:04.566Z",
+          "session": "conf-2d36f00b",
+          "createdAt": "2026-09-29T15:46:15.150Z",
+          "updatedAt": "2026-09-29T15:46:15.150Z",
           "inside": {
-            "pid": 39800,
+            "pid": 42827,
             "status": "idle",
             "delivery": {
               "via": "fake",
-              "address": "fake:conf-08d3aad0"
+              "address": "fake:conf-2d36f00b"
             },
-            "since": "2026-09-29T15:31:04.567Z"
+            "since": "2026-09-29T15:46:15.150Z"
           },
           "self": null
         }
@@ -31,27 +31,28 @@
         {
           "op": "readFile",
           "path": "$PORCH_HOME/fake-harness.json",
-          "result": "{\n  \"sessions\": {\n    \"conf-08d3aad0\": {\n      \"alive\": true,\n      \"pid\": 39800,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+          "result": "{\n  \"sessions\": {\n    \"conf-2d36f00b\": {\n      \"alive\": true,\n      \"pid\": 42827,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
         }
       ],
       "observations": [
         {
           "schema": 1,
           "harness": "fake",
-          "session": "conf-08d3aad0",
+          "session": "conf-2d36f00b",
           "status": "idle",
-          "since": "2026-09-29T15:31:04.567Z",
+          "since": "2026-09-29T15:46:15.150Z",
           "detail": {
-            "pid": 39800,
+            "pid": 42827,
             "prompt": null,
             "hasInsidePart": true,
             "lastTurnStart": null,
-            "lastTurnEnd": null
+            "lastTurnEnd": null,
+            "backgroundTasks": null
           },
           "raw": {
             "listing": {
               "alive": true,
-              "pid": 39800,
+              "pid": 42827,
               "prompt": null,
               "promptSince": null,
               "goneSince": null,
@@ -60,17 +61,17 @@
             "record": {
               "schema": 1,
               "harness": "fake",
-              "session": "conf-08d3aad0",
-              "createdAt": "2026-09-29T15:31:04.566Z",
-              "updatedAt": "2026-09-29T15:31:04.566Z",
+              "session": "conf-2d36f00b",
+              "createdAt": "2026-09-29T15:46:15.150Z",
+              "updatedAt": "2026-09-29T15:46:15.150Z",
               "inside": {
-                "pid": 39800,
+                "pid": 42827,
                 "status": "idle",
                 "delivery": {
                   "via": "fake",
-                  "address": "fake:conf-08d3aad0"
+                  "address": "fake:conf-2d36f00b"
                 },
-                "since": "2026-09-29T15:31:04.567Z"
+                "since": "2026-09-29T15:46:15.150Z"
               },
               "self": null
             }

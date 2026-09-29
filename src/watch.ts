@@ -11,7 +11,7 @@
  * Each look asks the adapters for their listing and compares every session with
  * what was last reported, ignoring `raw`. A session that is new or changed is
  * reported; a session that disappears from its adapter's listing is reported once
- * as `gone`. An adapter whose listing fails keeps its last-reported sessions (no
+ * as `gone` (with `since` and `detail` null, since neither is known) and then forgotten. An adapter whose listing fails keeps its last-reported sessions (no
  * false `gone`) and the error goes to `onError`.
  */
 import { watch as fsWatch, promises as fs, type FSWatcher } from "node:fs";
@@ -40,7 +40,7 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
   const { adapters, ctx, signal } = options;
   if (signal.aborted) return;
   const debounceMs = options.debounceMs ?? 25;
-  const last = new Map<string, { adapter: string; key: string; observation: Observation }>();
+  const last = new Map<string, { adapter: string; key: string; harness: string; session: string; self: Observation["self"] }>();
   const watchers: FSWatcher[] = [];
   const timers: NodeJS.Timeout[] = [];
   let debounce: NodeJS.Timeout | null = null;
@@ -67,22 +67,18 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
         seen.add(id);
         const key = comparisonKey(obs);
         if (last.get(id)?.key !== key) {
-          last.set(id, { adapter: adapter.harness, key, observation: obs });
+          // Keep only what the gone report below needs, not `raw`.
+          last.set(id, { adapter: adapter.harness, key, harness: obs.harness, session: obs.session, self: obs.self });
           emit(obs);
         }
       }
       for (const [id, prev] of last) {
-        if (prev.adapter !== adapter.harness || seen.has(id) || prev.observation.status === "gone") continue;
-        const gone = observation({
-          harness: prev.observation.harness,
-          session: prev.observation.session,
-          status: "gone",
-          since: ctx.now().toISOString(),
-          detail: prev.observation.detail,
-          self: prev.observation.self,
-        });
-        last.set(id, { adapter: adapter.harness, key: comparisonKey(gone), observation: gone });
-        emit(gone);
+        if (prev.adapter !== adapter.harness || seen.has(id)) continue;
+        // The session left its adapter's listing: report it once as gone, then
+        // forget it, so a long-running watch does not keep every session ever seen.
+        // When it went and what its detail was are not known, so both are null.
+        last.delete(id);
+        emit(observation({ harness: prev.harness, session: prev.session, status: "gone", self: prev.self }));
       }
     }
   };

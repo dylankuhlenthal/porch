@@ -67,8 +67,14 @@ describe("watch", () => {
     sessions = [];
     await waitFor(() => w.statuses().includes("x:gone"));
     await new Promise((r) => setTimeout(r, 100));
+    // It is forgotten once reported, so coming back is reported as new.
+    sessions = [observation({ harness: "aa", session: "x", status: "idle" })];
+    await waitFor(() => w.statuses().includes("x:idle"));
     await w.stop();
-    expect(w.statuses()).toEqual(["x:busy", "x:gone"]);
+    expect(w.statuses()).toEqual(["x:busy", "x:gone", "x:idle"]);
+    const gone = w.seen.find((o) => o.status === "gone")!;
+    expect(gone).toMatchObject({ since: null, detail: null, raw: null });
+    v.observation!(gone);
   });
 
   it("does not report sessions as gone when their adapter's listing fails, and reports the error", async () => {

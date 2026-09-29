@@ -20,7 +20,7 @@ Register the adapter in `builtinAdapters()` (`src/adapters/index.ts`) and its dr
 
 ## The outside part
 
-Every method gets an `AdapterContext`. **Read the environment only from `ctx.env`, and read harness files and run harness commands only through `ctx.io`** (never `process.env`, `fs` or `child_process` directly). That is what lets a conformance run record what the harness returned and the per-PR tests replay it. Session records are read through `ctx.records`.
+Every method gets an `AdapterContext`. **Read the environment only from `ctx.env`, and read harness files and run harness commands only through `ctx.io`** (never `process.env`, `fs` or `child_process` directly). That is what lets a conformance run record what the harness returned and the per-PR tests replay it. Session records are read through `ctx.records`. Sending a message in `deliver` (writing to a socket, for example) is not a read and does not go through `ctx.io`.
 
 - `detect`: whether the harness is installed, and its version. It may be slow; nothing on the `list` path may depend on it.
 - `list`: every session the adapter can see, as observations. It must be fast (consumers call `porch list` every few seconds) and must not throw just because the harness is not installed: return an empty list.

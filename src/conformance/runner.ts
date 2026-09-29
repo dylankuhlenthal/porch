@@ -103,6 +103,11 @@ async function runCase(
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `porch-conformance-${c.name}-`));
   const env: Env = { ...baseEnv, PORCH_HOME: path.join(workDir, "porch-home") };
   const io = new RecordingIO(realIO);
+  // Everything in the base environment besides PATH and HOME is there because the
+  // harness needs it (an API key, for example): keep its values out of fixtures.
+  const secrets = Object.entries(baseEnv)
+    .filter(([k, v]) => k !== "PATH" && k !== "HOME" && typeof v === "string")
+    .map(([, v]) => v as string);
   const porch = new Porch({ env, adapters: [adapter], io });
   const snapshots: Snapshot[] = [];
   const ctx: CaseContext = {
@@ -111,7 +116,7 @@ async function runCase(
     porch,
     porchInside: (s: DriverSession) => new Porch({ env: { ...env, ...driver.envInside(s) }, adapters: [adapter], io }),
     snapshot: async (label) => {
-      snapshots.push(await takeSnapshot(label, adapter, porch.ctx, io, workDir));
+      snapshots.push(await takeSnapshot(label, adapter, porch.ctx, io, workDir, secrets));
     },
     from: options.from ?? "porch-conformance",
   };

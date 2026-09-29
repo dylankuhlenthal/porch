@@ -61,6 +61,29 @@ describe("conformance suite against the fake adapter", () => {
     }
   });
 
+  it("keeps the values of the harness's extra environment variables (its API key) out of fixtures", async () => {
+    const secret = "sk-test-0123456789abcdef";
+    const real = createFakeAdapter();
+    // An adapter whose harness output happens to echo the key.
+    const adapter = withAdapter({
+      list: async (ctx) => (await real.list(ctx)).map((o) => ({ ...o, raw: { ...o.raw, leaked: `key=${ctx.env.PORCH_TEST_API_KEY}` } })),
+    });
+    const fixtures: Fixture[] = [];
+    const report = await runConformance({
+      adapter,
+      driver: quickDriver(),
+      cases: ["deliver-while-idle"],
+      baseEnv: { PATH: process.env.PATH, HOME: process.env.HOME, PORCH_TEST_API_KEY: secret },
+      onFixture: (f) => {
+        fixtures.push(f);
+      },
+    });
+    expect(report.passed).toBe(true);
+    const text = JSON.stringify(fixtures);
+    expect(text).not.toContain(secret);
+    expect(text).toContain("key=$REDACTED");
+  });
+
   it("covers every case named in decision 15, plus self-reported state and a made-up session", () => {
     expect(CASES.map((c) => c.name)).toEqual([
       "which-session-am-i",

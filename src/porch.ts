@@ -2,13 +2,15 @@
  * The library: one object that asks every adapter and combines the answers. The
  * CLI (src/cli/) is a thin layer over this, and Node consumers can use it directly.
  */
+import path from "node:path";
+
 import { deliverResult, type Adapter, type AdapterContext } from "./adapter.js";
 import { builtinAdapters } from "./adapters/index.js";
 import { PorchError } from "./errors.js";
 import { errorMessage } from "./fsutil.js";
 import { porchHome, sessionsDir, type Env } from "./home.js";
 import { realIO, type HarnessIO } from "./io.js";
-import { RecordError, RecordStore } from "./records.js";
+import { InvalidIdError, RecordStore } from "./records.js";
 import {
   SCHEMA_VERSION,
   SELF_STATUSES,
@@ -36,6 +38,13 @@ export const MAX_FROM_LENGTH = 100;
 /** The text a session receives: the sender label in brackets, then the message. */
 export function formatMessage(from: string, text: string): string {
   return `[from ${from}] ${text}`;
+}
+
+/** No adapter found the session, but at least one could not be asked. */
+class LookupFailedError extends PorchError {
+  constructor(message: string) {
+    super("internal", message);
+  }
 }
 
 export class Porch {
@@ -76,6 +85,22 @@ export class Porch {
       if (r.status === "fulfilled") sessions.push(...r.value);
       else errors.push({ harness: adapter.harness, message: errorMessage(r.reason) });
     });
+    // A record file that cannot be read would otherwise just vanish from the
+    // adapter's view (its session showing as if it had no inside part). Say so.
+    const wanted = new Set(adapters.map((a) => a.harness));
+    const { problems } = await this.ctx.records.list().catch((err: unknown) => ({
+      problems: [{ file: this.ctx.records.dir, message: errorMessage(err) }],
+    }));
+    for (const p of problems) {
+      if (p.file === this.ctx.records.dir) {
+        errors.push({ harness: "porch", message: `cannot read the records folder: ${p.message}` });
+        continue;
+      }
+      const harness = path.basename(p.file).split("-")[0] ?? "";
+      if (wanted.has(harness)) {
+        errors.push({ harness, message: `unreadable session record ${path.basename(p.file)}: ${p.message}` });
+      }
+    }
     return { schema: SCHEMA_VERSION, sessions, errors };
   }
 
@@ -107,6 +132,10 @@ export class Porch {
           result: "not-running",
           reason: "no adapter knows this session",
         });
+      }
+      if (err instanceof LookupFailedError) {
+        // A harness we could not ask might know the session, so "not running" would be a guess.
+        return deliverResult({ harness: options.harness ?? null, session, result: "failed", reason: err.message });
       }
       throw err;
     }
@@ -147,7 +176,7 @@ export class Porch {
     try {
       await this.ctx.records.setSelf(current.harness, current.session, self);
     } catch (err) {
-      if (err instanceof RecordError) throw new PorchError("usage", err.message);
+      if (err instanceof InvalidIdError) throw new PorchError("usage", err.message);
       throw err;
     }
     return { schema: SCHEMA_VERSION, harness: current.harness, session: current.session, self };
@@ -160,10 +189,18 @@ export class Porch {
 
   private async find(session: string, harness?: string): Promise<{ adapter: Adapter; observation: Observation }> {
     const adapters = this.adaptersFor(harness);
-    const results = await Promise.all(
-      adapters.map(async (adapter) => ({ adapter, observation: await adapter.observe(this.ctx, session) })),
-    );
-    const found = results.filter((r): r is { adapter: Adapter; observation: Observation } => r.observation !== null);
+    const settled = await Promise.allSettled(adapters.map((adapter) => adapter.observe(this.ctx, session)));
+    const found: { adapter: Adapter; observation: Observation }[] = [];
+    const failed: string[] = [];
+    settled.forEach((r, i) => {
+      const adapter = adapters[i]!;
+      if (r.status === "rejected") failed.push(`${adapter.harness}: ${errorMessage(r.reason)}`);
+      else if (r.value !== null) found.push({ adapter, observation: r.value });
+    });
+    // One harness failing must not hide a session another harness knows.
+    if (found.length === 0 && failed.length > 0) {
+      throw new LookupFailedError(`could not ask every harness about '${session}' (${failed.join("; ")})`);
+    }
     if (found.length === 0) throw new PorchError("not-found", `no session '${session}'`);
     if (found.length > 1) {
       throw new PorchError(

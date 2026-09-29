@@ -36,8 +36,27 @@ export async function startSession(ctx: AdapterContext, session: string, options
   }
 }
 
-/** The inside part reports a status change (like turn-start and turn-end hooks). */
-export async function setInsideStatus(ctx: AdapterContext, session: string, status: FakeInsideStatus): Promise<void> {
+export interface TurnFields {
+  /** Set the turn times directly (ISO 8601), for example to model a turn that ended long ago. */
+  lastTurnStart?: string | null;
+  lastTurnEnd?: string | null;
+  /** Background tasks still running at the end of the turn, as a Stop hook reports. */
+  backgroundTasks?: number | null;
+}
+
+/**
+ * The inside part reports a status change (like turn-start and turn-end hooks):
+ * going busy sets `lastTurnStart`, going from busy to idle sets `lastTurnEnd`.
+ * `fields` set the turn times and background task count directly and win over
+ * those automatic ones, so a test can model, say, a record that still says busy
+ * although its last turn ended ten minutes ago.
+ */
+export async function setInsideStatus(
+  ctx: AdapterContext,
+  session: string,
+  status: FakeInsideStatus,
+  fields: TurnFields = {},
+): Promise<void> {
   const now = ctx.now().toISOString();
   await ctx.records.updateInside(HARNESS, session, (current) => {
     const next = { ...(current ?? {}) };
@@ -47,6 +66,9 @@ export async function setInsideStatus(ctx: AdapterContext, session: string, stat
       next.status = status;
       next.since = now;
     }
+    if (fields.lastTurnStart !== undefined) next.lastTurnStart = fields.lastTurnStart;
+    if (fields.lastTurnEnd !== undefined) next.lastTurnEnd = fields.lastTurnEnd;
+    if (fields.backgroundTasks !== undefined) next.backgroundTasks = fields.backgroundTasks;
     return next;
   });
 }

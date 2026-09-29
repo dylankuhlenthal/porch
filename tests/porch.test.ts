@@ -1,3 +1,5 @@
+import { writeFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import { observation } from "../src/adapter.js";
@@ -40,6 +42,17 @@ describe("Porch.list", () => {
   });
 });
 
+describe("Porch.list and unreadable records", () => {
+  it("reports a session record it cannot read in errors instead of silently dropping it", async () => {
+    const env = scratchEnv();
+    const porch = new Porch({ env, adapters: [createFakeAdapter()] });
+    await fake.startSession(porch.ctx, "s1");
+    writeFileSync(porch.ctx.records.recordPath("fake", "s1"), "{bad");
+    const result = await porch.list();
+    expect(result.errors).toEqual([{ harness: "fake", message: "unreadable session record fake-s1.json: fake-s1.json is not valid JSON" }]);
+  });
+});
+
 describe("Porch.observe", () => {
   it("is not-found when no adapter knows the session, and ambiguous when two do", async () => {
     const obs = (h: string) => async (_: unknown, s: string) => observation({ harness: h, session: s, status: "idle" });
@@ -48,6 +61,24 @@ describe("Porch.observe", () => {
     expect((await porch.observe("x", "bb")).harness).toBe("bb");
     const none = new Porch({ env: scratchEnv(), adapters: [stubAdapter("aa")] });
     await expectPorchError(none.observe("x"), "not-found");
+  });
+});
+
+describe("one harness failing does not hide another's sessions", () => {
+  const broken = () => stubAdapter("broken", { observe: async () => Promise.reject(new Error("claude agents timed out")) });
+
+  it("observes and delivers to a session a healthy adapter knows", async () => {
+    const porch = new Porch({ env: scratchEnv(), adapters: [broken(), createFakeAdapter()] });
+    await fake.startSession(porch.ctx, "s1");
+    expect((await porch.observe("s1")).harness).toBe("fake");
+    expect((await porch.deliver("s1", "hi", { from: "t" })).result).toBe("delivered");
+  });
+
+  it("says failed, not not-running, when the only harness that might know the session could not be asked", async () => {
+    const porch = new Porch({ env: scratchEnv(), adapters: [broken(), createFakeAdapter()] });
+    const r = await porch.deliver("ghost", "hi", { from: "t" });
+    expect(r).toMatchObject({ result: "failed", reason: expect.stringContaining("broken: claude agents timed out") });
+    await expectPorchError(porch.observe("ghost"), "internal");
   });
 });
 

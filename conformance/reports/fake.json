@@ -4,7 +4,7 @@
   "harnessVersion": "fake-1",
   "porchVersion": "0.1.0",
   "platform": "darwin-arm64 node v22.14.0",
-  "ranAt": "2026-09-29T15:31:05.246Z",
+  "ranAt": "2026-09-29T15:46:15.825Z",
   "passed": true,
   "results": [
     {
@@ -12,7 +12,7 @@
       "title": "which session am I",
       "result": "pass",
       "reason": null,
-      "durationMs": 7
+      "durationMs": 8
     },
     {
       "name": "deliver-while-idle",
@@ -26,7 +26,7 @@
       "title": "deliver while busy",
       "result": "pass",
       "reason": null,
-      "durationMs": 5
+      "durationMs": 6
     },
     {
       "name": "held-at-prompt",
@@ -40,7 +40,7 @@
       "title": "a killed session",
       "result": "pass",
       "reason": null,
-      "durationMs": 4
+      "durationMs": 5
     },
     {
       "name": "without-inside-part",
@@ -54,14 +54,14 @@
       "title": "watch delivers each change",
       "result": "pass",
       "reason": null,
-      "durationMs": 640
+      "durationMs": 634
     },
     {
       "name": "self-reported-state",
       "title": "self-reported state",
       "result": "pass",
       "reason": null,
-      "durationMs": 8
+      "durationMs": 7
     },
     {
       "name": "unknown-session",

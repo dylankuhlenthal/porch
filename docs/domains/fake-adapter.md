@@ -13,7 +13,7 @@ Code: `src/adapters/fake/` (`index.ts` the adapter, `observe.ts` how status is w
 `porch --help` lists them with their flags. In short:
 
 - `porch fake start <session> [--no-inside]`: a session starts. Without `--no-inside` its record is written, as a harness with Porch's inside part would.
-- `porch fake set <session> starting|busy|idle`: the inside part reports a status (turn start and end set `lastTurnStart` and `lastTurnEnd`).
+- `porch fake set <session> starting|busy|idle`: the inside part reports a status (going busy sets `lastTurnStart`; busy to idle sets `lastTurnEnd`). `--last-turn-start`, `--last-turn-end` and `--background-tasks` set those fields directly, for example to model a record that still says busy although its last turn ended long ago.
 - `porch fake prompt <session> <text>` and `--clear`: a permission prompt or dialog opens or closes. Only the harness file shows it, as with Claude Code.
 - `porch fake kill <session>`: the session dies and leaves its record behind. `porch fake end <session>`: it ends cleanly and its record is removed.
 - `porch fake fail-deliver <session> <reason>` and `--clear`: deliver fails with that reason.
@@ -30,7 +30,7 @@ In order (`fakeObservation` in `observe.ts`):
 3. The record's inside part has a status: that status and its `since`.
 4. Otherwise (a session without the inside part): `unknown`.
 
-`detail` has `pid`, `prompt`, `hasInsidePart`, `lastTurnStart` and `lastTurnEnd`. `raw` has the harness file row and the record.
+`detail` has `pid`, `prompt`, `hasInsidePart`, `lastTurnStart`, `lastTurnEnd` and `backgroundTasks`. `raw` has the harness file row and the record.
 
 ## Other behaviour
 

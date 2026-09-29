@@ -14,6 +14,7 @@ export function fakeObservation(session: string, row: FakeSession | undefined, r
     hasInsidePart: inside !== null,
     lastTurnStart: inside?.lastTurnStart ?? null,
     lastTurnEnd: inside?.lastTurnEnd ?? null,
+    backgroundTasks: inside?.backgroundTasks ?? null,
   };
   const raw = { listing: row ?? null, record: rec };
   const self = rec?.self ?? null;

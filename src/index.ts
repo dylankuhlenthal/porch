@@ -8,7 +8,7 @@ export * from "./types.js";
 export * from "./adapter.js";
 export { Porch, formatMessage, MAX_FROM_LENGTH, type PorchOptions } from "./porch.js";
 export { PorchError } from "./errors.js";
-export { RecordStore, RecordError, validateHarness, validateSessionId } from "./records.js";
+export { RecordStore, RecordError, InvalidIdError, CorruptRecordError, validateHarness, validateSessionId } from "./records.js";
 export type { DeliveryAddress, InsidePart, SessionRecord, RecordProblem, RecordStoreOptions } from "./records.js";
 export { porchHome, sessionsDir, type Env } from "./home.js";
 export { realIO, type HarnessIO, type RunResult, type RunOptions } from "./io.js";

@@ -83,6 +83,12 @@ function parse(args: string[], options: Record<string, { type: "string" | "boole
   }
 }
 
+/** node:util parseArgs failures (unknown flag, missing value), wherever an adapter command calls it. */
+function isParseArgsError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException)?.code;
+  return typeof code === "string" && code.startsWith("ERR_PARSE_ARGS_");
+}
+
 function noPositionals(positionals: string[], usage: string): void {
   if (positionals.length > 0) throw new PorchError("usage", `usage: ${usage}`);
 }
@@ -122,7 +128,11 @@ export async function runCli(argv: string[], io: CliIO, options: CliOptions = {}
         const [session, ...words] = positionals;
         const usage = "porch deliver <session> --from <label> [--harness <h>] (<text...> | -)";
         if (session === undefined || typeof values.from !== "string") throw new PorchError("usage", `usage: ${usage}`);
-        const text = words.length === 0 || (words.length === 1 && words[0] === "-") ? await io.readStdin() : words.join(" ");
+        // A message piped in usually ends with a newline the sender did not mean to send.
+        const text =
+          words.length === 0 || (words.length === 1 && words[0] === "-")
+            ? (await io.readStdin()).replace(/[\r\n]+$/, "")
+            : words.join(" ");
         const result = await porch.deliver(session, text, {
           from: values.from,
           harness: values.harness as string | undefined,
@@ -184,7 +194,12 @@ export async function runCli(argv: string[], io: CliIO, options: CliOptions = {}
       }
     }
   } catch (err) {
-    const porchErr = err instanceof PorchError ? err : new PorchError("internal", errorMessage(err));
+    const porchErr =
+      err instanceof PorchError
+        ? err
+        : isParseArgsError(err)
+          ? new PorchError("usage", errorMessage(err))
+          : new PorchError("internal", errorMessage(err));
     const body: ErrorResult = { schema: SCHEMA_VERSION, error: { code: porchErr.code, message: porchErr.message } };
     out(body);
     return exitCodeFor(porchErr.code);

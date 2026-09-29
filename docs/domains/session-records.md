@@ -20,16 +20,18 @@ A record may have only a `self` part: `porch status set` in a session whose harn
 
 Every write goes through `RecordStore`: `updateInside(harness, session, patch)` and `remove(harness, session)` for the inside part, `setSelf(...)` for `porch status set`. Each write:
 
-1. takes `<file>.lock`, created exclusively, so only one process writes a record at a time (a lock older than 2 seconds was left by a crashed writer and is broken);
+1. takes `<file>.lock`, created exclusively and holding a token unique to this write, so only one process writes a record at a time. A lock older than 2 seconds whose writer's process has exited, or older than 30 seconds in any case, was left by a crashed writer and is broken (`withLock` in `src/fsutil.ts`);
 2. reads the current record, or starts a new one;
 3. changes only its own part;
 4. writes the whole record to a temp file next to it and renames it over the old one, so readers never see a half-written file.
 
 Because every writer changes only its own part under the lock, a hook recording a turn end and `porch status set` running at the same moment both land.
 
-`updateInside` with a patch object merges it onto the current inside part (and `data` key by key). With a function, the function gets the current inside part and returns the whole new one. Either way, when `status` changes and no `since` is given, `since` is set to now.
+`updateInside` with a patch object merges it onto the current inside part (and `data` key by key); a key given as `undefined` is left out of the patch, never used to erase a value. With a function, the function gets the current inside part and returns the whole new one. Either way, when `status` changes and no `since` is given, `since` is set to now.
 
-Readers (`read`, `list`) take no lock. `list` skips `.lock` and `.tmp` files and reports a file it cannot parse, or whose name does not match its contents, as a problem instead of failing.
+A record that exists but cannot be read (not JSON, or not a schema 1 record) is never overwritten: writes to it fail with `CorruptRecordError`. Records are only written by rename, so this happens only if something else edited the file.
+
+Readers (`read`, `list`) take no lock. `list` skips `.lock` and `.tmp` files and reports a file it cannot parse, or whose name does not match its contents, as a problem instead of failing; `porch list` shows these problems in its `errors`.
 
 ## Who removes records
 

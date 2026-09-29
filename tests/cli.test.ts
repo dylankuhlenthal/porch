@@ -48,10 +48,17 @@ describe("porch CLI (in process)", () => {
   it("reads the message from stdin when the text is - or missing", async () => {
     const env = scratchEnv();
     await cli(["fake", "start", "s1"], env);
-    await cli(["deliver", "s1", "--from", "t", "-"], env, { stdin: "line one\nline two" });
+    await cli(["deliver", "s1", "--from", "t", "-"], env, { stdin: "line one\nline two\n" });
     await cli(["deliver", "s1", "--from", "t"], env, { stdin: "from stdin" });
     const texts = (await cli(["fake", "deliveries"], env)).json.deliveries.map((d: { text: string }) => d.text);
     expect(texts).toEqual(["[from t] line one\nline two", "[from t] from stdin"]);
+  });
+
+  it("sets turn times and background tasks on a fake session, for modelling a stale busy record", async () => {
+    const env = scratchEnv();
+    await cli(["fake", "start", "s1"], env);
+    const r = await cli(["fake", "set", "s1", "busy", "--last-turn-end", "2026-01-01T00:00:00Z", "--background-tasks", "2"], env);
+    expect(r.json).toMatchObject({ status: "busy", detail: { lastTurnEnd: "2026-01-01T00:00:00.000Z", backgroundTasks: 2 } });
   });
 
   it("prints the deliver result and exits 4 when not delivered", async () => {
@@ -85,6 +92,9 @@ describe("porch CLI (in process)", () => {
     [["fake", "start", "../escape"], EXIT.usage, "usage"],
     [["fake", "set", "s1", "sleeping"], EXIT.usage, "usage"],
     [["fake", "prompt", "s1"], EXIT.usage, "usage"],
+    [["fake", "start", "s1", "--bogus"], EXIT.usage, "usage"],
+    [["fake", "set", "s1", "busy", "--last-turn-end", "yesterday"], EXIT.usage, "usage"],
+    [["fake", "set", "s1", "busy", "--background-tasks", "-1"], EXIT.usage, "usage"],
   ])("porch %j fails as JSON with exit %i (%s)", async (argv, code, errorCode) => {
     const r = await cli(argv as string[], scratchEnv());
     expect(r.code).toBe(code);

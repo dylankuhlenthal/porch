@@ -5,7 +5,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { sessionsDir } from "../src/home.js";
-import { RecordError, RecordStore } from "../src/records.js";
+import { withLock } from "../src/fsutil.js";
+import { CorruptRecordError, RecordError, RecordStore } from "../src/records.js";
 import { REPO, scratchEnv, schemaValidators } from "./helpers.js";
 
 function store(now?: () => Date) {
@@ -14,6 +15,15 @@ function store(now?: () => Date) {
 }
 
 const validators = schemaValidators();
+
+/** The pid of a process that has exited, so no running process has it (barring immediate reuse). */
+function deadPid(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ["-e", ""]);
+    child.on("error", reject);
+    child.on("close", () => resolve(child.pid!));
+  });
+}
 
 describe("RecordStore", () => {
   it("creates a record on first write, at <harness>-<session>.json, matching the record schema", async () => {
@@ -100,11 +110,34 @@ describe("RecordStore", () => {
     const s = new RecordStore(sessionsDir(scratchEnv()), { staleLockMs: 100, lockTimeoutMs: 2000 });
     await fs.mkdir(s.dir, { recursive: true });
     const lock = `${s.recordPath("fake", "s1")}.lock`;
-    writeFileSync(lock, "99999");
+    writeFileSync(lock, `${await deadPid()}:abcd`);
     const old = new Date(Date.now() - 60_000);
     utimesSync(lock, old, old);
     await s.updateInside("fake", "s1", { status: "idle" });
     expect((await s.read("fake", "s1"))?.inside?.status).toBe("idle");
+  });
+
+  it("does not break an old lock whose writer is still running, until the hard limit", async () => {
+    const dir = sessionsDir(scratchEnv());
+    await fs.mkdir(dir, { recursive: true });
+    const file = path.join(dir, "fake-s1.json");
+    const lock = `${file}.lock`;
+    writeFileSync(lock, `${process.pid}:live`);
+    const old = new Date(Date.now() - 60_000);
+    utimesSync(lock, old, old);
+    await expect(withLock(file, async () => "x", { staleMs: 100, hardStaleMs: 120_000, timeoutMs: 150 })).rejects.toThrow(/timed out/);
+    expect(await withLock(file, async () => "x", { staleMs: 100, hardStaleMs: 1000, timeoutMs: 1000 })).toBe("x");
+  });
+
+  it("never deletes a lock it no longer holds", async () => {
+    const dir = sessionsDir(scratchEnv());
+    await fs.mkdir(dir, { recursive: true });
+    const file = path.join(dir, "fake-s1.json");
+    await withLock(file, async () => {
+      // Another writer breaks this lock and takes its own while we are still working.
+      writeFileSync(`${file}.lock`, "12345:someone-else");
+    });
+    expect(await fs.readFile(`${file}.lock`, "utf8")).toBe("12345:someone-else");
   });
 
   it("gives up with an error when a live lock is held too long", async () => {
@@ -112,6 +145,22 @@ describe("RecordStore", () => {
     await fs.mkdir(s.dir, { recursive: true });
     writeFileSync(`${s.recordPath("fake", "s1")}.lock`, "1");
     await expect(s.updateInside("fake", "s1", { status: "idle" })).rejects.toThrow(/timed out/);
+  });
+
+  it("treats a key given as undefined as not part of the patch", async () => {
+    const s = store();
+    await s.updateInside("fake", "s1", { pid: 9, status: "busy" });
+    const rec = await s.updateInside("fake", "s1", { pid: undefined, status: undefined, cwd: "/w" });
+    expect(rec.inside).toMatchObject({ pid: 9, status: "busy", cwd: "/w" });
+  });
+
+  it("refuses to overwrite a record it cannot read, with a clear error", async () => {
+    const s = store();
+    await fs.mkdir(s.dir, { recursive: true });
+    writeFileSync(s.recordPath("fake", "bad"), "{not json");
+    await expect(s.setSelf("fake", "bad", { status: "done", text: null, since: new Date().toISOString() })).rejects.toBeInstanceOf(CorruptRecordError);
+    await expect(s.updateInside("fake", "bad", { status: "idle" })).rejects.toThrow(/not valid JSON/);
+    expect(await fs.readFile(s.recordPath("fake", "bad"), "utf8")).toBe("{not json");
   });
 
   it("refuses session ids and harness names that could escape the folder", async () => {
