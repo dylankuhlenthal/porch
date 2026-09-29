@@ -5,6 +5,15 @@ import path from "node:path";
 
 export class LockTimeoutError extends Error {}
 
+/**
+ * Is `name` one of the helper files withLock and writeAtomic leave next to a file
+ * for a moment (`<file>.lock`, `<file>.lock.breaking.<hex>`, `<file>.<pid>.<hex>.tmp`),
+ * rather than a file itself? Watch uses it to skip their events.
+ */
+export function isHelperFile(name: string): boolean {
+  return name.endsWith(".lock") || name.endsWith(".tmp") || /\.lock\.breaking\.[0-9a-f]+$/.test(name);
+}
+
 export interface LockOptions {
   /** How long to wait for another writer's lock before giving up. */
   timeoutMs?: number;

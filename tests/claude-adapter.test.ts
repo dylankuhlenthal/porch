@@ -176,6 +176,18 @@ describe("Claude Code adapter: status", () => {
     expect((await porch.observe(SHORT)).session).toBe(SID);
   });
 
+  it("porch watch --session takes a short id too, and reports the session under its full id", async () => {
+    const porch = porchWith(stubIO([row(), row({ id: "06bb8fe1", sessionId: OTHER })]), scratchEnv(), { pollIntervalMs: 20 });
+    const seen: string[] = [];
+    const controller = new AbortController();
+    const done = porch.watch({ session: SHORT, signal: controller.signal, onObservation: (o) => seen.push(o.session), backstopPollMs: 60_000 });
+    for (let i = 0; i < 100 && seen.length === 0; i++) await new Promise((r) => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 60));
+    controller.abort();
+    await done;
+    expect(seen).toEqual([SID]);
+  });
+
   it("finds a killed session by its short id through its record once the listing has dropped it", async () => {
     // Observed with 2.1.284: a few seconds after a kill, the row leaves `claude agents --json` (only --all keeps it).
     const porch = porchWith(stubIO([]), { ...scratchEnv(), CLAUDE_JOB_DIR: `/h/.claude/jobs/${SHORT}` });

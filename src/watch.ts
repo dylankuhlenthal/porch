@@ -2,7 +2,10 @@
  * `porch watch`: stay running and report each change as an Observation.
  *
  * What triggers a fresh look:
- * - any change in the records folder (a file watch), so an inside part's write shows at once;
+ * - any change in the records folder (a file watch), so an inside part's write shows at once.
+ *   Events for the lock and temp files a write makes next to a record are skipped
+ *   (each look runs every adapter's listing, `claude agents --json` for Claude Code);
+ *   an event without a file name, which some platforms send, still triggers a look;
  * - any change to the extra paths an adapter names in `watchPaths`;
  * - a poll every `capabilities.pollIntervalMs` for adapters whose outside listing
  *   shows things no record does (a session dying without its end hook, a prompt opening);
@@ -15,11 +18,16 @@
  * forgotten. One that was already reported as gone is forgotten without another
  * line. An adapter whose listing fails keeps its last-reported sessions (no
  * false `gone`) and the error goes to `onError`.
+ *
+ * With `session`, the id is looked up the way `porch observe` does (the adapter's
+ * `observe`, so a Claude short id works too), and the watch follows the full id
+ * the adapter reports.
  */
 import { watch as fsWatch, promises as fs, type FSWatcher } from "node:fs";
 import path from "node:path";
 
 import { observation, type Adapter, type AdapterContext } from "./adapter.js";
+import { isHelperFile } from "./fsutil.js";
 import type { Observation } from "./types.js";
 
 export interface WatchOptions {
@@ -27,7 +35,7 @@ export interface WatchOptions {
   ctx: AdapterContext;
   /** Only this harness (the caller has already narrowed `adapters`; kept for the record). */
   harness?: string;
-  /** Only this session id. */
+  /** Only this session: its full id, or any id the adapter's `observe` accepts (a Claude short id). */
   session?: string;
   onObservation(observation: Observation): void;
   onError?(harness: string, error: unknown): void;
@@ -56,6 +64,24 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
     if (!signal.aborted) options.onObservation(obs);
   };
 
+  // With `session`: the full id each adapter reported for it, once found. It is
+  // kept after that, so the session is still followed once it has gone.
+  const resolved = new Map<string, string>();
+  const sessionIdFor = async (adapter: Adapter, current: Observation[]): Promise<string | null> => {
+    const wanted = options.session!;
+    const known = resolved.get(adapter.harness);
+    if (known !== undefined) return known;
+    if (current.some((o) => o.session === wanted)) {
+      resolved.set(adapter.harness, wanted);
+      return wanted;
+    }
+    // Not a full id in the listing: ask the adapter, as `porch observe` does.
+    const found = await adapter.observe(ctx, wanted).catch(() => null);
+    if (found === null) return null;
+    resolved.set(adapter.harness, found.session);
+    return found.session;
+  };
+
   const look = async () => {
     for (const adapter of adapters) {
       let current: Observation[];
@@ -65,7 +91,10 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
         options.onError?.(adapter.harness, err);
         continue;
       }
-      if (options.session !== undefined) current = current.filter((o) => o.session === options.session);
+      if (options.session !== undefined) {
+        const id = await sessionIdFor(adapter, current);
+        current = id === null ? [] : current.filter((o) => o.session === id);
+      }
       const seen = new Set<string>();
       for (const obs of current) {
         const id = `${obs.harness}\u0000${obs.session}`;
@@ -118,7 +147,7 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
 
   // File watches: the records folder, plus each adapter's extra paths.
   await fs.mkdir(ctx.records.dir, { recursive: true, mode: 0o700 });
-  const targets: { dir: string; name: string | null }[] = [{ dir: ctx.records.dir, name: null }];
+  const targets: { dir: string; name: string | null; records?: true }[] = [{ dir: ctx.records.dir, name: null, records: true }];
   for (const adapter of adapters) {
     for (const p of adapter.watchPaths?.(ctx) ?? []) {
       const isDir = await fs.stat(p).then((s) => s.isDirectory()).catch(() => false);
@@ -130,7 +159,9 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
     try {
       await fs.mkdir(target.dir, { recursive: true });
       const w = fsWatch(target.dir, (_event, filename) => {
-        if (target.name === null || filename === null || String(filename) === target.name) trigger();
+        if (target.records ? recordsEventTriggersLook(filename) : target.name === null || filename === null || String(filename) === target.name) {
+          trigger();
+        }
       });
       w.on("error", (err) => options.onError?.("porch", err));
       watchers.push(w);
@@ -158,6 +189,15 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
   for (const t of timers) clearInterval(t);
   for (const w of watchers) w.close();
   if (running) await running;
+}
+
+/**
+ * Does a file event in the records folder call for a look? Not for the lock and
+ * temp files a write makes next to a record; yes for anything else, and for an
+ * event without a file name (some platforms leave it out).
+ */
+export function recordsEventTriggersLook(filename: string | Buffer | null): boolean {
+  return filename === null || !isHelperFile(String(filename));
 }
 
 /** What watch compares: the observation without `raw`, with object keys in a fixed order. */
