@@ -58,6 +58,8 @@ export async function setInsideStatus(
   fields: TurnFields = {},
 ): Promise<void> {
   const now = ctx.now().toISOString();
+  // Like the other events, only for a session the fake harness has started.
+  requireRow(parseState(await ctx.io.readFile(fakeStatePath(ctx.env))).sessions[session], session);
   await ctx.records.updateInside(HARNESS, session, (current) => {
     const next = { ...(current ?? {}) };
     if (status === "busy" && current?.status !== "busy") next.lastTurnStart = now;

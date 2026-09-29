@@ -9,7 +9,7 @@
     "schema": { "const": 1 },
     "sessions": { "type": "array", "items": { "$ref": "observation.schema.json" } },
     "errors": {
-      "description": "One entry per adapter whose listing failed; its sessions are missing from sessions.",
+      "description": "One entry per adapter whose listing failed (its sessions are missing from sessions), and one per session record that could not be read (harness is the record's harness, or porch when the records folder itself could not be read).",
       "type": "array",
       "items": {
         "type": "object",

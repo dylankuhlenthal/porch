@@ -4,7 +4,7 @@ Every adapter is held to the same cases, run against real sessions of its harnes
 
 ## The three levels of testing
 
-1. **Every PR** (`npm test`, required in CI): unit and contract tests against the fake adapter, the whole conformance suite against the fake adapter, and replay of every committed fixture.
+1. **Every PR** (`npm test`, run by CI on every PR; not yet enforced as a required check, see `docs/operations/ci.md`): unit and contract tests against the fake adapter, the whole conformance suite against the fake adapter, and replay of every committed fixture.
 2. **Real harness** (`npm run conformance -- --harness <h>`): the suite against real sessions, on any machine with the harness installed, and in the scheduled workflow (`docs/operations/ci.md`).
 3. **Record and replay**: each real run with `--record` saves what the harness returned; level 1 replays it, so PRs from forks, which cannot use the repo's API key, are still tested against real harness output.
 
@@ -47,7 +47,7 @@ Run from the repo root. The report is JSON on stdout; progress goes to stderr. E
 
 ## Recordings
 
-- **Fixtures**: `conformance/fixtures/<harness>/<case>.json`, one per case that passed and took snapshots. Format: `schemas/fixture.schema.json`. A snapshot holds the session records at that moment, every outside read the adapter made while listing (commands and files, with results), and the observations it produced. Paths are stored as `$PORCH_HOME`, `$WORK` and `$HOME` so fixtures replay anywhere and do not carry the recording machine's home folder, and the values of the driver's `requiredEnv` variables (the API key) are replaced with `$REDACTED`. Other message text and harness output are kept as recorded.
+- **Fixtures**: `conformance/fixtures/<harness>/<case>.json`, one per case that passed and took snapshots. Format: `schemas/fixture.schema.json`. A snapshot holds the session records at that moment, every outside read the adapter made while listing (commands and files, with results), and the observations it produced. Paths are stored as `$PORCH_HOME`, `$WORK` and `$HOME` so fixtures replay anywhere and do not carry the recording machine's home folder, and the values of the driver's `requiredEnv` variables (the API key) are replaced with `$REDACTED` (only values of 8 characters or more, so a short value such as `1` does not blank out unrelated text). Other message text and harness output are kept as recorded.
 - **Report**: `conformance/reports/<harness>.json` (`schemas/conformance-report.schema.json`): harness version, Porch version, platform, and each case's result.
 - **Replay** (`replayFixture` in `recorder.ts`, run by `tests/conformance.test.ts` for every committed fixture): writes the records into a scratch folder, answers the adapter's outside reads from the recording (a read that was not recorded is a failure), runs `list` at the recorded time, and requires the same observations. When a replay fails after you change an adapter, either the change broke how it reads real harness output (fix the adapter) or the change is intended (re-record against the real harness and commit the new fixtures).
 

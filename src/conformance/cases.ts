@@ -29,7 +29,7 @@ export interface CaseContext {
 
 export interface ConformanceCase {
   name: string;
-  /** What decision 15's list calls it, in plain words. */
+  /** What the list of cases in TRV-1133's decision 15 calls it, in plain words. */
   title: string;
   run(c: CaseContext): Promise<void>;
 }

@@ -94,6 +94,8 @@ describe("fake adapter: status", () => {
   it("refuses to change a session that was never started", async () => {
     const { ctx } = setup();
     await expect(fake.killSession(ctx, "ghost")).rejects.toBeInstanceOf(fake.FakeSessionError);
+    await expect(fake.setInsideStatus(ctx, "ghost", "busy")).rejects.toBeInstanceOf(fake.FakeSessionError);
+    expect(await ctx.records.read("fake", "ghost")).toBeNull();
   });
 });
 

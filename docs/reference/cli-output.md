@@ -4,10 +4,10 @@ What tools that call `porch` as a subprocess can rely on. `porch --help` lists t
 
 ## Rules
 
-- Every command prints JSON on stdout, one document per line, and every document has `"schema": 1`. `porch watch` prints one line per change; every other command prints exactly one line. The only exception is `porch --help`, which prints text.
+- Every command prints JSON on stdout, one document per line, and every document has `"schema": 1`. `porch watch` prints one line per change; every other command prints exactly one line. The only exception is help (`porch --help`, `-h` or `help`), which prints text; `porch` with no command prints the help text to stderr and a `usage` error on stdout.
 - When a command fails it prints an error document instead, `{ "schema": 1, "error": { "code", "message" } }`, on stdout, and exits with the code's exit status. The message is for people; match on `code`.
 - A breaking change to any output, the record format or an exit code bumps `schema`. Adding an optional field does not.
-- `porch watch` reports errors that do not stop it (an adapter's listing failing) as error documents on stderr, and keeps running. It exits 0 on SIGINT or SIGTERM, or when its stdout is closed.
+- `porch watch` reports errors that do not stop it (an adapter's listing failing) as error documents on stderr, and keeps running. It exits 0 on SIGINT or SIGTERM, or when its stdout is closed; it notices a closed stdout at its next write, so after the reader goes away it keeps running until the next change.
 
 ## Outputs and their schemas
 
@@ -36,8 +36,8 @@ An observation is `{ schema, harness, session, status, since, detail, raw, self 
 | --- | --- | --- |
 | 0 | success | |
 | 1 | unexpected internal error | `internal` |
-| 2 | usage: bad arguments or flags (including on harness commands), unknown command or harness, invalid session id or sender label | `usage` |
-| 3 | `porch observe`: no adapter knows the session | `not-found` |
+| 2 | usage: bad arguments or flags (including on harness commands), unknown command or harness, invalid sender label, invalid session id where a session id is written (`porch status set`, `porch fake ...`) | `usage` |
+| 3 | `porch observe`: no adapter knows the session (including an id that is not a valid session id); `porch fake ...`: the fake session was never started | `not-found` |
 | 4 | `porch deliver` ran but the result is `not-running` or `failed`; the deliver result is printed, not an error document | |
 | 5 | `porch status set` did not run inside a session Porch can identify | `not-in-session` |
 | 6 | more than one session matches: the same id in two harnesses (pass `--harness`), or two harnesses both claim the calling process | `ambiguous-session` |

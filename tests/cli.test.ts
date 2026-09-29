@@ -90,6 +90,7 @@ describe("porch CLI (in process)", () => {
     [["status", "set", "sleeping"], EXIT.usage, "usage"],
     [["status", "get"], EXIT.usage, "usage"],
     [["fake", "kill", "never-started"], EXIT.notFound, "not-found"],
+    [["fake", "set", "never-started", "busy"], EXIT.notFound, "not-found"],
     [["fake", "start", "../escape"], EXIT.usage, "usage"],
     [["fake", "set", "s1", "sleeping"], EXIT.usage, "usage"],
     [["fake", "prompt", "s1"], EXIT.usage, "usage"],

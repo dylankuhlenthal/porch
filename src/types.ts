@@ -1,7 +1,7 @@
 /**
  * The shapes Porch writes and prints. Every one carries `schema: 1`; a breaking
  * change to any of them bumps SCHEMA_VERSION. The matching JSON Schema files are
- * in schemas/ and tests/schemas.test.ts checks real output against them.
+ * in schemas/, and the tests check real output against them (schemaValidators in tests/helpers.ts).
  */
 
 export const SCHEMA_VERSION = 1 as const;
@@ -75,7 +75,7 @@ export interface CurrentResult {
 export interface ListResult {
   schema: SchemaVersion;
   sessions: Observation[];
-  /** One entry per adapter whose listing failed; its sessions are missing from `sessions`. */
+  /** One entry per adapter whose listing failed (its sessions are missing from `sessions`), and one per session record that could not be read. */
   errors: { harness: string; message: string }[];
 }
 

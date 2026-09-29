@@ -6,7 +6,7 @@ Code: `src/adapters/fake/` (`index.ts` the adapter, `observe.ts` how status is w
 
 ## The fake harness file
 
-`$PORCH_FAKE_STATE`, or `$PORCH_HOME/fake-harness.json`. It stands in for the harness's own view of its sessions. Its format is documented at the top of `src/adapters/fake/state.ts`. Tests may edit it directly or use the commands below. While the file does not exist, `porch adapters` reports the fake as not available and it lists nothing, so a real `porch list` shows no fake sessions.
+`$PORCH_FAKE_STATE`, or `$PORCH_HOME/fake-harness.json`. It stands in for the harness's own view of its sessions. Its format is documented at the top of `src/adapters/fake/state.ts`. Tests may edit it directly or use the commands below. While the file does not exist, `porch adapters` reports the fake as not available and it lists no sessions of its own, so a real `porch list` shows no fake sessions unless a `fake-*` record exists (for example one written by `porch status set` with `PORCH_FAKE_SESSION_ID` set), which then shows as `gone`.
 
 ## Commands
 
