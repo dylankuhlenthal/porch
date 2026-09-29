@@ -18,10 +18,10 @@ A record may have only a `self` part: `porch status set` in a session whose harn
 
 ## How writes work
 
-Every write goes through `RecordStore`: `updateInside(harness, session, patch)` and `remove(harness, session)` for the inside part, `setSelf(...)` for `porch status set`. Each write:
+Every write goes through `RecordStore`: `updateInside(harness, session, patch)`, `updateInsideIfExists(harness, session, patch)` and `remove(harness, session)` for the inside part, `setSelf(...)` for `porch status set`. `updateInsideIfExists` does the same as `updateInside` when the record exists, and writes nothing (returning null) when it does not; inside parts use it for every event except the session's start, so an event that arrives after the session's end removed the record does not bring it back. Each write:
 
 1. takes `<file>.lock`, created exclusively and holding a token unique to this write, so only one process writes a record at a time. A lock older than 2 seconds whose writer's process has exited, or older than 30 seconds in any case, was left by a crashed writer and is broken (`withLock` in `src/fsutil.ts`);
-2. reads the current record, or starts a new one;
+2. reads the current record, or starts a new one (`updateInsideIfExists` stops here when there is none);
 3. changes only its own part;
 4. writes the whole record to a temp file next to it and renames it over the old one, so readers never see a half-written file.
 

@@ -137,6 +137,7 @@ describe("Claude Code adapter: status", () => {
       [SHORT]: { sessionId: SID, tempo: "blocked", needs: "approve Bash: touch x" },
     });
     const porch = porchWith(io);
+    await hook(porch.ctx, "SessionStart", { source: "startup" });
     await hook(porch.ctx, "UserPromptSubmit", {});
     const obs = await porch.observe(SID);
     expect(obs.status).toBe("waiting-on-prompt");
@@ -147,6 +148,7 @@ describe("Claude Code adapter: status", () => {
   it("shows a session whose process is gone as gone, even with a fresh record, and reads no job file for it", async () => {
     const io = stubIO([row({ pid: undefined, status: undefined })], { [SHORT]: { sessionId: SID, detail: "x" } });
     const porch = porchWith(io);
+    await hook(porch.ctx, "SessionStart", { source: "startup" });
     await hook(porch.ctx, "UserPromptSubmit", {});
     const obs = await porch.observe(SID);
     expect(obs.status).toBe("gone");
@@ -433,6 +435,7 @@ describe("Claude Code hooks (the inside part)", () => {
     const env = hookEnv();
     const run = (event: string, input: Record<string, unknown> = {}) =>
       cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    await run("SessionStart", { source: "startup" });
     await run("Stop", { background_tasks: [{}, {}] });
     expect((await readRecord(env))!.inside!.backgroundTasks).toBe(2);
     await run("Stop");
@@ -453,11 +456,52 @@ describe("Claude Code hooks (the inside part)", () => {
     const env = hookEnv();
     const run = (event: string, input: Record<string, unknown> = {}) =>
       cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    await run("SessionStart", { source: "startup" });
     await run("UserPromptSubmit");
     await run("SessionStart", { source: "compact" });
     expect((await readRecord(env))!.inside!.status).toBe("busy");
     await run("SessionEnd", { reason: "other" });
     expect(await readRecord(env)).toBeNull();
+  });
+
+  it("does not bring back a record after SessionEnd: only SessionStart creates one", async () => {
+    const env = hookEnv();
+    const run = (event: string, input: Record<string, unknown> = {}) =>
+      cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    await run("SessionStart", { source: "startup" });
+    await run("SessionEnd", { reason: "other" });
+    for (const event of ["UserPromptSubmit", "Stop", "StopFailure", "PermissionRequest"]) {
+      const r = await run(event, { tool_name: "Bash" });
+      expect([event, r.code, r.stdout, r.stderr]).toEqual([event, 0, "", ""]);
+      expect(await readRecord(env)).toBeNull();
+    }
+    await run("SessionStart", { source: "resume" });
+    expect((await readRecord(env))!.inside!.status).toBe("idle");
+  });
+
+  it("a late hook still updates a record that holds only a self part", async () => {
+    const env = hookEnv();
+    const porch = new Porch({ env });
+    await porch.ctx.records.setSelf("claude", SID, { status: "working", text: null, since: "2026-09-29T15:00:00.000Z" });
+    await cli(["hooks", "claude", "on", "UserPromptSubmit"], env, { stdin: JSON.stringify({ session_id: SID }) });
+    expect((await readRecord(env))!).toMatchObject({ inside: { status: "busy" }, self: { status: "working" } });
+  });
+
+  it("SessionStart of a new process clears the old process's background tasks, but keeps turn history", async () => {
+    const env = hookEnv();
+    const run = (event: string, input: Record<string, unknown> = {}) =>
+      cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    await run("SessionStart", { source: "startup" });
+    await run("UserPromptSubmit");
+    await run("Stop", { background_tasks: [{}, {}] });
+    await run("SessionStart", { source: "compact" });
+    expect((await readRecord(env))!.inside!.backgroundTasks).toBe(2);
+    const before = (await readRecord(env))!.inside!;
+    await run("SessionStart", { source: "resume" });
+    const inside = (await readRecord(env))!.inside!;
+    expect(inside.backgroundTasks).toBeNull();
+    expect(inside).toMatchObject({ lastTurnStart: before.lastTurnStart, lastTurnEnd: before.lastTurnEnd });
+    expect(inside.lastTurnEnd).not.toBeNull();
   });
 
   it("always exits 0 with nothing on stdout, whatever goes wrong (exit 2 would block the session)", async () => {
@@ -488,6 +532,7 @@ describe("Claude Code hooks (the inside part)", () => {
 
   it("uses CLAUDE_CODE_SESSION_ID when the hook input has no session id", async () => {
     const env = hookEnv({ CLAUDE_CODE_SESSION_ID: SID });
+    await cli(["hooks", "claude", "on", "SessionStart"], env, { stdin: "" });
     await cli(["hooks", "claude", "on", "UserPromptSubmit"], env, { stdin: "" });
     expect((await readRecord(env))!.inside!.status).toBe("busy");
   });
@@ -523,16 +568,16 @@ describe("porch hooks claude (the settings to pass with --settings)", () => {
     const env = scratchEnv();
     const home = mkdtempSync(path.join(os.tmpdir(), "porch-baked-"));
     const settings = claudeHookSettings({ porchHome: home, cli: BIN });
-    const command = settings.hooks.UserPromptSubmit[0]!.hooks[0]!.command;
+    const command = settings.hooks.SessionStart[0]!.hooks[0]!.command;
     const code = await new Promise<number>((resolve) => {
       const child = execFile("/bin/sh", ["-c", command], { env: { PATH: "/usr/bin:/bin", HOME: env.HOME }, cwd: "/" }, (err) =>
         resolve(err ? Number((err as { code?: number }).code ?? 1) : 0),
       );
-      child.stdin!.end(JSON.stringify({ session_id: SID }));
+      child.stdin!.end(JSON.stringify({ session_id: SID, source: "startup" }));
     });
     expect(code).toBe(0);
     const rec = JSON.parse(readFileSync(path.join(home, "sessions", `claude-${SID}.json`), "utf8"));
-    expect(rec.inside.status).toBe("busy");
+    expect(rec.inside.status).toBe("idle");
   });
 
   it("quotes for sh", () => {

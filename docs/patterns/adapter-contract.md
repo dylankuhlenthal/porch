@@ -13,7 +13,7 @@ Register the adapter in `builtinAdapters()` (`src/adapters/index.ts`) and its dr
 
 ## The inside part
 
-- Write the record only through `RecordStore` (`src/records.ts`): `updateInside(harness, session, patch)` on each event and `remove(harness, session)` when the session ends cleanly. Never write the file yourself, and never touch the `self` part: `porch status set` owns it (decision 0004, Porch writes self-reported state).
+- Write the record only through `RecordStore` (`src/records.ts`): `updateInside(harness, session, patch)` on each event and `remove(harness, session)` when the session ends cleanly. If an event can arrive after the session's end removed the record (Claude Code hooks can), use `updateInsideIfExists` for every event but the session's start, so the late event does not bring back a record nobody will remove. Never write the file yourself, and never touch the `self` part: `porch status set` owns it (decision 0004, Porch writes self-reported state).
 - Use the shared fields where they fit: `pid`, `status` (`starting`, `busy` or `idle`; `since` is filled in when status changes), `delivery` (`{ via, address }`), `cwd`, `lastTurnStart`, `lastTurnEnd`, `backgroundTasks`. Put anything else in `data`.
 - If the inside part is a set of commands the harness runs (hooks), add them as adapter commands (below), so they run as `porch ...` and get a `CommandContext` whose `adapter.records` is the record store for the right `PORCH_HOME`.
 - Anything the inside part installs is printed or installed only when a person or tool asks (`porch hooks claude`, `porch install pi`). Porch changes no harness settings by itself.
