@@ -12,7 +12,15 @@ import type { DeliverResult, Observation } from "../../types.js";
 import { claudeCommands } from "./hooks.js";
 import { claudeBin, readJob, readListing, type Listing, type ListingRow } from "./listing.js";
 import { CLAUDE_HARNESS, claudeObservation } from "./observe.js";
-import { defaultSocketDirs, guessedSocketPaths, sendToSocket, SocketMissingError } from "./socket.js";
+import {
+  checkSocketOwner,
+  defaultSocketDirs,
+  guessedSocketPaths,
+  sendToSocket,
+  SocketMissingError,
+  SocketRefusedError,
+  type SocketCheckOptions,
+} from "./socket.js";
 
 /** The environment variable Claude Code sets for commands run inside a session. */
 export const CLAUDE_SESSION_ENV = "CLAUDE_CODE_SESSION_ID";
@@ -26,6 +34,8 @@ export interface ClaudeAdapterOptions {
   onlyUnder?: (ctx: AdapterContext) => string | null;
   /** Folders to look in for a socket that was not recorded. Default /tmp/cc-socks and /tmp/cc-socks-<uid>. */
   socketDirs?: string[];
+  /** How a socket path is checked before connecting (tests replace the lstat and uid). */
+  socketCheck?: SocketCheckOptions;
 }
 
 /** Is `cwd` the folder `dir` or inside it? */
@@ -117,6 +127,13 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
       return found === null ? null : observeOne(ctx, found.id, found.row, found.rec);
     },
 
+    sessionIdIn(id, observations) {
+      // The same ids `find` accepts: the full id, or the short id, which `detail.shortId`
+      // carries from the listing or, once the row has left it, from the record.
+      const match = observations.find((o) => o.session === id) ?? observations.find((o) => o.detail?.shortId === id);
+      return match?.session ?? null;
+    },
+
     async current(ctx) {
       const id = ctx.env[CLAUDE_SESSION_ENV];
       return id && id.trim() !== "" ? id : null;
@@ -154,6 +171,8 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
       for (const { address, guessed } of candidates) {
         lastGuessed = guessed;
         try {
+          // Every path, recorded or guessed, must be a socket this user owns (not a symlink).
+          await checkSocketOwner(address, options.socketCheck);
           await sendToSocket(address, text);
           return deliverResult({
             harness: CLAUDE_HARNESS,
@@ -165,7 +184,8 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
           });
         } catch (err) {
           problems.push((err as Error).message);
-          if (!(err instanceof SocketMissingError)) break;
+          // Nothing there, or something Porch must not write to: try the next path.
+          if (!(err instanceof SocketMissingError || err instanceof SocketRefusedError)) break;
         }
       }
       return deliverResult({

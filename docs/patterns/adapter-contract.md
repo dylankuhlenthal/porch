@@ -13,7 +13,7 @@ Register the adapter in `builtinAdapters()` (`src/adapters/index.ts`) and its dr
 
 ## The inside part
 
-- Write the record only through `RecordStore` (`src/records.ts`): `updateInside(harness, session, patch)` on each event and `remove(harness, session)` when the session ends cleanly. Never write the file yourself, and never touch the `self` part: `porch status set` owns it (decision 0004, Porch writes self-reported state).
+- Write the record only through `RecordStore` (`src/records.ts`): `updateInside(harness, session, patch)` on each event and `remove(harness, session)` when the session ends cleanly. If an event can arrive after the session's end removed the record (Claude Code hooks can), use `updateInsideIfExists` for every event but the session's start, so the late event does not bring back a record nobody will remove. Never write the file yourself, and never touch the `self` part: `porch status set` owns it (decision 0004, Porch writes self-reported state).
 - Use the shared fields where they fit: `pid`, `status` (`starting`, `busy` or `idle`; `since` is filled in when status changes), `delivery` (`{ via, address }`), `cwd`, `lastTurnStart`, `lastTurnEnd`, `backgroundTasks`. Put anything else in `data`.
 - If the inside part is a set of commands the harness runs (hooks), add them as adapter commands (below), so they run as `porch ...` and get a `CommandContext` whose `adapter.records` is the record store for the right `PORCH_HOME`.
 - Anything the inside part installs is printed or installed only when a person or tool asks (`porch hooks claude`, `porch install pi`). Porch changes no harness settings by itself.
@@ -27,6 +27,7 @@ Every method gets an `AdapterContext`. **Read the environment only from `ctx.env
 - `observe(session)`: one observation, or null when the adapter does not know the session (including ids the record store would refuse).
 - `current`: the session this process runs in, from the harness's own environment variable (for example `CLAUDE_CODE_SESSION_ID`, `PI_SESSION_ID`), or null.
 - `deliver(session, text)`: `text` already carries the `[from <label>]` prefix. See the rules below.
+- `sessionIdIn` (optional): if `observe` accepts ids other than the full session id (a Claude short id), pick out which of the adapter's own `list` observations such an id names and return its full id, or null. `porch watch --session` uses it to find the session in the listing it already has, without a second listing. Use only what the observations hold (for example `detail.shortId`).
 - `watchPaths` (optional): extra files or folders watch should react to, besides the records folder.
 - `capabilities`: say honestly what the harness can do. `pollIntervalMs` is how often watch polls `list` for what only the outside listing shows; null when record changes are enough.
 - `commands` (optional): CLI subcommands, each with a `path` such as `["hooks", "claude"]` (run as `porch hooks claude`). Longer paths win, so `["hooks", "claude", "x"]` can sit beside `["hooks", "claude"]`. Print JSON on stdout like every other command and throw `PorchError` for failures, so the CLI turns them into the standard error output and exit code.

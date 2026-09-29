@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -113,11 +113,31 @@ describe("Claude Code adapter: status", () => {
     expect(obs.detail).toMatchObject({ lastTurnEnd: "2026-09-29T16:00:00.000Z", backgroundTasks: 2 });
   });
 
+  it("does not use the status of a record written by an earlier process of the session", async () => {
+    // A resume without the hooks: the record (pid 111) says busy, the listed process (pid 4242) is idle.
+    const env = { ...scratchEnv(), CLAUDE_PID: "111" };
+    const porch = porchWith(stubIO([row({ status: "idle", pid: 4242 })]), env);
+    await hook(porch.ctx, "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "UserPromptSubmit", {});
+    await porch.ctx.records.setSelf("claude", SID, { status: "working", text: null, since: "2026-09-29T15:00:00.000Z" });
+    const obs = await porch.observe(SID);
+    v.observation!(obs);
+    expect(obs).toMatchObject({ status: "idle", since: null, self: { status: "working" } });
+    expect(obs.detail).toMatchObject({ pid: 4242, recordPid: 111, statusSource: "listing", hasInsidePart: true, lastTurnStart: "2026-09-29T16:00:00.000Z" });
+    // Same pid: the record's status is used, and there is no recordPid.
+    const same = porchWith(stubIO([row({ status: "idle", pid: 111 })]), env);
+    const obs2 = await same.observe(SID);
+    expect(obs2).toMatchObject({ status: "busy" });
+    expect(obs2.detail).toMatchObject({ statusSource: "hooks" });
+    expect(obs2.detail).not.toHaveProperty("recordPid");
+  });
+
   it("reports waiting-on-prompt from the listing, with what it waits for", async () => {
     const io = stubIO([row({ status: "waiting", waitingFor: "permission prompt" })], {
       [SHORT]: { sessionId: SID, tempo: "blocked", needs: "approve Bash: touch x" },
     });
     const porch = porchWith(io);
+    await hook(porch.ctx, "SessionStart", { source: "startup" });
     await hook(porch.ctx, "UserPromptSubmit", {});
     const obs = await porch.observe(SID);
     expect(obs.status).toBe("waiting-on-prompt");
@@ -128,6 +148,7 @@ describe("Claude Code adapter: status", () => {
   it("shows a session whose process is gone as gone, even with a fresh record, and reads no job file for it", async () => {
     const io = stubIO([row({ pid: undefined, status: undefined })], { [SHORT]: { sessionId: SID, detail: "x" } });
     const porch = porchWith(io);
+    await hook(porch.ctx, "SessionStart", { source: "startup" });
     await hook(porch.ctx, "UserPromptSubmit", {});
     const obs = await porch.observe(SID);
     expect(obs.status).toBe("gone");
@@ -153,6 +174,33 @@ describe("Claude Code adapter: status", () => {
   it("finds a session by its short id and reports it under the full id", async () => {
     const porch = porchWith(stubIO([row()]));
     expect((await porch.observe(SHORT)).session).toBe(SID);
+  });
+
+  it("porch watch --session takes a short id too, and reports the session under its full id", async () => {
+    const porch = porchWith(stubIO([row(), row({ id: "06bb8fe1", sessionId: OTHER })]), scratchEnv(), { pollIntervalMs: 20 });
+    const seen: string[] = [];
+    const controller = new AbortController();
+    const done = porch.watch({ session: SHORT, signal: controller.signal, onObservation: (o) => seen.push(o.session), backstopPollMs: 60_000 });
+    for (let i = 0; i < 100 && seen.length === 0; i++) await new Promise((r) => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 60));
+    controller.abort();
+    await done;
+    expect(seen).toEqual([SID]);
+  });
+
+  it("porch watch --session runs one claude agents --json per look, even while the id is not found", async () => {
+    const io = stubIO([row({ id: "06bb8fe1", sessionId: OTHER })]);
+    const adapter = createClaudeAdapter({ pollIntervalMs: 20 });
+    let looks = 0;
+    const counted = { ...adapter, list: (ctx: AdapterContext) => (looks++, adapter.list(ctx)) };
+    const porch = new Porch({ env: { ...scratchEnv(), PORCH_CLAUDE_BIN: "claude" }, adapters: [counted], io });
+    const controller = new AbortController();
+    const done = porch.watch({ session: SHORT, signal: controller.signal, onObservation: () => undefined, backstopPollMs: 60_000 });
+    for (let i = 0; i < 100 && looks < 4; i++) await new Promise((r) => setTimeout(r, 10));
+    controller.abort();
+    await done;
+    expect(looks).toBeGreaterThanOrEqual(4);
+    expect(io.runs.filter((r) => r[1] === "agents").length).toBe(looks);
   });
 
   it("finds a killed session by its short id through its record once the listing has dropped it", async () => {
@@ -306,6 +354,47 @@ describe("Claude Code adapter: deliver", () => {
     expect(r.reason).toMatch(/nothing is listening/);
   });
 
+  it("refuses a guessed socket owned by another user, and never reports it delivered", async () => {
+    const dir = sockDir();
+    const got = await listen(path.join(dir, "4242.sock"));
+    // Another user's socket, simulated through the check's inputs: the listening socket is ours, the uid it must match is not.
+    const uid = (process.getuid?.() ?? 0) + 1;
+    const porch = porchWith(stubIO([row()]), scratchEnv(), { socketDirs: [dir], socketCheck: { uid } });
+    const r = await porch.deliver(SID, "hi", { from: "x" });
+    expect(r).toMatchObject({ result: "failed", via: "socket", guessed: true });
+    expect(r.reason).toMatch(/belongs to another user/);
+    await new Promise((res) => setTimeout(res, 50));
+    expect(got).toEqual([]);
+  });
+
+  it("refuses a guessed path that is a symlink or a regular file, and tries the next one", async () => {
+    const [first, second, target] = [sockDir(), sockDir(), sockDir()];
+    // A symlink to a real listening socket we own must still be refused: someone else could have placed it.
+    const linkedTo = await listen(path.join(target, "real.sock"));
+    symlinkSync(path.join(target, "real.sock"), path.join(first, "4242.sock"));
+    writeFileSync(path.join(second, "4242.sock"), "not a socket");
+    const porch = porchWith(stubIO([row()]), scratchEnv(), { socketDirs: [first, second] });
+    const r = await porch.deliver(SID, "hi", { from: "x" });
+    expect(r).toMatchObject({ result: "failed", guessed: true });
+    expect(r.reason).toMatch(/symlink, not a socket.*; .*is not a socket/);
+    await new Promise((res) => setTimeout(res, 50));
+    expect(linkedTo).toEqual([]);
+  });
+
+  it("checks the owner of the recorded socket too", async () => {
+    const dir = sockDir();
+    const got = await listen(path.join(dir, "4242.sock"));
+    const env = { ...scratchEnv(), CLAUDE_CODE_MESSAGING_SOCKET: path.join(dir, "4242.sock"), CLAUDE_PID: "4242" };
+    const lstat = async () => ({ uid: 1, isSocket: () => true, isSymbolicLink: () => false });
+    const porch = porchWith(stubIO([row()]), env, { socketDirs: [], socketCheck: { lstat, uid: 2 } });
+    await hook({ ...porch.ctx, env }, "SessionStart", { source: "startup" });
+    const r = await porch.deliver(SID, "hi", { from: "x" });
+    expect(r).toMatchObject({ result: "failed", guessed: false });
+    expect(r.reason).toMatch(/belongs to another user \(uid 1\)/);
+    await new Promise((res) => setTimeout(res, 50));
+    expect(got).toEqual([]);
+  });
+
   it("says not-running for a session whose process is gone, and for one Claude Code does not know", async () => {
     const porch = porchWith(stubIO([row({ pid: undefined })]));
     expect(await porch.deliver(SID, "hi", { from: "x" })).toMatchObject({ result: "not-running", harness: "claude" });
@@ -373,6 +462,7 @@ describe("Claude Code hooks (the inside part)", () => {
     const env = hookEnv();
     const run = (event: string, input: Record<string, unknown> = {}) =>
       cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    await run("SessionStart", { source: "startup" });
     await run("Stop", { background_tasks: [{}, {}] });
     expect((await readRecord(env))!.inside!.backgroundTasks).toBe(2);
     await run("Stop");
@@ -393,11 +483,61 @@ describe("Claude Code hooks (the inside part)", () => {
     const env = hookEnv();
     const run = (event: string, input: Record<string, unknown> = {}) =>
       cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    await run("SessionStart", { source: "startup" });
     await run("UserPromptSubmit");
     await run("SessionStart", { source: "compact" });
     expect((await readRecord(env))!.inside!.status).toBe("busy");
     await run("SessionEnd", { reason: "other" });
     expect(await readRecord(env)).toBeNull();
+  });
+
+  it("does not bring back a record after SessionEnd: only SessionStart creates one", async () => {
+    const env = hookEnv();
+    const run = (event: string, input: Record<string, unknown> = {}) =>
+      cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    await run("SessionStart", { source: "startup" });
+    await run("SessionEnd", { reason: "other" });
+    for (const event of ["UserPromptSubmit", "Stop", "StopFailure", "PermissionRequest"]) {
+      const r = await run(event, { tool_name: "Bash" });
+      expect([event, r.code, r.stdout, r.stderr]).toEqual([event, 0, "", ""]);
+      expect(await readRecord(env)).toBeNull();
+    }
+    await run("SessionStart", { source: "resume" });
+    expect((await readRecord(env))!.inside!.status).toBe("idle");
+  });
+
+  it("a late hook still updates a record that holds only a self part", async () => {
+    const env = hookEnv();
+    const porch = new Porch({ env });
+    await porch.ctx.records.setSelf("claude", SID, { status: "working", text: null, since: "2026-09-29T15:00:00.000Z" });
+    await cli(["hooks", "claude", "on", "UserPromptSubmit"], env, { stdin: JSON.stringify({ session_id: SID }) });
+    expect((await readRecord(env))!).toMatchObject({ inside: { status: "busy" }, self: { status: "working" } });
+  });
+
+  it("SessionStart keeps background tasks in the same process and clears them for another, whatever the source", async () => {
+    const env = hookEnv();
+    const run = (event: string, input: Record<string, unknown> = {}, extra: Env = {}) =>
+      cli(["hooks", "claude", "on", event], { ...env, ...extra }, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    const tasks = async () => (await readRecord(env))!.inside!.backgroundTasks;
+    await run("SessionStart", { source: "startup" });
+    await run("UserPromptSubmit");
+    await run("Stop", { background_tasks: [{}, {}] });
+    // Same process (pid 36322): a compaction, /clear or an in-session /resume keeps them.
+    for (const source of ["compact", "clear", "resume"]) {
+      await run("SessionStart", { source });
+      expect([source, await tasks()]).toEqual([source, 2]);
+    }
+    const before = (await readRecord(env))!.inside!;
+    // Another process: cleared, turn history kept.
+    await run("SessionStart", { source: "resume" }, { CLAUDE_PID: "999", CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/cc-socks/999.sock" });
+    const inside = (await readRecord(env))!.inside!;
+    expect(inside).toMatchObject({ pid: 999, backgroundTasks: null, lastTurnStart: before.lastTurnStart, lastTurnEnd: before.lastTurnEnd });
+    expect(inside.lastTurnEnd).not.toBeNull();
+    // Unknown pid: cannot tell, so cleared.
+    await run("Stop", { background_tasks: [{}] }, { CLAUDE_PID: "999" });
+    expect(await tasks()).toBe(1);
+    await run("SessionStart", { source: "compact" }, { CLAUDE_PID: undefined, CLAUDE_CODE_MESSAGING_SOCKET: undefined });
+    expect(await tasks()).toBeNull();
   });
 
   it("always exits 0 with nothing on stdout, whatever goes wrong (exit 2 would block the session)", async () => {
@@ -428,6 +568,7 @@ describe("Claude Code hooks (the inside part)", () => {
 
   it("uses CLAUDE_CODE_SESSION_ID when the hook input has no session id", async () => {
     const env = hookEnv({ CLAUDE_CODE_SESSION_ID: SID });
+    await cli(["hooks", "claude", "on", "SessionStart"], env, { stdin: "" });
     await cli(["hooks", "claude", "on", "UserPromptSubmit"], env, { stdin: "" });
     expect((await readRecord(env))!.inside!.status).toBe("busy");
   });
@@ -463,16 +604,16 @@ describe("porch hooks claude (the settings to pass with --settings)", () => {
     const env = scratchEnv();
     const home = mkdtempSync(path.join(os.tmpdir(), "porch-baked-"));
     const settings = claudeHookSettings({ porchHome: home, cli: BIN });
-    const command = settings.hooks.UserPromptSubmit[0]!.hooks[0]!.command;
+    const command = settings.hooks.SessionStart[0]!.hooks[0]!.command;
     const code = await new Promise<number>((resolve) => {
       const child = execFile("/bin/sh", ["-c", command], { env: { PATH: "/usr/bin:/bin", HOME: env.HOME }, cwd: "/" }, (err) =>
         resolve(err ? Number((err as { code?: number }).code ?? 1) : 0),
       );
-      child.stdin!.end(JSON.stringify({ session_id: SID }));
+      child.stdin!.end(JSON.stringify({ session_id: SID, source: "startup" }));
     });
     expect(code).toBe(0);
     const rec = JSON.parse(readFileSync(path.join(home, "sessions", `claude-${SID}.json`), "utf8"));
-    expect(rec.inside.status).toBe("busy");
+    expect(rec.inside.status).toBe("idle");
   });
 
   it("quotes for sh", () => {

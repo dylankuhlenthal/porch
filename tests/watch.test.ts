@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -7,7 +9,7 @@ import { createFakeAdapter } from "../src/adapters/fake/index.js";
 import * as fake from "../src/adapters/fake/ops.js";
 import { Porch } from "../src/porch.js";
 import type { Observation } from "../src/types.js";
-import { comparisonKey } from "../src/watch.js";
+import { comparisonKey, recordsEventTriggersLook } from "../src/watch.js";
 import { BIN, bin, scratchEnv, schemaValidators, waitFor } from "./helpers.js";
 import { stubAdapter } from "./stub-adapter.js";
 
@@ -133,6 +135,71 @@ describe("watch", () => {
     await waitFor(() => w.statuses().includes("b:idle"));
     await w.stop();
     expect(w.seen.every((o) => o.session === "b")).toBe(true);
+  });
+
+  it("with --session, follows a session given by another id its adapter accepts (a Claude short id), found in the listing", async () => {
+    const full = "5b0e750e-44ca-46ad-a46a-6408e83922b1";
+    let status: Observation["status"] = "idle";
+    let observed = 0;
+    const adapter = stubAdapter("aa", {
+      list: async () => [observation({ harness: "aa", session: full, status }), observation({ harness: "aa", session: "other", status: "busy" })],
+      sessionIdIn: (id, obs) => (id === "5b0e750e" ? (obs.find((o) => o.session === full)?.session ?? null) : null),
+      observe: async () => (observed++, null),
+      capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
+    });
+    const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }), { session: "5b0e750e" });
+    await waitFor(() => w.statuses().includes(`${full}:idle`));
+    status = "busy";
+    await waitFor(() => w.statuses().includes(`${full}:busy`));
+    await w.stop();
+    expect(w.statuses()).toEqual([`${full}:idle`, `${full}:busy`]);
+    expect(observed).toBe(0);
+  });
+
+  it("with --session not found yet, makes no call beyond the listing, and reports a lookup error", async () => {
+    let looks = 0;
+    let observed = 0;
+    const adapter = stubAdapter("aa", {
+      list: async () => (looks++, [observation({ harness: "aa", session: "other", status: "busy" })]),
+      sessionIdIn: () => {
+        throw new Error("lookup broke");
+      },
+      observe: async () => (observed++, null),
+      capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
+    });
+    const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }), { session: "nobody" });
+    await waitFor(() => looks > 3);
+    await w.stop();
+    expect(observed).toBe(0);
+    expect(w.seen).toEqual([]);
+    expect(w.errors.length).toBeGreaterThan(0);
+    expect(String(w.errors[0])).toMatch(/lookup broke/);
+  });
+
+  it("does not look again for lock and temp files in the records folder, only for records", async () => {
+    let looks = 0;
+    const adapter = stubAdapter("aa", { list: async () => (looks++, []) });
+    const porch = new Porch({ env: scratchEnv(), adapters: [adapter] });
+    const w = startWatch(porch);
+    await waitFor(() => looks >= 1);
+    // Creating the records folder can itself send one event just after the watch starts (seen on macOS).
+    await new Promise((r) => setTimeout(r, 200));
+    const before = looks;
+    const dir = porch.ctx.records.dir;
+    for (const name of ["aa-x.json.lock", "aa-x.json.123.abcd1234.tmp", "aa-x.json.lock.breaking.0a1b2c3d"]) {
+      await fs.writeFile(path.join(dir, name), "x");
+      await fs.unlink(path.join(dir, name));
+    }
+    await new Promise((r) => setTimeout(r, 200));
+    expect(looks).toBe(before);
+    await fs.writeFile(path.join(dir, "aa-x.json"), "{}");
+    await waitFor(() => looks === before + 1);
+    await w.stop();
+    expect(recordsEventTriggersLook(null)).toBe(true);
+    expect(recordsEventTriggersLook("claude-abc.json")).toBe(true);
+    expect(recordsEventTriggersLook("claude-abc.json.lock")).toBe(false);
+    expect(recordsEventTriggersLook("claude-abc.json.99.deadbeef.tmp")).toBe(false);
+    expect(recordsEventTriggersLook("claude-abc.json.lock.breaking.deadbeef")).toBe(false);
   });
 
   it("resolves promptly once stopped, and emits nothing after", async () => {

@@ -96,13 +96,20 @@ export async function handleHookEvent(ctx: AdapterContext, event: string, input:
       const source = str(input.source);
       const socket = str(ctx.env.CLAUDE_CODE_MESSAGING_SOCKET);
       const jobDir = str(ctx.env.CLAUDE_JOB_DIR);
+      const pid = sessionPid(ctx.env);
       await records.updateInside(CLAUDE_HARNESS, session, (current) => ({
         ...(current ?? {}),
-        pid: sessionPid(ctx.env),
+        pid,
         delivery: socket ? { via: "socket", address: socket } : null,
         cwd: str(input.cwd) ?? current?.cwd ?? null,
         // After a compaction the session may be mid-turn, so its status stays as it was.
         ...(source === "compact" ? {} : { status: "idle" as const, since: now }),
+        // Background tasks belong to a process. They are kept only when this hook runs in
+        // the process that wrote the record (both pids known and equal): a compaction,
+        // `/clear` or an in-session `/resume` can all be the same process, so the source
+        // name does not say. A different or unknown pid clears them to null (cannot tell).
+        // lastTurnStart and lastTurnEnd are kept as history either way.
+        ...(pid !== null && current?.pid === pid ? {} : { backgroundTasks: null }),
         data: {
           ...(current?.data ?? {}),
           source,
@@ -114,19 +121,22 @@ export async function handleHookEvent(ctx: AdapterContext, event: string, input:
       }));
       return;
     }
+    // Every event but SessionStart only changes an existing record: a hook that runs
+    // after SessionEnd removed the record must not bring back a partial one that
+    // nothing would remove.
     case "UserPromptSubmit":
       // Fires for each prompt, including a message delivered mid-turn (observed with 2.1.284).
-      await records.updateInside(CLAUDE_HARNESS, session, { status: "busy", lastTurnStart: now });
+      await records.updateInsideIfExists(CLAUDE_HARNESS, session, { status: "busy", lastTurnStart: now });
       return;
     case "Stop": {
       const tasks = input.background_tasks;
       // Null when the hook does not say, so an earlier turn's count never lingers.
       const backgroundTasks = Array.isArray(tasks) ? tasks.length : typeof tasks === "number" && Number.isInteger(tasks) ? tasks : null;
-      await records.updateInside(CLAUDE_HARNESS, session, { status: "idle", lastTurnEnd: now, backgroundTasks });
+      await records.updateInsideIfExists(CLAUDE_HARNESS, session, { status: "idle", lastTurnEnd: now, backgroundTasks });
       return;
     }
     case "StopFailure":
-      await records.updateInside(CLAUDE_HARNESS, session, {
+      await records.updateInsideIfExists(CLAUDE_HARNESS, session, {
         status: "idle",
         lastTurnEnd: now,
         data: { lastStopFailure: { at: now, error: str(input.error) ?? str(input.error_type) ?? null } },
@@ -134,7 +144,7 @@ export async function handleHookEvent(ctx: AdapterContext, event: string, input:
       return;
     case "PermissionRequest":
       // Status comes from `claude agents --json` (decision 11); this write makes `porch watch` look at once.
-      await records.updateInside(CLAUDE_HARNESS, session, { data: { lastPermissionRequest: { at: now, tool: str(input.tool_name) } } });
+      await records.updateInsideIfExists(CLAUDE_HARNESS, session, { data: { lastPermissionRequest: { at: now, tool: str(input.tool_name) } } });
       return;
     case "SessionEnd":
       await records.remove(CLAUDE_HARNESS, session);

@@ -50,7 +50,7 @@ npm run conformance -- --harness <h> --record         # also write fixtures and 
 npm run conformance -- --harness <h> --case deliver-while-idle
 ```
 
-Run from the repo root. The report is JSON on stdout; progress goes to stderr. Exit codes are listed at the top of `src/conformance/command.ts` (3 means skipped because a required variable such as the API key is not set).
+Run from the repo root. The report is JSON on stdout; progress goes to stderr. Exit codes are listed at the top of `src/conformance/command.ts` (3 means skipped: a variable the harness needs, such as the API key, is not set, or the driver's `unavailableReason` says real turns cannot run here, for example not logged in and no key).
 
 ## Recordings
 

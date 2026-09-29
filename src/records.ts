@@ -152,7 +152,29 @@ export class RecordStore {
     session: string,
     change: InsidePart | ((current: InsidePart | null) => InsidePart),
   ): Promise<SessionRecord> {
-    return this.mutate(harness, session, (rec) => {
+    return (await this.changeInside(harness, session, change, true))!;
+  }
+
+  /**
+   * Like `updateInside`, but only when the record already exists; returns null and
+   * writes nothing when it does not. For events that must not bring back a record
+   * the session's end removed (a late hook after the session ended).
+   */
+  async updateInsideIfExists(
+    harness: string,
+    session: string,
+    change: InsidePart | ((current: InsidePart | null) => InsidePart),
+  ): Promise<SessionRecord | null> {
+    return this.changeInside(harness, session, change, false);
+  }
+
+  private changeInside(
+    harness: string,
+    session: string,
+    change: InsidePart | ((current: InsidePart | null) => InsidePart),
+    create: boolean,
+  ): Promise<SessionRecord | null> {
+    return this.mutate(harness, session, create, (rec) => {
       const current = rec.inside;
       let next: InsidePart;
       if (typeof change === "function") {
@@ -172,9 +194,9 @@ export class RecordStore {
 
   /** Write the self-reported part. Only `porch status set` calls this. */
   async setSelf(harness: string, session: string, self: SelfReport): Promise<SessionRecord> {
-    return this.mutate(harness, session, (rec) => {
+    return (await this.mutate(harness, session, true, (rec) => {
       rec.self = { ...self };
-    });
+    }))!;
   }
 
   /** Delete the record. Returns false when there was none. */
@@ -191,12 +213,14 @@ export class RecordStore {
     });
   }
 
-  private async mutate(harness: string, session: string, fn: (rec: SessionRecord) => void): Promise<SessionRecord> {
+  /** Change the record under its lock. With `create` false, a missing record is left missing and null returned. */
+  private async mutate(harness: string, session: string, create: boolean, fn: (rec: SessionRecord) => void): Promise<SessionRecord | null> {
     const file = this.recordPath(harness, session);
     await fs.mkdir(this.dir, { recursive: true, mode: 0o700 });
     return this.withLock(file, async () => {
       const nowIso = this.now().toISOString();
       const existing = await readRecordFile(file);
+      if (existing === null && !create) return null;
       const rec: SessionRecord = existing ?? {
         schema: SCHEMA_VERSION,
         harness,

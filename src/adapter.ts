@@ -106,6 +106,15 @@ export interface Adapter {
    */
   deliver(ctx: AdapterContext, session: string, text: string): Promise<DeliverResult>;
 
+  /**
+   * Which of `observations` (this adapter's own `list` result) is the session `id`
+   * names, for ids other than the full session id that `observe` also accepts (a
+   * Claude short id). Returns that session's full id, or null. `watch --session`
+   * uses it, so looking up an id costs no second listing. Adapters whose `observe`
+   * takes only the full id leave it out.
+   */
+  sessionIdIn?(id: string, observations: Observation[]): string | null;
+
   /** Extra files or folders `watch` should react to besides the records folder. */
   watchPaths?(ctx: AdapterContext): string[];
 

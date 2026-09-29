@@ -40,12 +40,16 @@ Each hook runs `porch hooks claude on <event>` with Claude Code's hook JSON on s
 
 | Event | Change to the record |
 | --- | --- |
-| `SessionStart` | `pid` (from `CLAUDE_PID`, or the number in the socket name), `delivery: { via: "socket", address: $CLAUDE_CODE_MESSAGING_SOCKET }`, `cwd`, `status: idle` (except after a compaction, which may happen mid-turn, when the status is left alone), and in `data`: `source`, `transcriptPath`, `shortId` (from `CLAUDE_JOB_DIR`), `startedAt` (kept through a compaction) |
+| `SessionStart` | `pid` (from `CLAUDE_PID`, or the number in the socket name), `delivery: { via: "socket", address: $CLAUDE_CODE_MESSAGING_SOCKET }`, `cwd`, `status: idle` (except after a compaction, which may happen mid-turn, when the status is left alone), `backgroundTasks: null` unless the hook runs in the same process that wrote the record (both pids known and equal; a compaction, `/clear` or an in-session `/resume` can be the same process, so the source name is not used; a different or unknown pid means the old count may not apply), and in `data`: `source`, `transcriptPath`, `shortId` (from `CLAUDE_JOB_DIR`), `startedAt` (kept through a compaction) |
 | `UserPromptSubmit` | `status: busy`, `lastTurnStart: now`. It fires for every prompt, including a message delivered mid-turn, so `lastTurnStart` is the last prompt, the same as sous chef's `sc hook worker-prompt` recorded |
 | `Stop` | `status: idle`, `lastTurnEnd: now`, `backgroundTasks`: the number of entries in the hook's `background_tasks` list (null when the hook gives none) |
 | `StopFailure` | `status: idle`, `lastTurnEnd: now`, `data.lastStopFailure: { at, error }` |
 | `PermissionRequest` | `data.lastPermissionRequest: { at, tool }` only. Whether a prompt is open comes from the listing; this write makes `porch watch` look again at once |
 | `SessionEnd` | the record is removed |
+
+`SessionStart` keeps `lastTurnStart` and `lastTurnEnd` as history, whatever the process.
+
+Only `SessionStart` creates a record. The other events change the record only if it exists, so a hook that runs after `SessionEnd` has removed the record (a late `Stop` or `PermissionRequest`, say) does not bring back a partial record that nothing would remove. A session whose `SessionStart` hook did not run under Porch's hooks therefore has no record, and shows the listing's status (rule 4 below).
 
 **A hook never changes what the session does.** Claude Code reads a hook's exit code 2 as "block" (for `Stop`, the turn keeps going), adds a `SessionStart` or `UserPromptSubmit` hook's stdout to the model's context, and reads JSON on stdout from a `PermissionRequest` hook as an answer to the prompt. So `porch hooks claude on` always exits 0 and prints nothing on stdout, whatever goes wrong (bad input, unknown event, a records folder it cannot write); problems go to stderr only (decision 24(a) in TRV-1133). This is the one Porch command that prints no JSON.
 
@@ -55,9 +59,11 @@ Decision 11 in TRV-1133: busy and idle from the hook record; alive, pid and wait
 
 1. No listing row with a `pid`: `gone`. A record left behind (a crash, `kill -9`) does not revive it. A session Claude Code stopped (`claude stop`) drops out of the listing entirely. Its `SessionEnd` hook normally removes the record too, and then `observe` answers not found (and `deliver` `not-running`); if the record was left, it shows as `gone`. Consumers should read not found as not running.
 2. The listing says `waiting`: `waiting-on-prompt` (`since` is null: Claude Code does not say when it started).
-3. The record has a status: that status and its `since`.
-4. No record (a session without Porch's hooks): the listing's own `busy` or `idle`, with `since` null. Decision 12 promises such sessions "a coarser status"; the listing's `busy` has been seen stale for minutes after a turn ended, which is why the record wins whenever there is one.
+3. The record's inside part has a status, written by the listed process: that status and its `since`.
+4. Otherwise the listing's own `busy` or `idle`, with `since` null. This covers a session without Porch's hooks (no record), a record without an inside status (for example one holding only a `self` part from `porch status set`), and a record written by an earlier process of the session: when the record's `pid` and the listing's `pid` are both known and differ (a resume without the hooks), the record's status belongs to the old process, so it is not used and `detail.recordPid` says which process wrote it. `deliver` ignores that record's socket for the same reason. Decision 12 promises sessions without the hooks "a coarser status"; the listing's `busy` has been seen stale for minutes after a turn ended, which is why the record wins whenever it has a status from the listed process.
 5. Otherwise `unknown`.
+
+With an old process's record, the rest of what comes from the record (`self`, `lastTurnStart`, `lastTurnEnd`, `backgroundTasks`, `shortId`) is still shown.
 
 `detail`:
 
@@ -69,6 +75,7 @@ Decision 11 in TRV-1133: busy and idle from the hook record; alive, pid and wait
 | `promptNeeds` | while waiting: the exact ask from the job file (for example `approve Bash: touch x`), when it has one |
 | `hasInsidePart` | the session has a record written by Porch's hooks |
 | `statusSource` | `hooks` or `listing` (rule 3 or 4 above), null otherwise |
+| `recordPid` | present only when the record was written by another process than the listed one (rule 4): that process's pid. Left out otherwise, so the committed conformance recordings replay unchanged |
 | `lastTurnStart`, `lastTurnEnd`, `backgroundTasks` | from the record (see the hooks table) |
 | `activity` | from the job file of a running session, or null: `{ detail, inFlight, running: [{ kind, label, since }] }`: the session's own one-line summary, how many subagents and background commands it started are still running (`inFlight.tasks`; null when the field is missing or odd), and which (the `fan` entries without `doneAt`; `since` as ISO 8601) |
 
@@ -76,11 +83,11 @@ Decision 11 in TRV-1133: busy and idle from the hook record; alive, pid and wait
 
 Because watch compares `detail`, a change in `activity` (for example the session's summary line) is reported as a change.
 
-**Finding a session**: `observe` and `deliver` take the full session id or the short id; the output always uses the full session id. A short id is also found through the record the `SessionStart` hook wrote, so a killed session whose row has left the listing still shows as `gone` by its short id (a session without the hooks is then not found at all). Listing rows without a `sessionId` are left out (right after `claude --bg` the short id can appear before the session id); they show once the session id does.
+**Finding a session**: `observe`, `deliver` and `porch watch --session` take the full session id or the short id (watch matches it against `detail.shortId` in the listing it already has, `sessionIdIn` in `index.ts`); the output always uses the full session id. A short id is also found through the record the `SessionStart` hook wrote, so a killed session whose row has left the listing still shows as `gone` by its short id (a session without the hooks is then not found at all). Listing rows without a `sessionId` are left out (right after `claude --bg` the short id can appear before the session id); they show once the session id does.
 
 ## Deliver
 
-`deliver` looks the session up in the listing first: not listed or no `pid` means `not-running`. Otherwise it writes one line, `{"type":"user","message":{"role":"user","content":"<text>"}}`, to the socket the `SessionStart` hook recorded, when the recorded `pid` matches the listing (after a resume without the hooks the recorded socket belongs to an old process). Without a usable record, or when nothing listens on the recorded socket any more, it tries `/tmp/cc-socks/<pid>.sock`, then `/tmp/cc-socks-<uid>/<pid>.sock`, and says `guessed: true` when one of those was used (decision 10). Nothing listening there, or any other socket error, is `failed` with the reason. The socket sends nothing back, so `delivered` means written, with `statusAtSend` the status at that moment. `CLAUDE_CODE_MESSAGING_TOKEN` is never used.
+`deliver` looks the session up in the listing first: not listed or no `pid` means `not-running`. Otherwise it writes one line, `{"type":"user","message":{"role":"user","content":"<text>"}}`, to the socket the `SessionStart` hook recorded, when the recorded `pid` matches the listing (after a resume without the hooks the recorded socket belongs to an old process). Without a usable record, or when nothing listens on the recorded socket any more, it tries `/tmp/cc-socks/<pid>.sock`, then `/tmp/cc-socks-<uid>/<pid>.sock`, and says `guessed: true` when one of those was used (decision 10). Before connecting to any of these paths, recorded or guessed, `deliver` checks it with `lstat`: it must be a socket owned by the user running Porch, and not a symlink. `/tmp` is shared, so on a machine with other users someone else could create the path (or the folder) first and receive the message; a path that fails the check is skipped with the reason, and the next one is tried (`checkSocketOwner` in `socket.ts`). Nothing listening on any path, a path refused by the check, or any other socket error, is `failed` with the reasons, never `delivered`. The socket sends nothing back, so `delivered` means written, with `statusAtSend` the status at that moment. `CLAUDE_CODE_MESSAGING_TOKEN` is never used.
 
 What the session does with it (observed with 2.1.284): an idle session starts a turn; a busy one takes it in between tool calls (it appears in the transcript as a `queued_command` attachment); a bypass-mode session without `crossSessionInbound: accept` holds it for approval, which shows as `waiting-on-prompt` with `prompt: "permission prompt"`.
 
@@ -126,5 +133,6 @@ Last run: Claude Code 2.1.284 on darwin-arm64, 2026-09-29, all nine cases passed
 - **An interrupted turn leaves the record saying busy.** `Stop` does not fire when a person interrupts a turn, so the status stays `busy` until the next prompt or turn end, while `claude agents --json` (in `raw.listing.status`) and the job file already say idle. This mostly affects sessions someone is attached to. Reproduced with 2.1.284 by attaching to a background session and pressing Escape mid-turn. Listening to the `Notification` hook's `idle_prompt` event was suggested as a fix, but in one try no `Notification` event fired within 80 seconds of the interrupt; letting the listing's idle win over a busy record is the other option (decision 11 chose the record because the listing's busy can be stale, not its idle).
 - **Interactive sessions**: Claude Code's docs say `claude agents --json` lists interactive sessions too, but Porch has only been checked with background sessions (`claude --bg`). An interactive session missing from the listing would show as `gone`.
 - **No user-wide install command.** Decision 12 allows an opt-in command that installs the hooks for every session; it is not built yet, so hooks reach sessions only through settings a caller passes.
+- **The socket check and the connection are two steps.** Someone who can write to the socket's folder could swap the file between the check and the connection. Claude Code (2.1.284, observed) creates `/tmp/cc-socks` owned by its user with mode 0700, so this needs that folder to have been created by someone else first. Checking the folder's owner as well would close it.
 - **The job file is not a stable interface**; when its fields change, `activity` and `promptNeeds` read as null, never as wrong values.
 - **The CI run has not happened yet.** The scheduled workflow installs the latest Claude Code, marks the checkout trusted in the runner's own `~/.claude.json` (undocumented fields) and uses the `ANTHROPIC_API_KEY` secret, which is not set yet (`docs/operations/ci.md`).

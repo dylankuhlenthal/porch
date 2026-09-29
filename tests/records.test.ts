@@ -147,6 +147,17 @@ describe("RecordStore", () => {
     await expect(s.updateInside("fake", "s1", { status: "idle" })).rejects.toThrow(/timed out/);
   });
 
+  it("updateInsideIfExists changes an existing record but never creates one", async () => {
+    const s = store();
+    expect(await s.updateInsideIfExists("claude", "abc", { status: "busy" })).toBeNull();
+    expect(await s.read("claude", "abc")).toBeNull();
+    expect(await fs.readdir(s.dir)).toEqual([]);
+    await s.updateInside("claude", "abc", { status: "idle", pid: 1 });
+    const rec = await s.updateInsideIfExists("claude", "abc", { status: "busy" });
+    expect(rec!.inside).toMatchObject({ status: "busy", pid: 1 });
+    expect((await s.read("claude", "abc"))!.inside!.status).toBe("busy");
+  });
+
   it("treats a key given as undefined as not part of the patch", async () => {
     const s = store();
     await s.updateInside("fake", "s1", { pid: 9, status: "busy" });
