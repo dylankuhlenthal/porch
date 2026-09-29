@@ -12,12 +12,12 @@ import { claudeHookSettings, handleHookEvent, hookCommand, HOOK_EVENTS, shQuote 
 import { parseListing } from "../src/adapters/claude/listing.js";
 import { jobActivity } from "../src/adapters/claude/observe.js";
 import { socketLine } from "../src/adapters/claude/socket.js";
-import { scrubClaudeSnapshot } from "../src/conformance/drivers/index.js";
-import type { Snapshot } from "../src/conformance/recorder.js";
+import { DRIVERS, scrubClaudeSnapshot } from "../src/conformance/drivers/index.js";
+import { replayFixture, type Fixture, type Snapshot } from "../src/conformance/recorder.js";
 import type { Env } from "../src/home.js";
 import type { HarnessIO, RunResult } from "../src/io.js";
 import { Porch } from "../src/porch.js";
-import { bin, BIN, cli, scratchEnv, schemaValidators } from "./helpers.js";
+import { bin, BIN, cli, REPO, scratchEnv, schemaValidators } from "./helpers.js";
 
 const v = schemaValidators();
 const SID = "5b0e750e-44ca-46ad-a46a-6408e83922b1";
@@ -461,5 +461,19 @@ describe("conformance recordings of Claude Code", () => {
     const call = out.io[0] as Extract<Snapshot["io"][number], { op: "run" }>;
     expect(JSON.parse(call.result.stdout).map((r: { cwd: string }) => r.cwd)).toEqual(["$WORK/cwd-1", "$WORK"]);
     expect(out.io[1]).toEqual(snap.io[1]);
+  });
+
+  it("replay of the recorded prompt case depends on the recorded listing", async () => {
+    const fixture = JSON.parse(readFileSync(path.join(REPO, "conformance", "fixtures", "claude", "held-at-prompt.json"), "utf8")) as Fixture;
+    const workDir = mkdtempSync(path.join(os.tmpdir(), "porch-replay-"));
+    const scratch = { env: scratchEnv({ PORCH_HOME: path.join(workDir, "porch-home"), PORCH_CLAUDE_BIN: undefined }), workDir };
+    expect(await replayFixture(fixture, DRIVERS.claude!.adapter(), scratch)).toEqual([]);
+    const tampered = structuredClone(fixture);
+    const snap = tampered.snapshots.find((x) => x.label === "held")!;
+    const call = snap.io.find((c) => c.op === "run") as Extract<Snapshot["io"][number], { op: "run" }>;
+    expect(call.result.stdout).toContain('"waiting"');
+    call.result.stdout = call.result.stdout.replace('"waiting"', '"idle"');
+    const mismatches = await replayFixture(tampered, DRIVERS.claude!.adapter(), scratch);
+    expect(mismatches.map((m) => m.snapshot)).toEqual(["held"]);
   });
 });

@@ -35,6 +35,8 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 - `npm run lint -- <files>`: lint the files you touched.
 - `npm run conformance -- --harness <h> [--record]`: the conformance suite against a real harness on this machine. Read `docs/patterns/conformance.md` first.
 - No test may write to the real `~/.porch`, `~/.claude`, `~/.claude.json` or `~/.sous-chef`. `tests/setup.ts` points `HOME` and `PORCH_HOME` at scratch folders; tests that write files also use `scratchEnv()` from `tests/helpers.ts`.
+- Per-PR tests never run the real `claude`: `tests/setup.ts` and `scratchEnv()` point `PORCH_CLAUDE_BIN` at a command that does not exist, and `tests/setup.ts` removes `CLAUDE_*` variables so a test run inside a Claude Code session does not see that session. Claude adapter tests give it a `HarnessIO` with canned output.
+- `npm run conformance -- --harness claude` starts real Claude Code sessions (cheap model, trivial prompts) and must run from a checkout inside a folder Claude Code trusts. Read the Conformance section of `docs/domains/claude-adapter.md` first.
 
 ## Conventions & patterns
 
@@ -47,3 +49,9 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 ## Learnings
 
 - Records and the fake harness file are replaced by rename on every write, which breaks a file watch on the file itself. `src/watch.ts` watches the folder and filters by name.
+- Claude Code (2.1.284): `claude --bg` refuses to start in an untrusted folder ("Workspace not trusted"); trust is inherited from a trusted parent. Conformance case folders therefore live in `.conformance-tmp/` inside the checkout, not in the system temp folder.
+- Claude Code finds its login in the macOS keychain by `USER`: with only `PATH` and `HOME`, `claude auth status` says not logged in. The conformance runner passes `USER`.
+- A `claude --bg` session may start in a spare process prepared earlier, with an earlier launch's environment, so an environment variable set on the launch command may not reach its hooks. `porch hooks claude --porch-home` bakes `PORCH_HOME` into the hook command instead.
+- Messages delivered to a Claude session arrive framed as "another Claude session sent a message", and a model may refuse to act on them (seen with haiku). The conformance driver appends a system prompt telling test sessions to follow them.
+- A message delivered mid-turn shows in the Claude transcript as an `attachment` of type `queued_command`, not as a `user` entry.
+- `claude agents --json --cwd <dir>` filters by the repository the folder belongs to, not by folder.

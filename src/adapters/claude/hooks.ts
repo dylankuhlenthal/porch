@@ -145,7 +145,7 @@ function hookCommandRun(): AdapterCommand {
   return {
     path: ["hooks", "claude", "on"],
     summary: "run by Claude Code's hooks inside a session: update its record (always exits 0)",
-    usage: `porch hooks claude on <${HOOK_EVENTS.join("|")}>`,
+    usage: "porch hooks claude on <hook event>",
     // Never throws and never exits non-zero: see the top of this file.
     async run(args: string[], ctx: CommandContext): Promise<number> {
       try {

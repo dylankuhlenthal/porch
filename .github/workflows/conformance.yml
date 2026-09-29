@@ -2,7 +2,8 @@
 # of a new harness version (each run installs the latest harness). It runs on this
 # repository only, never on pull requests, because it needs the API key secret.
 # A harness whose required variables (see src/conformance/drivers/index.ts) are not
-# set is skipped with a notice, not failed. Each run uploads its report and
+# set, or that cannot run real turns (Claude Code: not logged in and no
+# ANTHROPIC_API_KEY), is skipped with a notice, not failed. Each run uploads its report and
 # fixtures; a person commits them in a PR. See docs/operations/ci.md.
 name: conformance
 
@@ -66,16 +67,34 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # A real harness adapter adds its install step here, for example:
-      #   - if: matrix.harness == 'claude'
-      #     run: npm install -g @anthropic-ai/claude-code@latest
+      # Each real harness adds its install step here.
+      - name: install the latest Claude Code and trust the checkout
+        if: matrix.harness == 'claude'
+        run: |
+          npm install -g @anthropic-ai/claude-code@latest
+          claude --version
+          # Claude Code starts background sessions only in folders the user has
+          # trusted, and the suite runs its sessions under .conformance-tmp/ in this
+          # checkout. On this throwaway runner, mark the checkout trusted and
+          # onboarding done in the runner's own ~/.claude.json. These fields are not
+          # documented by Claude Code (see docs/operations/ci.md).
+          node -e '
+            const fs = require("fs"), path = require("path"), os = require("os");
+            const file = path.join(os.homedir(), ".claude.json");
+            const cfg = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
+            cfg.hasCompletedOnboarding = true;
+            cfg.projects = cfg.projects || {};
+            const dir = process.env.GITHUB_WORKSPACE;
+            cfg.projects[dir] = { ...(cfg.projects[dir] || {}), hasTrustDialogAccepted: true };
+            fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
+          '
       - name: run the suite
         run: |
           set +e
           npm run conformance -- --harness "$HARNESS" --record
           code=$?
           if [ "$code" -eq 3 ]; then
-            echo "::notice::conformance for $HARNESS skipped: a required secret is not set"
+            echo "::notice::conformance for $HARNESS skipped: a required secret is not set, or the harness cannot run real turns here"
             exit 0
           fi
           exit "$code"

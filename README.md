@@ -2,7 +2,7 @@
 
 Porch lets you wake a running agent session with a message and read what it is doing and whether it needs something, through one command that behaves the same whichever harness (Claude Code, Pi, ...) the session runs in.
 
-It is a command-line tool with JSON output (`porch`), plus a thin TypeScript library on top. Each harness is supported by an adapter. This version ships the harness-neutral core and a fake adapter for tests; the Claude Code and Pi adapters come next.
+It is a command-line tool with JSON output (`porch`), plus a thin TypeScript library on top. Each harness is supported by an adapter. This version ships the harness-neutral core, the Claude Code adapter and a fake adapter for tests; the Pi adapter comes next.
 
 ## Install
 
@@ -24,6 +24,8 @@ porch deliver <session> --from "sous chef" "please look at the PR"
 porch current                                # the session this command runs in
 porch status set needs-input "which branch?" # run inside a session: say what you need
 ```
+
+For Claude Code, give sessions Porch's hooks so it sees busy and idle as they happen and learns each session's socket: `porch hooks claude` prints the settings to pass with `claude --settings` (see [docs/domains/claude-adapter.md](docs/domains/claude-adapter.md)). Sessions without the hooks can still be listed and woken, with a coarser status.
 
 `porch --help` lists every command, including the harness commands. All output is JSON with `"schema": 1`; errors are JSON too, with documented exit codes. Session records live in `~/.porch/sessions/` (set `PORCH_HOME` to move them).
 
