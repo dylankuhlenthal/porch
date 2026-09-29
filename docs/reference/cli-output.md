@@ -21,6 +21,7 @@ What tools that call `porch` as a subprocess can rely on. `porch --help` lists t
 | `porch status set ...` | `{ schema, harness, session, self }` | `schemas/status-set.schema.json` |
 | `porch adapters` | each adapter's detect result, capabilities and inside part | `schemas/adapters.schema.json` |
 | `porch --version` | `{ schema, version }` | `schemas/version.schema.json` |
+| `porch fake ...` (test harness) | the session's observation; `porch fake deliveries` prints `{ schema, deliveries }` | `schemas/observation.schema.json`, `schemas/fake-deliveries.schema.json` |
 | any failure | `{ schema, error: { code, message } }` | `schemas/error.schema.json` |
 
 An observation is `{ schema, harness, session, status, since, detail, raw, self }`. `detail` is adapter-specific and documented in each adapter's doc; `raw` is the harness output for debugging and may change with the harness. Consumers should not depend on `raw`.

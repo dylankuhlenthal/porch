@@ -26,6 +26,7 @@ describe("porch CLI (in process)", () => {
     expect(deliver.json).toMatchObject({ result: "delivered", statusAtSend: "busy" });
 
     const deliveries = await cli(["fake", "deliveries", "s1"], env);
+    v["fake-deliveries"]!(deliveries.json);
     expect(deliveries.json.deliveries[0].text).toBe("[from tests] hello there");
 
     const setEnv = { ...env, PORCH_FAKE_SESSION_ID: "s1" };

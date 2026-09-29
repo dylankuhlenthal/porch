@@ -11,7 +11,9 @@
  * Each look asks the adapters for their listing and compares every session with
  * what was last reported, ignoring `raw`. A session that is new or changed is
  * reported; a session that disappears from its adapter's listing is reported once
- * as `gone` (with `since` and `detail` null, since neither is known) and then forgotten. An adapter whose listing fails keeps its last-reported sessions (no
+ * as `gone` (with `since` and `detail` null, since neither is known) and then
+ * forgotten. One that was already reported as gone is forgotten without another
+ * line. An adapter whose listing fails keeps its last-reported sessions (no
  * false `gone`) and the error goes to `onError`.
  */
 import { watch as fsWatch, promises as fs, type FSWatcher } from "node:fs";
@@ -40,7 +42,10 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
   const { adapters, ctx, signal } = options;
   if (signal.aborted) return;
   const debounceMs = options.debounceMs ?? 25;
-  const last = new Map<string, { adapter: string; key: string; harness: string; session: string; self: Observation["self"] }>();
+  const last = new Map<
+    string,
+    { adapter: string; key: string; harness: string; session: string; status: Observation["status"]; self: Observation["self"] }
+  >();
   const watchers: FSWatcher[] = [];
   const timers: NodeJS.Timeout[] = [];
   let debounce: NodeJS.Timeout | null = null;
@@ -68,7 +73,7 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
         const key = comparisonKey(obs);
         if (last.get(id)?.key !== key) {
           // Keep only what the gone report below needs, not `raw`.
-          last.set(id, { adapter: adapter.harness, key, harness: obs.harness, session: obs.session, self: obs.self });
+          last.set(id, { adapter: adapter.harness, key, harness: obs.harness, session: obs.session, status: obs.status, self: obs.self });
           emit(obs);
         }
       }
@@ -77,7 +82,10 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
         // The session left its adapter's listing: report it once as gone, then
         // forget it, so a long-running watch does not keep every session ever seen.
         // When it went and what its detail was are not known, so both are null.
+        // A session already reported as gone (a crash that left its record, later
+        // cleaned up) is forgotten without a second, less informative gone line.
         last.delete(id);
+        if (prev.status === "gone") continue;
         emit(observation({ harness: prev.harness, session: prev.session, status: "gone", self: prev.self }));
       }
     }

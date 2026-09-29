@@ -19,7 +19,7 @@ Code: `src/adapters/fake/` (`index.ts` the adapter, `observe.ts` how status is w
 - `porch fake fail-deliver <session> <reason>` and `--clear`: deliver fails with that reason.
 - `porch fake deliveries [<session>]`: every message delivered, in order.
 
-Each prints the session's observation afterwards (or the deliveries list).
+Each prints the session's observation afterwards (`schemas/observation.schema.json`), or the deliveries list (`schemas/fake-deliveries.schema.json`).
 
 ## How status is worked out
 
@@ -35,7 +35,7 @@ In order (`fakeObservation` in `observe.ts`):
 ## Other behaviour
 
 - `current`: the `PORCH_FAKE_SESSION_ID` environment variable.
-- `deliver`: `not-running` for a gone or unknown session; `failed` when told to fail; otherwise the message is appended to `deliveries` with the status at the moment of sending. `via` is the recorded address (`fake`), or `fake-listing` with `guessed: true` for a session without the inside part.
+- `deliver`: `not-running` for a session that is gone or that the fake harness does not know (a running session whose status is `unknown`, because it has no inside part, is delivered to); `failed` when told to fail; otherwise the message is appended to `deliveries` with the status at the moment of sending. `via` is the recorded address (`fake`), or `fake-listing` with `guessed: true` for a session without the inside part.
 - Capabilities: queues while busy, sees prompts, has an outside listing and an inside part. Watch polls every 2 seconds as a backstop and also watches the harness file.
 
 ## What it relies on from the harness

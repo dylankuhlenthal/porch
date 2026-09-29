@@ -77,6 +77,24 @@ describe("watch", () => {
     v.observation!(gone);
   });
 
+  it("does not print a second gone when a session already reported gone leaves the listing", async () => {
+    // For example a crashed session (gone, record left behind) whose record is later cleaned up.
+    let sessions = [observation({ harness: "aa", session: "x", status: "gone", since: "2026-01-01T00:00:00.000Z" })];
+    let looks = 0;
+    const adapter = stubAdapter("aa", {
+      list: async () => (looks++, sessions),
+      capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
+    });
+    const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }));
+    await waitFor(() => w.statuses().includes("x:gone"));
+    sessions = [];
+    const after = looks;
+    await waitFor(() => looks > after + 3);
+    await w.stop();
+    expect(w.statuses()).toEqual(["x:gone"]);
+    expect(w.seen[0]!.since).toBe("2026-01-01T00:00:00.000Z");
+  });
+
   it("does not report sessions as gone when their adapter's listing fails, and reports the error", async () => {
     let fail = false;
     const adapter = stubAdapter("aa", {
