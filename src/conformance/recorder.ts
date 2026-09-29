@@ -12,7 +12,8 @@
  * run `list`, and require the same observations. So a PR that changes how an
  * adapter reads harness output is checked against real output without the harness.
  *
- * Paths are stored with placeholders ($PORCH_HOME, $WORK, $HOME) so a fixture
+ * Paths are stored with placeholders ($PORCH_HOME, $WORK, $HOME, and $WORK_DASHED
+ * and $HOME_DASHED for the same paths turned into one folder name) so a fixture
  * replays anywhere and does not carry the recording machine's home folder, and
  * the values of the extra environment variables a harness needs (its API key)
  * are replaced with $REDACTED. Other harness output is kept as recorded.
@@ -103,13 +104,22 @@ function sameArgs(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((x, i) => x === b[i]);
 }
 
+/**
+ * A path as some harnesses turn it into a single folder name: every character
+ * other than a letter or digit becomes "-" (Claude Code names its transcript
+ * folders like this, for example "-Users-me-work").
+ */
+export function dashedPath(p: string): string {
+  return p.replace(/[^A-Za-z0-9]/g, "-");
+}
+
 /** Placeholder substitutions, longest path first so nested folders map correctly. */
 function substitutions(env: Env, workDir: string | null): [string, string][] {
+  const homes = [env.HOME ?? os.homedir(), os.homedir()];
   const pairs: [string, string][] = [
     [porchHome(env), "$PORCH_HOME"],
-    ...(workDir ? ([[workDir, "$WORK"]] as [string, string][]) : []),
-    [env.HOME ?? os.homedir(), "$HOME"],
-    [os.homedir(), "$HOME"],
+    ...(workDir ? ([[workDir, "$WORK"], [dashedPath(workDir), "$WORK_DASHED"]] as [string, string][]) : []),
+    ...homes.flatMap((h): [string, string][] => [[h, "$HOME"], [dashedPath(h), "$HOME_DASHED"]]),
   ];
   return pairs.filter(([p]) => p.length > 1).sort((x, y) => y[0].length - x[0].length);
 }
@@ -126,8 +136,16 @@ export function toPlaceholders<T>(value: T, env: Env, workDir: string | null, se
 
 /** Expand placeholders back into this machine's paths. */
 export function fromPlaceholders<T>(value: T, env: Env, workDir: string): T {
-  const map: Record<string, string> = { $PORCH_HOME: porchHome(env), $WORK: workDir, $HOME: env.HOME ?? os.homedir() };
-  return mapStrings(value, (s) => s.replace(/\$(PORCH_HOME|WORK|HOME)/g, (m) => map[m] ?? m));
+  const home = env.HOME ?? os.homedir();
+  const map: Record<string, string> = {
+    $PORCH_HOME: porchHome(env),
+    $WORK_DASHED: dashedPath(workDir),
+    $WORK: workDir,
+    $HOME_DASHED: dashedPath(home),
+    $HOME: home,
+  };
+  // Longer names first, so $WORK_DASHED is not read as $WORK followed by "_DASHED".
+  return mapStrings(value, (s) => s.replace(/\$(PORCH_HOME|WORK_DASHED|WORK|HOME_DASHED|HOME)/g, (m) => map[m] ?? m));
 }
 
 function mapStrings<T>(value: T, fn: (s: string) => string): T {

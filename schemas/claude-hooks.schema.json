@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/claude-hooks.schema.json",
+  "title": "Porch hooks claude output (schema 1)",
+  "description": "Output of porch hooks claude. `settings` is in the shape Claude Code's --settings takes; merge `settings.hooks` into your own hooks object event by event.",
+  "type": "object",
+  "required": [
+    "schema",
+    "harness",
+    "node",
+    "cli",
+    "porchHome",
+    "settings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "harness": {
+      "const": "claude"
+    },
+    "node": {
+      "type": "string",
+      "description": "Absolute path of the node executable the hook commands run."
+    },
+    "cli": {
+      "type": "string",
+      "description": "Absolute path of the Porch CLI script the hook commands run."
+    },
+    "porchHome": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The PORCH_HOME baked into each command (--porch-home), or null."
+    },
+    "settings": {
+      "type": "object",
+      "required": [
+        "hooks"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hooks": {
+          "type": "object",
+          "required": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "Stop",
+            "StopFailure",
+            "PermissionRequest",
+            "SessionEnd"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "SessionStart": {
+              "$ref": "#/$defs/eventHooks"
+            },
+            "UserPromptSubmit": {
+              "$ref": "#/$defs/eventHooks"
+            },
+            "Stop": {
+              "$ref": "#/$defs/eventHooks"
+            },
+            "StopFailure": {
+              "$ref": "#/$defs/eventHooks"
+            },
+            "PermissionRequest": {
+              "$ref": "#/$defs/eventHooks"
+            },
+            "SessionEnd": {
+              "$ref": "#/$defs/eventHooks"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "eventHooks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "hooks"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "hooks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "command",
+                "timeout"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "command"
+                },
+                "command": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "timeout": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

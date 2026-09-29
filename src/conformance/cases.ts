@@ -197,8 +197,20 @@ export const CASES: ConformanceCase[] = [
         await c.driver.makeIdle(s);
         await waitFor("watch to report idle after busy", c.driver.timeouts.changeMs, async () => isSubsequence(["idle", "busy", "idle"], statuses()));
         await c.snapshot("idle after busy");
+        const want: SessionStatus[] = ["idle", "busy", "idle"];
+        // A prompt opening must arrive through watch too. For some harnesses (Claude
+        // Code) only the outside listing shows it, so watch has to poll for it.
+        if (c.adapter.capabilities.seesPrompts && c.driver.supports.holdAtPrompt) {
+          await c.driver.holdAtPrompt(s);
+          want.push("waiting-on-prompt");
+          await waitFor("watch to report waiting-on-prompt", c.driver.timeouts.changeMs, async () => isSubsequence(want, statuses()));
+          await c.snapshot("waiting on a prompt");
+        }
         await c.driver.kill(s);
-        await waitFor("watch to report gone", c.driver.timeouts.changeMs, async () => isSubsequence(["idle", "busy", "idle", "gone"], statuses()));
+        want.push("gone");
+        await waitFor(`watch to report gone (after ${want.slice(0, -1).join(", ")})`, c.driver.timeouts.changeMs, async () =>
+          isSubsequence(want, statuses()),
+        );
         await c.snapshot("gone");
       } finally {
         controller.abort();

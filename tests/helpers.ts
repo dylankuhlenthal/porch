@@ -15,6 +15,9 @@ import type { HarnessIO } from "../src/io.js";
 export const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const BIN = path.join(REPO, "dist", "cli", "main.js");
 
+/** A `claude` command that does not exist, so the Claude adapter sees no Claude Code installed. */
+export const NO_CLAUDE = "/nonexistent/porch-tests-have-no-claude";
+
 /** A fresh scratch PORCH_HOME and HOME. Every test that touches files uses one. */
 export function scratchEnv(extra: Env = {}): Env {
   const dir = mkdtempSync(path.join(os.tmpdir(), "porch-scratch-"));
@@ -22,6 +25,7 @@ export function scratchEnv(extra: Env = {}): Env {
     PATH: process.env.PATH,
     HOME: path.join(dir, "home"),
     PORCH_HOME: path.join(dir, "porch-home"),
+    PORCH_CLAUDE_BIN: NO_CLAUDE,
     ...extra,
   };
 }
