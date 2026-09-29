@@ -10,7 +10,8 @@
  *   0 no case failed
  *   1 a case failed
  *   2 usage error, or the harness is not available here
- *   3 skipped: an environment variable the harness needs (such as an API key) is not set
+ *   3 skipped: an environment variable the harness needs (such as an API key) is not set,
+ *     or the driver says real turns cannot run here (for example not logged in)
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -61,11 +62,19 @@ export async function conformanceCommand(argv: string[], io: ConformanceCommandI
     return CONFORMANCE_EXIT.skipped;
   }
   const adapter = entry.adapter();
+  const passed = [...entry.requiredEnv, ...(entry.optionalEnv ?? []).filter((k) => io.env[k])];
   const baseEnv: Env = {
     PATH: io.env.PATH,
     HOME: io.env.HOME,
-    ...Object.fromEntries(entry.requiredEnv.map((k) => [k, io.env[k]])),
+    // Claude Code finds its login in the macOS keychain by user name.
+    ...(io.env.USER ? { USER: io.env.USER } : {}),
+    ...Object.fromEntries(passed.map((k) => [k, io.env[k]])),
   };
+  const unavailable = await entry.unavailableReason?.(baseEnv).catch((err: unknown) => errorMessage(err));
+  if (unavailable) {
+    io.stdout(JSON.stringify({ schema: 1, harness, skipped: unavailable }) + "\n");
+    return CONFORMANCE_EXIT.skipped;
+  }
   const detected = await adapter.detect(new Porch({ env: baseEnv, adapters: [adapter] }).ctx).catch((err: unknown) => ({
     available: false,
     reason: errorMessage(err),
@@ -80,6 +89,8 @@ export async function conformanceCommand(argv: string[], io: ConformanceCommandI
       adapter,
       driver: entry.driver(),
       cases: values.case,
+      workRoot: entry.workRoot?.(),
+      scrubSnapshot: entry.scrubSnapshot,
       baseEnv,
       log: (line) => io.stderr(`${line}\n`),
       onFixture: values.record ? (f) => writeJson(fixturePath(io.root, harness, f.case), f) : undefined,

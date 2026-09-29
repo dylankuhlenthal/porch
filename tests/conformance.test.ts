@@ -20,9 +20,11 @@ import { REPO, scratchEnv, schemaValidators } from "./helpers.js";
 
 const v = schemaValidators();
 
+/** Laid out like a conformance case: PORCH_HOME inside the case folder (the Claude adapter relies on it). */
 function replayScratch() {
   const workDir = mkdtempSync(path.join(os.tmpdir(), "porch-replay-"));
-  return { env: scratchEnv(), workDir };
+  // Replay answers every harness command from the recording, so the command name must be the recorded one.
+  return { env: scratchEnv({ PORCH_HOME: path.join(workDir, "porch-home"), PORCH_CLAUDE_BIN: undefined }), workDir };
 }
 
 function quickDriver(overrides: Partial<HarnessDriver> = {}): HarnessDriver {

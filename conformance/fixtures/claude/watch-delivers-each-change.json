@@ -1,0 +1,501 @@
+{
+  "schema": 1,
+  "harness": "claude",
+  "harnessVersion": "2.1.284",
+  "case": "watch-delivers-each-change",
+  "recordedAt": "2026-09-29T16:36:03.677Z",
+  "snapshots": [
+    {
+      "label": "idle after busy",
+      "at": "2026-09-29T16:35:58.208Z",
+      "records": {
+        "claude-40130fd3-1731-414a-8829-0a0bdda3c4f2.json": {
+          "schema": 1,
+          "harness": "claude",
+          "session": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+          "createdAt": "2026-09-29T16:35:27.067Z",
+          "updatedAt": "2026-09-29T16:35:57.956Z",
+          "inside": {
+            "pid": 67827,
+            "delivery": {
+              "via": "socket",
+              "address": "/tmp/cc-socks/67827.sock"
+            },
+            "cwd": "$WORK/cwd-940b9c52",
+            "status": "idle",
+            "since": "2026-09-29T16:35:57.956Z",
+            "data": {
+              "source": "startup",
+              "transcriptPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl",
+              "shortId": "40130fd3",
+              "startedAt": "2026-09-29T16:35:27.065Z"
+            },
+            "lastTurnStart": "2026-09-29T16:35:27.578Z",
+            "lastTurnEnd": "2026-09-29T16:35:57.954Z",
+            "backgroundTasks": 0
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "run",
+          "cmd": "claude",
+          "args": [
+            "agents",
+            "--json"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "[\n  {\n    \"pid\": 67827,\n    \"id\": \"40130fd3\",\n    \"cwd\": \"$WORK/cwd-940b9c52\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790699727019,\n    \"sessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n    \"name\": \"porch-conformance-940b9c52\",\n    \"status\": \"idle\",\n    \"state\": \"done\"\n  }\n]\n",
+            "stderr": ""
+          }
+        },
+        {
+          "op": "readFile",
+          "path": "$HOME/.claude/jobs/40130fd3/state.json",
+          "result": "{\n  \"state\": \"done\",\n  \"detail\": \"task completed\",\n  \"tempo\": \"idle\",\n  \"inFlight\": {\n    \"tasks\": 0,\n    \"queued\": 0,\n    \"kinds\": [],\n    \"drainableMonitors\": 0\n  },\n  \"tokens\": 542,\n  \"output\": {\n    \"result\": \"completed\"\n  },\n  \"children\": null,\n  \"linkScanOffset\": 300270,\n  \"linkScanPath\": \"$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl\",\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"-n\",\n    \"porch-conformance-940b9c52\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--settings\",\n    \"$WORK/settings-hooks.json\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-940b9c52\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n  \"resumeSessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n  \"daemonShort\": \"40130fd3\",\n  \"cliVersion\": \"2.1.284\",\n  \"cwd\": \"$WORK/cwd-940b9c52\",\n  \"providerEnv\": {},\n  \"backend\": \"daemon\",\n  \"createdAt\": \"2026-09-29T16:35:26.677Z\",\n  \"updatedAt\": \"2026-09-29T16:35:57.882Z\",\n  \"firstTerminalAt\": \"2026-09-29T16:35:57.882Z\",\n  \"lastTerminalAt\": \"2026-09-29T16:35:57.882Z\"\n}"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "claude",
+          "session": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+          "status": "idle",
+          "since": "2026-09-29T16:35:57.956Z",
+          "detail": {
+            "pid": 67827,
+            "shortId": "40130fd3",
+            "name": "porch-conformance-940b9c52",
+            "cwd": "$WORK/cwd-940b9c52",
+            "prompt": null,
+            "promptNeeds": null,
+            "hasInsidePart": true,
+            "statusSource": "hooks",
+            "lastTurnStart": "2026-09-29T16:35:27.578Z",
+            "lastTurnEnd": "2026-09-29T16:35:57.954Z",
+            "backgroundTasks": 0,
+            "activity": {
+              "detail": "task completed",
+              "inFlight": 0,
+              "running": []
+            }
+          },
+          "raw": {
+            "listing": {
+              "pid": 67827,
+              "id": "40130fd3",
+              "cwd": "$WORK/cwd-940b9c52",
+              "kind": "background",
+              "startedAt": 1790699727019,
+              "sessionId": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "name": "porch-conformance-940b9c52",
+              "status": "idle",
+              "state": "done"
+            },
+            "job": {
+              "state": "done",
+              "detail": "task completed",
+              "tempo": "idle",
+              "inFlight": {
+                "tasks": 0,
+                "queued": 0,
+                "kinds": [],
+                "drainableMonitors": 0
+              },
+              "tokens": 542,
+              "output": {
+                "result": "completed"
+              },
+              "children": null,
+              "linkScanOffset": 300270,
+              "linkScanPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl",
+              "template": "bg",
+              "respawnFlags": [
+                "-n",
+                "porch-conformance-940b9c52",
+                "--permission-mode",
+                "default",
+                "--setting-sources",
+                "project",
+                "--settings",
+                "$WORK/settings-hooks.json",
+                "--append-system-prompt",
+                "This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.",
+                "--model",
+                "haiku"
+              ],
+              "intent": "",
+              "name": "porch-conformance-940b9c52",
+              "nameSource": "user",
+              "sessionId": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "resumeSessionId": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "daemonShort": "40130fd3",
+              "cliVersion": "2.1.284",
+              "cwd": "$WORK/cwd-940b9c52",
+              "providerEnv": {},
+              "backend": "daemon",
+              "createdAt": "2026-09-29T16:35:26.677Z",
+              "updatedAt": "2026-09-29T16:35:57.882Z",
+              "firstTerminalAt": "2026-09-29T16:35:57.882Z",
+              "lastTerminalAt": "2026-09-29T16:35:57.882Z"
+            },
+            "record": {
+              "schema": 1,
+              "harness": "claude",
+              "session": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "createdAt": "2026-09-29T16:35:27.067Z",
+              "updatedAt": "2026-09-29T16:35:57.956Z",
+              "inside": {
+                "pid": 67827,
+                "delivery": {
+                  "via": "socket",
+                  "address": "/tmp/cc-socks/67827.sock"
+                },
+                "cwd": "$WORK/cwd-940b9c52",
+                "status": "idle",
+                "since": "2026-09-29T16:35:57.956Z",
+                "data": {
+                  "source": "startup",
+                  "transcriptPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl",
+                  "shortId": "40130fd3",
+                  "startedAt": "2026-09-29T16:35:27.065Z"
+                },
+                "lastTurnStart": "2026-09-29T16:35:27.578Z",
+                "lastTurnEnd": "2026-09-29T16:35:57.954Z",
+                "backgroundTasks": 0
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    },
+    {
+      "label": "waiting on a prompt",
+      "at": "2026-09-29T16:36:02.522Z",
+      "records": {
+        "claude-40130fd3-1731-414a-8829-0a0bdda3c4f2.json": {
+          "schema": 1,
+          "harness": "claude",
+          "session": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+          "createdAt": "2026-09-29T16:35:27.067Z",
+          "updatedAt": "2026-09-29T16:36:01.989Z",
+          "inside": {
+            "pid": 67827,
+            "delivery": {
+              "via": "socket",
+              "address": "/tmp/cc-socks/67827.sock"
+            },
+            "cwd": "$WORK/cwd-940b9c52",
+            "status": "busy",
+            "since": "2026-09-29T16:35:58.556Z",
+            "data": {
+              "source": "startup",
+              "transcriptPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl",
+              "shortId": "40130fd3",
+              "startedAt": "2026-09-29T16:35:27.065Z",
+              "lastPermissionRequest": {
+                "at": "2026-09-29T16:36:01.988Z",
+                "tool": "Bash"
+              }
+            },
+            "lastTurnStart": "2026-09-29T16:35:58.554Z",
+            "lastTurnEnd": "2026-09-29T16:35:57.954Z",
+            "backgroundTasks": 0
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "run",
+          "cmd": "claude",
+          "args": [
+            "agents",
+            "--json"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "[\n  {\n    \"pid\": 67827,\n    \"id\": \"40130fd3\",\n    \"cwd\": \"$WORK/cwd-940b9c52\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790699727019,\n    \"sessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n    \"name\": \"porch-conformance-940b9c52\",\n    \"status\": \"waiting\",\n    \"waitingFor\": \"permission prompt\",\n    \"state\": \"blocked\"\n  }\n]\n",
+            "stderr": ""
+          }
+        },
+        {
+          "op": "readFile",
+          "path": "$HOME/.claude/jobs/40130fd3/state.json",
+          "result": "{\n  \"state\": \"working\",\n  \"detail\": \"Creating probe file for conformance test as instructed\",\n  \"tempo\": \"active\",\n  \"inFlight\": {\n    \"tasks\": 0,\n    \"queued\": 0,\n    \"kinds\": [],\n    \"drainableMonitors\": 0\n  },\n  \"tokens\": 780,\n  \"output\": null,\n  \"children\": null,\n  \"linkScanOffset\": 303785,\n  \"linkScanPath\": \"$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl\",\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"-n\",\n    \"porch-conformance-940b9c52\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--settings\",\n    \"$WORK/settings-hooks.json\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-940b9c52\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n  \"resumeSessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n  \"daemonShort\": \"40130fd3\",\n  \"cliVersion\": \"2.1.284\",\n  \"cwd\": \"$WORK/cwd-940b9c52\",\n  \"providerEnv\": {},\n  \"backend\": \"daemon\",\n  \"createdAt\": \"2026-09-29T16:35:26.677Z\",\n  \"updatedAt\": \"2026-09-29T16:36:01.958Z\",\n  \"firstTerminalAt\": \"2026-09-29T16:35:57.882Z\"\n}"
+        },
+        {
+          "op": "run",
+          "cmd": "claude",
+          "args": [
+            "agents",
+            "--json"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "[\n  {\n    \"pid\": 67827,\n    \"id\": \"40130fd3\",\n    \"cwd\": \"$WORK/cwd-940b9c52\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790699727019,\n    \"sessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n    \"name\": \"porch-conformance-940b9c52\",\n    \"status\": \"waiting\",\n    \"waitingFor\": \"permission prompt\",\n    \"state\": \"blocked\"\n  }\n]\n",
+            "stderr": ""
+          }
+        },
+        {
+          "op": "readFile",
+          "path": "$HOME/.claude/jobs/40130fd3/state.json",
+          "result": "{\n  \"state\": \"working\",\n  \"detail\": \"Creating probe file for conformance test as instructed\",\n  \"tempo\": \"active\",\n  \"inFlight\": {\n    \"tasks\": 0,\n    \"queued\": 0,\n    \"kinds\": [],\n    \"drainableMonitors\": 0\n  },\n  \"tokens\": 780,\n  \"output\": null,\n  \"children\": null,\n  \"linkScanOffset\": 303785,\n  \"linkScanPath\": \"$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl\",\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"-n\",\n    \"porch-conformance-940b9c52\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--settings\",\n    \"$WORK/settings-hooks.json\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-940b9c52\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n  \"resumeSessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n  \"daemonShort\": \"40130fd3\",\n  \"cliVersion\": \"2.1.284\",\n  \"cwd\": \"$WORK/cwd-940b9c52\",\n  \"providerEnv\": {},\n  \"backend\": \"daemon\",\n  \"createdAt\": \"2026-09-29T16:35:26.677Z\",\n  \"updatedAt\": \"2026-09-29T16:36:01.958Z\",\n  \"firstTerminalAt\": \"2026-09-29T16:35:57.882Z\"\n}"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "claude",
+          "session": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+          "status": "waiting-on-prompt",
+          "since": null,
+          "detail": {
+            "pid": 67827,
+            "shortId": "40130fd3",
+            "name": "porch-conformance-940b9c52",
+            "cwd": "$WORK/cwd-940b9c52",
+            "prompt": "permission prompt",
+            "promptNeeds": null,
+            "hasInsidePart": true,
+            "statusSource": null,
+            "lastTurnStart": "2026-09-29T16:35:58.554Z",
+            "lastTurnEnd": "2026-09-29T16:35:57.954Z",
+            "backgroundTasks": 0,
+            "activity": {
+              "detail": "Creating probe file for conformance test as instructed",
+              "inFlight": 0,
+              "running": []
+            }
+          },
+          "raw": {
+            "listing": {
+              "pid": 67827,
+              "id": "40130fd3",
+              "cwd": "$WORK/cwd-940b9c52",
+              "kind": "background",
+              "startedAt": 1790699727019,
+              "sessionId": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "name": "porch-conformance-940b9c52",
+              "status": "waiting",
+              "waitingFor": "permission prompt",
+              "state": "blocked"
+            },
+            "job": {
+              "state": "working",
+              "detail": "Creating probe file for conformance test as instructed",
+              "tempo": "active",
+              "inFlight": {
+                "tasks": 0,
+                "queued": 0,
+                "kinds": [],
+                "drainableMonitors": 0
+              },
+              "tokens": 780,
+              "output": null,
+              "children": null,
+              "linkScanOffset": 303785,
+              "linkScanPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl",
+              "template": "bg",
+              "respawnFlags": [
+                "-n",
+                "porch-conformance-940b9c52",
+                "--permission-mode",
+                "default",
+                "--setting-sources",
+                "project",
+                "--settings",
+                "$WORK/settings-hooks.json",
+                "--append-system-prompt",
+                "This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.",
+                "--model",
+                "haiku"
+              ],
+              "intent": "",
+              "name": "porch-conformance-940b9c52",
+              "nameSource": "user",
+              "sessionId": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "resumeSessionId": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "daemonShort": "40130fd3",
+              "cliVersion": "2.1.284",
+              "cwd": "$WORK/cwd-940b9c52",
+              "providerEnv": {},
+              "backend": "daemon",
+              "createdAt": "2026-09-29T16:35:26.677Z",
+              "updatedAt": "2026-09-29T16:36:01.958Z",
+              "firstTerminalAt": "2026-09-29T16:35:57.882Z"
+            },
+            "record": {
+              "schema": 1,
+              "harness": "claude",
+              "session": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "createdAt": "2026-09-29T16:35:27.067Z",
+              "updatedAt": "2026-09-29T16:36:01.989Z",
+              "inside": {
+                "pid": 67827,
+                "delivery": {
+                  "via": "socket",
+                  "address": "/tmp/cc-socks/67827.sock"
+                },
+                "cwd": "$WORK/cwd-940b9c52",
+                "status": "busy",
+                "since": "2026-09-29T16:35:58.556Z",
+                "data": {
+                  "source": "startup",
+                  "transcriptPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl",
+                  "shortId": "40130fd3",
+                  "startedAt": "2026-09-29T16:35:27.065Z",
+                  "lastPermissionRequest": {
+                    "at": "2026-09-29T16:36:01.988Z",
+                    "tool": "Bash"
+                  }
+                },
+                "lastTurnStart": "2026-09-29T16:35:58.554Z",
+                "lastTurnEnd": "2026-09-29T16:35:57.954Z",
+                "backgroundTasks": 0
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    },
+    {
+      "label": "gone",
+      "at": "2026-09-29T16:36:03.535Z",
+      "records": {
+        "claude-40130fd3-1731-414a-8829-0a0bdda3c4f2.json": {
+          "schema": 1,
+          "harness": "claude",
+          "session": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+          "createdAt": "2026-09-29T16:35:27.067Z",
+          "updatedAt": "2026-09-29T16:36:01.989Z",
+          "inside": {
+            "pid": 67827,
+            "delivery": {
+              "via": "socket",
+              "address": "/tmp/cc-socks/67827.sock"
+            },
+            "cwd": "$WORK/cwd-940b9c52",
+            "status": "busy",
+            "since": "2026-09-29T16:35:58.556Z",
+            "data": {
+              "source": "startup",
+              "transcriptPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl",
+              "shortId": "40130fd3",
+              "startedAt": "2026-09-29T16:35:27.065Z",
+              "lastPermissionRequest": {
+                "at": "2026-09-29T16:36:01.988Z",
+                "tool": "Bash"
+              }
+            },
+            "lastTurnStart": "2026-09-29T16:35:58.554Z",
+            "lastTurnEnd": "2026-09-29T16:35:57.954Z",
+            "backgroundTasks": 0
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "run",
+          "cmd": "claude",
+          "args": [
+            "agents",
+            "--json"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "[\n  {\n    \"id\": \"40130fd3\",\n    \"cwd\": \"$WORK/cwd-940b9c52\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790699726677,\n    \"sessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n    \"name\": \"porch-conformance-940b9c52\",\n    \"state\": \"working\"\n  }\n]\n",
+            "stderr": ""
+          }
+        },
+        {
+          "op": "run",
+          "cmd": "claude",
+          "args": [
+            "agents",
+            "--json"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "[\n  {\n    \"id\": \"40130fd3\",\n    \"cwd\": \"$WORK/cwd-940b9c52\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790699726677,\n    \"sessionId\": \"40130fd3-1731-414a-8829-0a0bdda3c4f2\",\n    \"name\": \"porch-conformance-940b9c52\",\n    \"state\": \"working\"\n  }\n]\n",
+            "stderr": ""
+          }
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "claude",
+          "session": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+          "status": "gone",
+          "since": null,
+          "detail": {
+            "pid": null,
+            "shortId": "40130fd3",
+            "name": "porch-conformance-940b9c52",
+            "cwd": "$WORK/cwd-940b9c52",
+            "prompt": null,
+            "promptNeeds": null,
+            "hasInsidePart": true,
+            "statusSource": null,
+            "lastTurnStart": "2026-09-29T16:35:58.554Z",
+            "lastTurnEnd": "2026-09-29T16:35:57.954Z",
+            "backgroundTasks": 0,
+            "activity": null
+          },
+          "raw": {
+            "listing": {
+              "id": "40130fd3",
+              "cwd": "$WORK/cwd-940b9c52",
+              "kind": "background",
+              "startedAt": 1790699726677,
+              "sessionId": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "name": "porch-conformance-940b9c52",
+              "state": "working"
+            },
+            "job": null,
+            "record": {
+              "schema": 1,
+              "harness": "claude",
+              "session": "40130fd3-1731-414a-8829-0a0bdda3c4f2",
+              "createdAt": "2026-09-29T16:35:27.067Z",
+              "updatedAt": "2026-09-29T16:36:01.989Z",
+              "inside": {
+                "pid": 67827,
+                "delivery": {
+                  "via": "socket",
+                  "address": "/tmp/cc-socks/67827.sock"
+                },
+                "cwd": "$WORK/cwd-940b9c52",
+                "status": "busy",
+                "since": "2026-09-29T16:35:58.556Z",
+                "data": {
+                  "source": "startup",
+                  "transcriptPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-watch-delivers-each-change-N0oQ4q-cwd-940b9c52/40130fd3-1731-414a-8829-0a0bdda3c4f2.jsonl",
+                  "shortId": "40130fd3",
+                  "startedAt": "2026-09-29T16:35:27.065Z",
+                  "lastPermissionRequest": {
+                    "at": "2026-09-29T16:36:01.988Z",
+                    "tool": "Bash"
+                  }
+                },
+                "lastTurnStart": "2026-09-29T16:35:58.554Z",
+                "lastTurnEnd": "2026-09-29T16:35:57.954Z",
+                "backgroundTasks": 0
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}

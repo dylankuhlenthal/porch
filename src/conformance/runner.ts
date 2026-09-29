@@ -50,8 +50,8 @@ export interface ConformanceOptions {
   /** Run only these cases (by name). */
   cases?: string[];
   /**
-   * The environment sessions start from. Defaults to PATH and HOME from this
-   * process (the harness may need HOME for its login); the runner adds a scratch
+   * The environment sessions start from. Defaults to PATH, HOME and USER from this
+   * process (the harness may need HOME and USER for its login); the runner adds a scratch
    * PORCH_HOME per case. Nothing else is inherited, so a session id variable from
    * the shell running the suite cannot leak into a case.
    */
@@ -61,6 +61,10 @@ export interface ConformanceOptions {
   log?(line: string): void;
   /** Sender label for deliveries. */
   from?: string;
+  /** Where each case's scratch folder is made. Default: the system temp folder. */
+  workRoot?: string;
+  /** Applied to each snapshot before it goes into a fixture (see DriverEntry.scrubSnapshot). */
+  scrubSnapshot?(snapshot: Snapshot): Snapshot;
 }
 
 export async function runConformance(options: ConformanceOptions): Promise<ConformanceReport> {
@@ -74,7 +78,7 @@ export async function runConformance(options: ConformanceOptions): Promise<Confo
     if (unknown.length > 0) throw new Error(`unknown conformance case: ${unknown.join(", ")}`);
   }
   const harnessVersion = await driver.version();
-  const baseEnv: Env = options.baseEnv ?? { PATH: process.env.PATH, HOME: process.env.HOME };
+  const baseEnv: Env = options.baseEnv ?? { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
   const results: CaseResult[] = [];
   for (const c of selected) {
     const started = Date.now();
@@ -102,13 +106,15 @@ async function runCase(
   harnessVersion: string | null,
 ): Promise<{ result: CaseResult["result"]; reason: string | null }> {
   const { adapter, driver } = options;
-  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `porch-conformance-${c.name}-`));
+  const root = options.workRoot ?? os.tmpdir();
+  await fs.mkdir(root, { recursive: true });
+  const workDir = await fs.mkdtemp(path.join(root, `porch-conformance-${c.name}-`));
   const env: Env = { ...baseEnv, PORCH_HOME: path.join(workDir, "porch-home") };
   const io = new RecordingIO(realIO);
-  // Everything in the base environment besides PATH and HOME is there because the
+  // Everything in the base environment besides PATH, HOME and USER is there because the
   // harness needs it (an API key, for example): keep its values out of fixtures.
   const secrets = Object.entries(baseEnv)
-    .filter(([k, v]) => k !== "PATH" && k !== "HOME" && typeof v === "string")
+    .filter(([k, v]) => k !== "PATH" && k !== "HOME" && k !== "USER" && typeof v === "string")
     .map(([, v]) => v as string);
   const porch = new Porch({ env, adapters: [adapter], io });
   const snapshots: Snapshot[] = [];
@@ -118,7 +124,8 @@ async function runCase(
     porch,
     porchInside: (s: DriverSession) => new Porch({ env: { ...env, ...driver.envInside(s) }, adapters: [adapter], io }),
     snapshot: async (label) => {
-      snapshots.push(await takeSnapshot(label, adapter, porch.ctx, io, workDir, secrets));
+      const snap = await takeSnapshot(label, adapter, porch.ctx, io, workDir, secrets);
+      snapshots.push(options.scrubSnapshot ? options.scrubSnapshot(snap) : snap);
     },
     from: options.from ?? "porch-conformance",
   };
