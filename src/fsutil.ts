@@ -26,9 +26,13 @@ export interface LockOptions {
  * whose pid is not running, or any lock older than `hardStaleMs` (30 s), was left by
  * a crashed writer and is broken; 2 s is shorter than `timeoutMs` (5 s), so a waiting
  * writer gets through instead of failing. Breaking renames the lock aside and
- * checks it is still the stale one before deleting it, and a holder deletes the
- * lock only if it still holds its own token, so a writer never deletes a lock
- * another writer has just taken.
+ * checks it is still the stale one before deleting it (putting it back if not),
+ * and a holder deletes the lock only if it still holds its own token.
+ *
+ * This is not airtight: between moving another writer's fresh lock aside and
+ * putting it back, a third writer can take the lock, the put-back then fails, and
+ * two writers hold it at once. That three-writer race around a stale lock is
+ * accepted as unlikely ("Record locks" in docs/architecture.md).
  */
 export async function withLock<T>(file: string, fn: () => Promise<T>, options: LockOptions = {}): Promise<T> {
   const lock = `${file}.lock`;
@@ -83,6 +87,8 @@ async function breakStaleLock(lock: string, staleMs: number, hardStaleMs: number
     if (age <= hardStaleMs && processRunning(pid)) return;
     // Move it aside, then check it is still the lock we judged stale. If another
     // writer broke it and took a new lock in between, we moved theirs: put it back.
+    // If a third writer took the lock in that moment, the put-back fails and
+    // theirs is lost (the accepted race described above withLock).
     const aside = `${lock}.breaking.${randomBytes(4).toString("hex")}`;
     await fs.rename(lock, aside);
     const moved = await fs.readFile(aside, "utf8").catch(() => null);
