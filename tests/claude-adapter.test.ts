@@ -514,21 +514,30 @@ describe("Claude Code hooks (the inside part)", () => {
     expect((await readRecord(env))!).toMatchObject({ inside: { status: "busy" }, self: { status: "working" } });
   });
 
-  it("SessionStart of a new process clears the old process's background tasks, but keeps turn history", async () => {
+  it("SessionStart keeps background tasks in the same process and clears them for another, whatever the source", async () => {
     const env = hookEnv();
-    const run = (event: string, input: Record<string, unknown> = {}) =>
-      cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    const run = (event: string, input: Record<string, unknown> = {}, extra: Env = {}) =>
+      cli(["hooks", "claude", "on", event], { ...env, ...extra }, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    const tasks = async () => (await readRecord(env))!.inside!.backgroundTasks;
     await run("SessionStart", { source: "startup" });
     await run("UserPromptSubmit");
     await run("Stop", { background_tasks: [{}, {}] });
-    await run("SessionStart", { source: "compact" });
-    expect((await readRecord(env))!.inside!.backgroundTasks).toBe(2);
+    // Same process (pid 36322): a compaction, /clear or an in-session /resume keeps them.
+    for (const source of ["compact", "clear", "resume"]) {
+      await run("SessionStart", { source });
+      expect([source, await tasks()]).toEqual([source, 2]);
+    }
     const before = (await readRecord(env))!.inside!;
-    await run("SessionStart", { source: "resume" });
+    // Another process: cleared, turn history kept.
+    await run("SessionStart", { source: "resume" }, { CLAUDE_PID: "999", CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/cc-socks/999.sock" });
     const inside = (await readRecord(env))!.inside!;
-    expect(inside.backgroundTasks).toBeNull();
-    expect(inside).toMatchObject({ lastTurnStart: before.lastTurnStart, lastTurnEnd: before.lastTurnEnd });
+    expect(inside).toMatchObject({ pid: 999, backgroundTasks: null, lastTurnStart: before.lastTurnStart, lastTurnEnd: before.lastTurnEnd });
     expect(inside.lastTurnEnd).not.toBeNull();
+    // Unknown pid: cannot tell, so cleared.
+    await run("Stop", { background_tasks: [{}] }, { CLAUDE_PID: "999" });
+    expect(await tasks()).toBe(1);
+    await run("SessionStart", { source: "compact" }, { CLAUDE_PID: undefined, CLAUDE_CODE_MESSAGING_SOCKET: undefined });
+    expect(await tasks()).toBeNull();
   });
 
   it("always exits 0 with nothing on stdout, whatever goes wrong (exit 2 would block the session)", async () => {

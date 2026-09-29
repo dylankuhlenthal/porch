@@ -40,12 +40,14 @@ Each hook runs `porch hooks claude on <event>` with Claude Code's hook JSON on s
 
 | Event | Change to the record |
 | --- | --- |
-| `SessionStart` | `pid` (from `CLAUDE_PID`, or the number in the socket name), `delivery: { via: "socket", address: $CLAUDE_CODE_MESSAGING_SOCKET }`, `cwd`, `status: idle` and `backgroundTasks: null` (except after a compaction, which may happen mid-turn, when both are left alone: any other start, such as a resume, is a new process, and the old process's background tasks do not apply to it; `lastTurnStart` and `lastTurnEnd` are kept as history), and in `data`: `source`, `transcriptPath`, `shortId` (from `CLAUDE_JOB_DIR`), `startedAt` (kept through a compaction) |
+| `SessionStart` | `pid` (from `CLAUDE_PID`, or the number in the socket name), `delivery: { via: "socket", address: $CLAUDE_CODE_MESSAGING_SOCKET }`, `cwd`, `status: idle` (except after a compaction, which may happen mid-turn, when the status is left alone), `backgroundTasks: null` unless the hook runs in the same process that wrote the record (both pids known and equal; a compaction, `/clear` or an in-session `/resume` can be the same process, so the source name is not used; a different or unknown pid means the old count may not apply), and in `data`: `source`, `transcriptPath`, `shortId` (from `CLAUDE_JOB_DIR`), `startedAt` (kept through a compaction) |
 | `UserPromptSubmit` | `status: busy`, `lastTurnStart: now`. It fires for every prompt, including a message delivered mid-turn, so `lastTurnStart` is the last prompt, the same as sous chef's `sc hook worker-prompt` recorded |
 | `Stop` | `status: idle`, `lastTurnEnd: now`, `backgroundTasks`: the number of entries in the hook's `background_tasks` list (null when the hook gives none) |
 | `StopFailure` | `status: idle`, `lastTurnEnd: now`, `data.lastStopFailure: { at, error }` |
 | `PermissionRequest` | `data.lastPermissionRequest: { at, tool }` only. Whether a prompt is open comes from the listing; this write makes `porch watch` look again at once |
 | `SessionEnd` | the record is removed |
+
+`SessionStart` keeps `lastTurnStart` and `lastTurnEnd` as history, whatever the process.
 
 Only `SessionStart` creates a record. The other events change the record only if it exists, so a hook that runs after `SessionEnd` has removed the record (a late `Stop` or `PermissionRequest`, say) does not bring back a partial record that nothing would remove. A session whose `SessionStart` hook did not run under Porch's hooks therefore has no record, and shows the listing's status (rule 4 below).
 

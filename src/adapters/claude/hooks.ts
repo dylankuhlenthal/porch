@@ -96,16 +96,20 @@ export async function handleHookEvent(ctx: AdapterContext, event: string, input:
       const source = str(input.source);
       const socket = str(ctx.env.CLAUDE_CODE_MESSAGING_SOCKET);
       const jobDir = str(ctx.env.CLAUDE_JOB_DIR);
+      const pid = sessionPid(ctx.env);
       await records.updateInside(CLAUDE_HARNESS, session, (current) => ({
         ...(current ?? {}),
-        pid: sessionPid(ctx.env),
+        pid,
         delivery: socket ? { via: "socket", address: socket } : null,
         cwd: str(input.cwd) ?? current?.cwd ?? null,
-        // After a compaction the session may be mid-turn, so its status stays as it was,
-        // and so do its background tasks. Any other start is a new process (a resume, say):
-        // the old process's background task count does not apply to it. lastTurnStart and
-        // lastTurnEnd are kept as history.
-        ...(source === "compact" ? {} : { status: "idle" as const, since: now, backgroundTasks: null }),
+        // After a compaction the session may be mid-turn, so its status stays as it was.
+        ...(source === "compact" ? {} : { status: "idle" as const, since: now }),
+        // Background tasks belong to a process. They are kept only when this hook runs in
+        // the process that wrote the record (both pids known and equal): a compaction,
+        // `/clear` or an in-session `/resume` can all be the same process, so the source
+        // name does not say. A different or unknown pid clears them to null (cannot tell).
+        // lastTurnStart and lastTurnEnd are kept as history either way.
+        ...(pid !== null && current?.pid === pid ? {} : { backgroundTasks: null }),
         data: {
           ...(current?.data ?? {}),
           source,
