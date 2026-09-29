@@ -53,7 +53,7 @@ Each hook runs `porch hooks claude on <event>` with Claude Code's hook JSON on s
 
 Decision 11 in TRV-1133: busy and idle from the hook record; alive, pid and waiting-on-prompt from `claude agents --json`; the job file only in `detail` and `raw`. In order (`claudeObservation` in `observe.ts`):
 
-1. No listing row with a `pid`: `gone`. A record left behind (a crash, `kill -9`) does not revive it. A session Claude Code stopped (`claude stop`) drops out of the listing entirely and also shows as `gone` while its record is left.
+1. No listing row with a `pid`: `gone`. A record left behind (a crash, `kill -9`) does not revive it. A session Claude Code stopped (`claude stop`) drops out of the listing entirely. Its `SessionEnd` hook normally removes the record too, and then `observe` answers not found (and `deliver` `not-running`); if the record was left, it shows as `gone`. Consumers should read not found as not running.
 2. The listing says `waiting`: `waiting-on-prompt` (`since` is null: Claude Code does not say when it started).
 3. The record has a status: that status and its `since`.
 4. No record (a session without Porch's hooks): the listing's own `busy` or `idle`, with `since` null. Decision 12 promises such sessions "a coarser status"; the listing's `busy` has been seen stale for minutes after a turn ended, which is why the record wins whenever there is one.
@@ -76,7 +76,7 @@ Decision 11 in TRV-1133: busy and idle from the hook record; alive, pid and wait
 
 Because watch compares `detail`, a change in `activity` (for example the session's summary line) is reported as a change.
 
-**Finding a session**: `observe` and `deliver` take the full session id or the short id; the output always uses the full session id. Listing rows without a `sessionId` are left out (right after `claude --bg` the short id can appear before the session id); they show once the session id does.
+**Finding a session**: `observe` and `deliver` take the full session id or the short id; the output always uses the full session id. A short id is also found through the record the `SessionStart` hook wrote, so a killed session whose row has left the listing still shows as `gone` by its short id (a session without the hooks is then not found at all). Listing rows without a `sessionId` are left out (right after `claude --bg` the short id can appear before the session id); they show once the session id does.
 
 ## Deliver
 
@@ -107,7 +107,7 @@ What the session does with it (observed with 2.1.284): an idle session starts a 
 - `CLAUDE_PID` and `CLAUDE_JOB_DIR` in the hook environment.
 - `Stop`'s `background_tasks` is a list (TRV-1133's findings called it a count; Porch stores its length).
 - `UserPromptSubmit` fires for messages delivered through the socket, both when idle and mid-turn.
-- A killed session keeps its listing row without a `pid`; a session stopped with `claude stop` leaves the listing.
+- A killed session keeps its listing row without a `pid` for a few seconds, then leaves `claude agents --json` (only `--all` still lists it); a session stopped with `claude stop` leaves the listing.
 - The job file and its fields (`detail`, `tempo`, `needs`, `inFlight.tasks`, `fan`).
 - `claude agents --json --cwd <dir>` filters by the repository the folder belongs to, not by folder, so the conformance driver filters rows by `cwd` itself.
 - `claude --bg` refuses to start in a folder that is not trusted, and trust is inherited from a trusted parent folder.

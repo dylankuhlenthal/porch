@@ -70,8 +70,15 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
     if (!isValidId(session)) return null;
     const rows = (await listing(ctx)) ?? [];
     const row = rows.find((r) => r.sessionId === session) ?? rows.find((r) => r.id === session) ?? null;
-    const id = row?.sessionId ?? session;
-    const rec = isValidId(id) ? await ctx.records.read(CLAUDE_HARNESS, id).catch(() => null) : null;
+    let id = row?.sessionId ?? session;
+    let rec = isValidId(id) ? await ctx.records.read(CLAUDE_HARNESS, id).catch(() => null) : null;
+    if (row === null && rec === null) {
+      // A short id whose row has left the listing (a few seconds after a kill, only
+      // `--all` keeps it): the record the SessionStart hook wrote still knows it.
+      const { records } = await ctx.records.list(CLAUDE_HARNESS);
+      rec = records.find((r) => r.inside?.data?.shortId === session) ?? null;
+      if (rec !== null) id = rec.session;
+    }
     if (row === null && rec === null) return null;
     return { id, row, rec };
   };

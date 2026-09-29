@@ -155,6 +155,16 @@ describe("Claude Code adapter: status", () => {
     expect((await porch.observe(SHORT)).session).toBe(SID);
   });
 
+  it("finds a killed session by its short id through its record once the listing has dropped it", async () => {
+    // Observed with 2.1.284: a few seconds after a kill, the row leaves `claude agents --json` (only --all keeps it).
+    const porch = porchWith(stubIO([]), { ...scratchEnv(), CLAUDE_JOB_DIR: `/h/.claude/jobs/${SHORT}` });
+    await hook(porch.ctx, "SessionStart", { source: "startup" });
+    const obs = await porch.observe(SHORT);
+    expect(obs).toMatchObject({ session: SID, status: "gone" });
+    const r = await porch.deliver(SHORT, "hi", { from: "t" });
+    expect(r).toMatchObject({ harness: "claude", session: SID, result: "not-running" });
+  });
+
   it("puts the listing row, job file and record in raw, and activity in detail", async () => {
     const job = { sessionId: SID, detail: "doing it", inFlight: { tasks: 0 } };
     const porch = porchWith(stubIO([row()], { [SHORT]: job }));
