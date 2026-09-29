@@ -55,9 +55,11 @@ Decision 11 in TRV-1133: busy and idle from the hook record; alive, pid and wait
 
 1. No listing row with a `pid`: `gone`. A record left behind (a crash, `kill -9`) does not revive it. A session Claude Code stopped (`claude stop`) drops out of the listing entirely. Its `SessionEnd` hook normally removes the record too, and then `observe` answers not found (and `deliver` `not-running`); if the record was left, it shows as `gone`. Consumers should read not found as not running.
 2. The listing says `waiting`: `waiting-on-prompt` (`since` is null: Claude Code does not say when it started).
-3. The record has a status: that status and its `since`.
-4. No record (a session without Porch's hooks): the listing's own `busy` or `idle`, with `since` null. Decision 12 promises such sessions "a coarser status"; the listing's `busy` has been seen stale for minutes after a turn ended, which is why the record wins whenever there is one.
+3. The record's inside part has a status, written by the listed process: that status and its `since`.
+4. Otherwise the listing's own `busy` or `idle`, with `since` null. This covers a session without Porch's hooks (no record), a record without an inside status (for example one holding only a `self` part from `porch status set`), and a record written by an earlier process of the session: when the record's `pid` and the listing's `pid` are both known and differ (a resume without the hooks), the record's status belongs to the old process, so it is not used and `detail.recordPid` says which process wrote it. `deliver` ignores that record's socket for the same reason. Decision 12 promises sessions without the hooks "a coarser status"; the listing's `busy` has been seen stale for minutes after a turn ended, which is why the record wins whenever it has a status from the listed process.
 5. Otherwise `unknown`.
+
+With an old process's record, the rest of what comes from the record (`self`, `lastTurnStart`, `lastTurnEnd`, `backgroundTasks`, `shortId`) is still shown.
 
 `detail`:
 
@@ -69,6 +71,7 @@ Decision 11 in TRV-1133: busy and idle from the hook record; alive, pid and wait
 | `promptNeeds` | while waiting: the exact ask from the job file (for example `approve Bash: touch x`), when it has one |
 | `hasInsidePart` | the session has a record written by Porch's hooks |
 | `statusSource` | `hooks` or `listing` (rule 3 or 4 above), null otherwise |
+| `recordPid` | present only when the record was written by another process than the listed one (rule 4): that process's pid. Left out otherwise, so the committed conformance recordings replay unchanged |
 | `lastTurnStart`, `lastTurnEnd`, `backgroundTasks` | from the record (see the hooks table) |
 | `activity` | from the job file of a running session, or null: `{ detail, inFlight, running: [{ kind, label, since }] }`: the session's own one-line summary, how many subagents and background commands it started are still running (`inFlight.tasks`; null when the field is missing or odd), and which (the `fan` entries without `doneAt`; `since` as ISO 8601) |
 

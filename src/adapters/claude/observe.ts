@@ -7,9 +7,15 @@
  * Status, in order:
  * 1. no listing row with a pid                 -> gone (a record left behind does not revive it)
  * 2. the listing says "waiting"                -> waiting-on-prompt
- * 3. the record's inside part has a status     -> that status (statusSource "hooks")
- * 4. the listing says "busy" or "idle"         -> that status (statusSource "listing": a session without Porch's hooks)
+ * 3. the record's inside part has a status,   -> that status (statusSource "hooks")
+ *    and was written by the listed process
+ * 4. the listing says "busy" or "idle"         -> that status (statusSource "listing": a session without Porch's
+ *                                                 hooks, a record without an inside status, or a record from an
+ *                                                 earlier process of the session, noted as detail.recordPid)
  * 5. otherwise                                 -> unknown
+ *
+ * A record is from an earlier process when both pids are known and differ (a
+ * resume without the hooks); deliver already ignores its socket for the same reason.
  */
 import { observation } from "../../adapter.js";
 import type { SessionRecord } from "../../records.js";
@@ -82,6 +88,8 @@ export function claudeObservation(
   const inside = rec?.inside ?? null;
   const alive = row !== null && row.pid !== null;
   const waiting = alive && row.status === "waiting";
+  const recordPid = inside?.pid ?? null;
+  const otherProcess = alive && recordPid !== null && recordPid !== row.pid;
   let status: SessionStatus;
   let since: string | null = null;
   let statusSource: "hooks" | "listing" | null = null;
@@ -89,7 +97,7 @@ export function claudeObservation(
     status = "gone";
   } else if (waiting) {
     status = "waiting-on-prompt";
-  } else if (inside?.status) {
+  } else if (inside?.status && !otherProcess) {
     status = inside.status;
     since = inside.since ?? null;
     statusSource = "hooks";
@@ -109,6 +117,10 @@ export function claudeObservation(
     promptNeeds: waiting ? jobNeeds(job) : null,
     hasInsidePart: inside !== null,
     statusSource,
+    // Only when the record was written by another process of the session than the
+    // listed one, so its status was not used. Left out otherwise, so the committed
+    // conformance recordings still replay unchanged.
+    ...(otherProcess ? { recordPid } : {}),
     lastTurnStart: inside?.lastTurnStart ?? null,
     lastTurnEnd: inside?.lastTurnEnd ?? null,
     backgroundTasks: inside?.backgroundTasks ?? null,

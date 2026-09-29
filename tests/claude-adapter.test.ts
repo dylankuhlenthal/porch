@@ -113,6 +113,25 @@ describe("Claude Code adapter: status", () => {
     expect(obs.detail).toMatchObject({ lastTurnEnd: "2026-09-29T16:00:00.000Z", backgroundTasks: 2 });
   });
 
+  it("does not use the status of a record written by an earlier process of the session", async () => {
+    // A resume without the hooks: the record (pid 111) says busy, the listed process (pid 4242) is idle.
+    const env = { ...scratchEnv(), CLAUDE_PID: "111" };
+    const porch = porchWith(stubIO([row({ status: "idle", pid: 4242 })]), env);
+    await hook(porch.ctx, "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "UserPromptSubmit", {});
+    await porch.ctx.records.setSelf("claude", SID, { status: "working", text: null, since: "2026-09-29T15:00:00.000Z" });
+    const obs = await porch.observe(SID);
+    v.observation!(obs);
+    expect(obs).toMatchObject({ status: "idle", since: null, self: { status: "working" } });
+    expect(obs.detail).toMatchObject({ pid: 4242, recordPid: 111, statusSource: "listing", hasInsidePart: true, lastTurnStart: "2026-09-29T16:00:00.000Z" });
+    // Same pid: the record's status is used, and there is no recordPid.
+    const same = porchWith(stubIO([row({ status: "idle", pid: 111 })]), env);
+    const obs2 = await same.observe(SID);
+    expect(obs2).toMatchObject({ status: "busy" });
+    expect(obs2.detail).toMatchObject({ statusSource: "hooks" });
+    expect(obs2.detail).not.toHaveProperty("recordPid");
+  });
+
   it("reports waiting-on-prompt from the listing, with what it waits for", async () => {
     const io = stubIO([row({ status: "waiting", waitingFor: "permission prompt" })], {
       [SHORT]: { sessionId: SID, tempo: "blocked", needs: "approve Bash: touch x" },
