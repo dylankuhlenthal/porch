@@ -160,6 +160,24 @@ describe("conformance suite catches adapters that break the contract", () => {
     expect(cleaned).toBe(true);
   });
 
+  it("after a timeout, waits for a session the case was still starting, so cleanup stops it", async () => {
+    const live = new Set<string>();
+    const driver = quickDriver({
+      timeouts: { changeMs: 60_000, deliveryMs: 60_000, caseMs: 200 },
+      start: async () => {
+        await new Promise((r) => setTimeout(r, 300));
+        live.add("late");
+        return { id: "late" };
+      },
+      cleanup: async () => live.clear(),
+    });
+    const report = await runConformance({ adapter: createFakeAdapter(), driver, cases: ["which-session-am-i"] });
+    expect(resultOf(report, "which-session-am-i")).toMatchObject({ result: "fail", reason: expect.stringMatching(/longer than 200 ms/) });
+    // Give a start the runner did not wait for time to finish, so the check below would see it.
+    await new Promise((r) => setTimeout(r, 300));
+    expect([...live]).toEqual([]);
+  });
+
   it("refuses an unknown case name and a driver for another harness", async () => {
     await expect(runConformance({ adapter: createFakeAdapter(), driver: createFakeDriver(), cases: ["nope"] })).rejects.toThrow(/unknown/);
     const other = quickDriver({ harness: "other" });

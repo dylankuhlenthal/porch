@@ -31,7 +31,7 @@ A case the harness or driver cannot take part in (for example no prompts to hold
 Implement `HarnessDriver` (`src/conformance/driver.ts`) and add it to `DRIVERS` in `src/conformance/drivers/index.ts`, with the environment variables the harness needs for real turns in `requiredEnv` (for example `ANTHROPIC_API_KEY`) and `needsInstalledHarness: true`.
 
 - The runner gives each case a fresh scratch folder and calls `setup` with its `DriverContext`. **Start sessions with `ctx.env`** (it carries the scratch `PORCH_HOME`) and pass the adapter's inside part to them only through per-session settings. Never write to the person's own harness settings or home folders.
-- Only start sessions you own, and stop every one of them in `cleanup`, which the runner always calls, even after a failure or a timeout.
+- Only start sessions you own, and stop every one of them in `cleanup`, which the runner always calls, even after a failure or a timeout. After a timeout the runner first waits up to `caseMs` more for the case to finish, so a session that was still starting is stopped too; a start that takes longer than that is not. Keep track of a session as soon as it has a process (before waiting for it to be ready), so `cleanup` can stop one that never finished starting.
 - `makeBusy` must start a turn that lasts until `makeIdle` or at least `timeouts.changeMs`. `received` returns the messages the session got from outside, as text (for example from its transcript).
 - Set `timeouts` to what the harness needs. `caseMs` is a hard limit per case, so a hung harness cannot leave the run waiting.
 

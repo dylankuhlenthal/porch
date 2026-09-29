@@ -4,7 +4,9 @@
  * Every case gets its own scratch folder with its own PORCH_HOME, so no case sees
  * another's sessions and nothing touches the real ~/.porch. The driver's cleanup
  * always runs, and each case has a hard time limit (the driver's caseMs), so a
- * hung harness cannot leave the run waiting forever.
+ * hung harness cannot leave the run waiting forever. After a timeout the runner
+ * waits up to caseMs more for the case to finish before cleanup, so a session the
+ * case was still starting is stopped too.
  */
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -124,14 +126,12 @@ async function runCase(
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`case took longer than ${driver.timeouts.caseMs} ms`)), driver.timeouts.caseMs);
   });
+  const work = (async () => {
+    await driver.setup({ env, workDir, adapter, adapterContext: porch.ctx });
+    await c.run(ctx);
+  })();
   try {
-    await Promise.race([
-      (async () => {
-        await driver.setup({ env, workDir, adapter, adapterContext: porch.ctx });
-        await c.run(ctx);
-      })(),
-      timeout,
-    ]);
+    await Promise.race([work, timeout]);
     if (snapshots.length > 0) await options.onFixture?.(newFixture(adapter.harness, harnessVersion, c.name, snapshots));
     return { result: "pass", reason: null };
   } catch (err) {
@@ -139,7 +139,26 @@ async function runCase(
     return { result: "fail", reason: errorMessage(err) };
   } finally {
     clearTimeout(timer);
+    // After a timeout the case may still be running, for example still starting a
+    // session. Give it up to caseMs more to finish, so a session it starts late is
+    // stopped by cleanup instead of left running.
+    await settleWithin(work, driver.timeouts.caseMs);
     await driver.cleanup().catch((err) => options.log?.(`cleanup failed for ${c.name}: ${errorMessage(err)}`));
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined);
   }
+}
+
+/** Wait for `p` to settle, or `ms`, whichever comes first. Never throws. */
+async function settleWithin(p: Promise<unknown>, ms: number): Promise<void> {
+  let timer: NodeJS.Timeout | undefined;
+  await Promise.race([
+    p.then(
+      () => undefined,
+      () => undefined,
+    ),
+    new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, ms);
+    }),
+  ]);
+  clearTimeout(timer);
 }
