@@ -19,9 +19,9 @@
  * line. An adapter whose listing fails keeps its last-reported sessions (no
  * false `gone`) and the error goes to `onError`.
  *
- * With `session`, the id is looked up the way `porch observe` does (the adapter's
- * `observe`, so a Claude short id works too), and the watch follows the full id
- * the adapter reports.
+ * With `session`, the id may be any id the adapter's `observe` accepts (a Claude
+ * short id too): it is looked up in each look's listing through the adapter's
+ * `sessionIdIn`, and the watch follows the full id found.
  */
 import { watch as fsWatch, promises as fs, type FSWatcher } from "node:fs";
 import path from "node:path";
@@ -65,21 +65,25 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
   };
 
   // With `session`: the full id each adapter reported for it, once found. It is
-  // kept after that, so the session is still followed once it has gone.
+  // kept after that, so the session is still followed once it has gone. The id is
+  // looked up in the listing this look already has (the adapter's `sessionIdIn`),
+  // never with a second listing.
   const resolved = new Map<string, string>();
-  const sessionIdFor = async (adapter: Adapter, current: Observation[]): Promise<string | null> => {
+  const sessionIdFor = (adapter: Adapter, current: Observation[]): string | null => {
     const wanted = options.session!;
     const known = resolved.get(adapter.harness);
     if (known !== undefined) return known;
-    if (current.some((o) => o.session === wanted)) {
-      resolved.set(adapter.harness, wanted);
-      return wanted;
+    let id: string | null = current.some((o) => o.session === wanted) ? wanted : null;
+    if (id === null && adapter.sessionIdIn) {
+      try {
+        id = adapter.sessionIdIn(wanted, current);
+      } catch (err) {
+        options.onError?.(adapter.harness, err);
+        return null;
+      }
     }
-    // Not a full id in the listing: ask the adapter, as `porch observe` does.
-    const found = await adapter.observe(ctx, wanted).catch(() => null);
-    if (found === null) return null;
-    resolved.set(adapter.harness, found.session);
-    return found.session;
+    if (id !== null) resolved.set(adapter.harness, id);
+    return id;
   };
 
   const look = async () => {
@@ -92,7 +96,7 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
         continue;
       }
       if (options.session !== undefined) {
-        const id = await sessionIdFor(adapter, current);
+        const id = sessionIdFor(adapter, current);
         current = id === null ? [] : current.filter((o) => o.session === id);
       }
       const seen = new Set<string>();

@@ -27,6 +27,7 @@ Every method gets an `AdapterContext`. **Read the environment only from `ctx.env
 - `observe(session)`: one observation, or null when the adapter does not know the session (including ids the record store would refuse).
 - `current`: the session this process runs in, from the harness's own environment variable (for example `CLAUDE_CODE_SESSION_ID`, `PI_SESSION_ID`), or null.
 - `deliver(session, text)`: `text` already carries the `[from <label>]` prefix. See the rules below.
+- `sessionIdIn` (optional): if `observe` accepts ids other than the full session id (a Claude short id), pick out which of the adapter's own `list` observations such an id names and return its full id, or null. `porch watch --session` uses it to find the session in the listing it already has, without a second listing. Use only what the observations hold (for example `detail.shortId`).
 - `watchPaths` (optional): extra files or folders watch should react to, besides the records folder.
 - `capabilities`: say honestly what the harness can do. `pollIntervalMs` is how often watch polls `list` for what only the outside listing shows; null when record changes are enough.
 - `commands` (optional): CLI subcommands, each with a `path` such as `["hooks", "claude"]` (run as `porch hooks claude`). Longer paths win, so `["hooks", "claude", "x"]` can sit beside `["hooks", "claude"]`. Print JSON on stdout like every other command and throw `PorchError` for failures, so the CLI turns them into the standard error output and exit code.

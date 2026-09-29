@@ -127,6 +127,13 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
       return found === null ? null : observeOne(ctx, found.id, found.row, found.rec);
     },
 
+    sessionIdIn(id, observations) {
+      // The same ids `find` accepts: the full id, or the short id, which `detail.shortId`
+      // carries from the listing or, once the row has left it, from the record.
+      const match = observations.find((o) => o.session === id) ?? observations.find((o) => o.detail?.shortId === id);
+      return match?.session ?? null;
+    },
+
     async current(ctx) {
       const id = ctx.env[CLAUDE_SESSION_ENV];
       return id && id.trim() !== "" ? id : null;

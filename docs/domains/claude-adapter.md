@@ -81,7 +81,7 @@ With an old process's record, the rest of what comes from the record (`self`, `l
 
 Because watch compares `detail`, a change in `activity` (for example the session's summary line) is reported as a change.
 
-**Finding a session**: `observe`, `deliver` and `porch watch --session` take the full session id or the short id; the output always uses the full session id. A short id is also found through the record the `SessionStart` hook wrote, so a killed session whose row has left the listing still shows as `gone` by its short id (a session without the hooks is then not found at all). Listing rows without a `sessionId` are left out (right after `claude --bg` the short id can appear before the session id); they show once the session id does.
+**Finding a session**: `observe`, `deliver` and `porch watch --session` take the full session id or the short id (watch matches it against `detail.shortId` in the listing it already has, `sessionIdIn` in `index.ts`); the output always uses the full session id. A short id is also found through the record the `SessionStart` hook wrote, so a killed session whose row has left the listing still shows as `gone` by its short id (a session without the hooks is then not found at all). Listing rows without a `sessionId` are left out (right after `claude --bg` the short id can appear before the session id); they show once the session id does.
 
 ## Deliver
 

@@ -137,12 +137,14 @@ describe("watch", () => {
     expect(w.seen.every((o) => o.session === "b")).toBe(true);
   });
 
-  it("with --session, follows a session given by any id its adapter's observe accepts (a Claude short id)", async () => {
+  it("with --session, follows a session given by another id its adapter accepts (a Claude short id), found in the listing", async () => {
     const full = "5b0e750e-44ca-46ad-a46a-6408e83922b1";
     let status: Observation["status"] = "idle";
+    let observed = 0;
     const adapter = stubAdapter("aa", {
       list: async () => [observation({ harness: "aa", session: full, status }), observation({ harness: "aa", session: "other", status: "busy" })],
-      observe: async (_ctx, id) => (id === "5b0e750e" || id === full ? observation({ harness: "aa", session: full, status }) : null),
+      sessionIdIn: (id, obs) => (id === "5b0e750e" ? (obs.find((o) => o.session === full)?.session ?? null) : null),
+      observe: async () => (observed++, null),
       capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
     });
     const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }), { session: "5b0e750e" });
@@ -151,6 +153,27 @@ describe("watch", () => {
     await waitFor(() => w.statuses().includes(`${full}:busy`));
     await w.stop();
     expect(w.statuses()).toEqual([`${full}:idle`, `${full}:busy`]);
+    expect(observed).toBe(0);
+  });
+
+  it("with --session not found yet, makes no call beyond the listing, and reports a lookup error", async () => {
+    let looks = 0;
+    let observed = 0;
+    const adapter = stubAdapter("aa", {
+      list: async () => (looks++, [observation({ harness: "aa", session: "other", status: "busy" })]),
+      sessionIdIn: () => {
+        throw new Error("lookup broke");
+      },
+      observe: async () => (observed++, null),
+      capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
+    });
+    const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }), { session: "nobody" });
+    await waitFor(() => looks > 3);
+    await w.stop();
+    expect(observed).toBe(0);
+    expect(w.seen).toEqual([]);
+    expect(w.errors.length).toBeGreaterThan(0);
+    expect(String(w.errors[0])).toMatch(/lookup broke/);
   });
 
   it("does not look again for lock and temp files in the records folder, only for records", async () => {

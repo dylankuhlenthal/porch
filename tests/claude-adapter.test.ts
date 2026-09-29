@@ -188,6 +188,21 @@ describe("Claude Code adapter: status", () => {
     expect(seen).toEqual([SID]);
   });
 
+  it("porch watch --session runs one claude agents --json per look, even while the id is not found", async () => {
+    const io = stubIO([row({ id: "06bb8fe1", sessionId: OTHER })]);
+    const adapter = createClaudeAdapter({ pollIntervalMs: 20 });
+    let looks = 0;
+    const counted = { ...adapter, list: (ctx: AdapterContext) => (looks++, adapter.list(ctx)) };
+    const porch = new Porch({ env: { ...scratchEnv(), PORCH_CLAUDE_BIN: "claude" }, adapters: [counted], io });
+    const controller = new AbortController();
+    const done = porch.watch({ session: SHORT, signal: controller.signal, onObservation: () => undefined, backstopPollMs: 60_000 });
+    for (let i = 0; i < 100 && looks < 4; i++) await new Promise((r) => setTimeout(r, 10));
+    controller.abort();
+    await done;
+    expect(looks).toBeGreaterThanOrEqual(4);
+    expect(io.runs.filter((r) => r[1] === "agents").length).toBe(looks);
+  });
+
   it("finds a killed session by its short id through its record once the listing has dropped it", async () => {
     // Observed with 2.1.284: a few seconds after a kill, the row leaves `claude agents --json` (only --all keeps it).
     const porch = porchWith(stubIO([]), { ...scratchEnv(), CLAUDE_JOB_DIR: `/h/.claude/jobs/${SHORT}` });
