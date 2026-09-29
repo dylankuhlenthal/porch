@@ -4,7 +4,7 @@
   "harnessVersion": "2.1.284",
   "porchVersion": "0.1.0",
   "platform": "darwin-arm64 node v22.14.0",
-  "ranAt": "2026-09-29T16:36:12.167Z",
+  "ranAt": "2026-09-29T16:47:23.221Z",
   "passed": true,
   "results": [
     {
@@ -12,63 +12,63 @@
       "title": "which session am I",
       "result": "pass",
       "reason": null,
-      "durationMs": 5888
+      "durationMs": 5920
     },
     {
       "name": "deliver-while-idle",
       "title": "deliver while idle",
       "result": "pass",
       "reason": null,
-      "durationMs": 6687
+      "durationMs": 6554
     },
     {
       "name": "deliver-while-busy",
       "title": "deliver while busy",
       "result": "pass",
       "reason": null,
-      "durationMs": 37263
+      "durationMs": 37052
     },
     {
       "name": "held-at-prompt",
       "title": "held at a prompt or dialog",
       "result": "pass",
       "reason": null,
-      "durationMs": 10191
+      "durationMs": 11379
     },
     {
       "name": "killed-session",
       "title": "a killed session",
       "result": "pass",
       "reason": null,
-      "durationMs": 6676
+      "durationMs": 6657
     },
     {
       "name": "without-inside-part",
       "title": "a session without the inside part",
       "result": "pass",
       "reason": null,
-      "durationMs": 6362
+      "durationMs": 6429
     },
     {
       "name": "watch-delivers-each-change",
       "title": "watch delivers each change",
       "result": "pass",
       "reason": null,
-      "durationMs": 42033
+      "durationMs": 43102
     },
     {
       "name": "self-reported-state",
       "title": "self-reported state",
       "result": "pass",
       "reason": null,
-      "durationMs": 6064
+      "durationMs": 6091
     },
     {
       "name": "unknown-session",
       "title": "a session that does not exist",
       "result": "pass",
       "reason": null,
-      "durationMs": 736
+      "durationMs": 732
     }
   ]
 }

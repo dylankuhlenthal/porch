@@ -10,7 +10,6 @@
  * PermissionRequest hook as an answer to the prompt. So `porch hooks claude on`
  * always exits 0, prints nothing on stdout, and reports any problem on stderr only.
  */
-import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -108,8 +107,9 @@ export async function handleHookEvent(ctx: AdapterContext, event: string, input:
           ...(current?.data ?? {}),
           source,
           transcriptPath: str(input.transcript_path),
-          shortId: jobDir ? path.basename(jobDir) : null,
-          startedAt: now,
+          shortId: jobDir ? path.basename(jobDir) : (current?.data?.shortId ?? null),
+          // When this process of the session started (a compaction is not a start).
+          startedAt: source === "compact" ? (current?.data?.startedAt ?? now) : now,
         },
       }));
       return;
@@ -120,7 +120,8 @@ export async function handleHookEvent(ctx: AdapterContext, event: string, input:
       return;
     case "Stop": {
       const tasks = input.background_tasks;
-      const backgroundTasks = Array.isArray(tasks) ? tasks.length : typeof tasks === "number" && Number.isInteger(tasks) ? tasks : undefined;
+      // Null when the hook does not say, so an earlier turn's count never lingers.
+      const backgroundTasks = Array.isArray(tasks) ? tasks.length : typeof tasks === "number" && Number.isInteger(tasks) ? tasks : null;
       await records.updateInside(CLAUDE_HARNESS, session, { status: "idle", lastTurnEnd: now, backgroundTasks });
       return;
     }
@@ -179,7 +180,6 @@ function hookSettingsCommand(): AdapterCommand {
       const porchHome = values["porch-home"];
       if (porchHome !== undefined && porchHome.trim() === "") throw new PorchError("usage", "--porch-home must not be empty");
       const cli = porchCliPath();
-      if (!existsSync(cli)) throw new PorchError("internal", `the Porch CLI is not built at ${cli}`);
       ctx.stdout(
         jsonLine({
           schema: SCHEMA_VERSION,

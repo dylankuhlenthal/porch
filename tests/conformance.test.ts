@@ -281,6 +281,59 @@ describe("npm run conformance (the command)", () => {
     expect(r.stderr).toContain("not on PATH");
   });
 
+  it("skips, exit 3, when the driver says real turns cannot run here, but only once the harness is installed", async () => {
+    let seen: Record<string, string | undefined> | null = null;
+    const unavailableReason = async (env: Record<string, string | undefined>) => {
+      seen = env;
+      return "not logged in";
+    };
+    const keyed = {
+      ...DRIVERS.fake!,
+      adapter: () => ({ ...createFakeAdapter(), detect: async () => ({ available: true, version: "1", reason: null }) }),
+      needsInstalledHarness: true,
+      optionalEnv: ["PORCH_TEST_KEY", "PORCH_TEST_UNSET"],
+      unavailableReason,
+    };
+    const env: Record<string, string | undefined> = { ...scratchEnv(), USER: "someone", PORCH_TEST_KEY: "k-0123456789", PORCH_TEST_OTHER: "x" };
+    const r = await run(["--harness", "keyed"], { keyed }, env);
+    expect(r.code).toBe(CONFORMANCE_EXIT.skipped);
+    expect(JSON.parse(r.stdout)).toEqual({ schema: 1, harness: "keyed", skipped: "not logged in" });
+    // Sessions start from PATH, HOME, USER and the optional variables that are set; nothing else.
+    expect(seen).toEqual({ PATH: env.PATH, HOME: env.HOME, USER: "someone", PORCH_TEST_KEY: "k-0123456789" });
+    const missing = {
+      ...keyed,
+      adapter: () => ({ ...createFakeAdapter(), detect: async () => ({ available: false, version: null, reason: "not on PATH" }) }),
+    };
+    expect((await run(["--harness", "missing"], { missing }, env)).code).toBe(CONFORMANCE_EXIT.usage);
+  });
+
+  it("makes case folders under the driver's workRoot and keeps optional variables out of fixtures", async () => {
+    const workRoot = mkdtempSync(path.join(os.tmpdir(), "porch-workroot-"));
+    const secret = "k-0123456789abcdef";
+    const real = createFakeAdapter({ pollIntervalMs: 50 });
+    let home: string | null = null;
+    const drivers = {
+      fake: {
+        ...DRIVERS.fake!,
+        optionalEnv: ["PORCH_TEST_KEY"],
+        workRoot: () => workRoot,
+        adapter: () =>
+          withAdapter({
+            list: async (ctx) => {
+              home = ctx.home;
+              return (await real.list(ctx)).map((o) => ({ ...o, raw: { ...o.raw, leaked: ctx.env.PORCH_TEST_KEY } }));
+            },
+          }),
+      },
+    };
+    const r = await run(["--harness", "fake", "--record", "--case", "deliver-while-idle"], drivers, { ...scratchEnv(), PORCH_TEST_KEY: secret });
+    expect(r.code).toBe(CONFORMANCE_EXIT.passed);
+    expect(home!.startsWith(workRoot + path.sep)).toBe(true);
+    const fixture = readFileSync(path.join(r.root, "conformance", "fixtures", "fake", "deliver-while-idle.json"), "utf8");
+    expect(fixture).not.toContain(secret);
+    expect(fixture).toContain("$REDACTED");
+  });
+
   it("exits 1 when a case fails, and 2 for an unknown harness or case", async () => {
     const drivers = {
       fake: {

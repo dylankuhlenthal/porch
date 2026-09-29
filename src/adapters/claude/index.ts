@@ -131,13 +131,21 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
         });
       }
       // The recorded socket belongs to the process that ran SessionStart; after a
-      // resume without the hooks the pid differs and the pid-based path is used.
+      // resume without the hooks the pid differs and only the pid-based paths are used.
       const recorded = rec?.inside?.delivery;
       const recordedPid = rec?.inside?.pid ?? null;
       const useRecorded = recorded?.via === "socket" && (recordedPid === null || recordedPid === row.pid);
-      const candidates = useRecorded ? [recorded.address] : guessedSocketPaths(row.pid, socketDirs);
+      // If the recorded socket file has gone (a /tmp cleaner, say), the pid-based paths are tried next, marked guessed.
+      const candidates = [
+        ...(useRecorded ? [{ address: recorded.address, guessed: false }] : []),
+        ...guessedSocketPaths(row.pid, socketDirs)
+          .filter((address) => !(useRecorded && address === recorded.address))
+          .map((address) => ({ address, guessed: true })),
+      ];
       const problems: string[] = [];
-      for (const address of candidates) {
+      let lastGuessed = !useRecorded;
+      for (const { address, guessed } of candidates) {
+        lastGuessed = guessed;
         try {
           await sendToSocket(address, text);
           return deliverResult({
@@ -146,7 +154,7 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
             result: "delivered",
             statusAtSend: obs.status,
             via: "socket",
-            guessed: !useRecorded,
+            guessed,
           });
         } catch (err) {
           problems.push((err as Error).message);
@@ -158,7 +166,7 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
         session: id,
         result: "failed",
         via: "socket",
-        guessed: !useRecorded,
+        guessed: lastGuessed,
         reason: problems.join("; "),
       });
     },

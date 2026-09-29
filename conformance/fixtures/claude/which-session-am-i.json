@@ -3,32 +3,32 @@
   "harness": "claude",
   "harnessVersion": "2.1.284",
   "case": "which-session-am-i",
-  "recordedAt": "2026-09-29T16:34:14.462Z",
+  "recordedAt": "2026-09-29T16:45:23.549Z",
   "snapshots": [
     {
       "label": "started",
-      "at": "2026-09-29T16:34:14.310Z",
+      "at": "2026-09-29T16:45:23.395Z",
       "records": {
-        "claude-e3a7cf6f-3281-40b0-b2c9-42effbfd96a5.json": {
+        "claude-421970d3-e6ce-4f9d-a6cc-6f14594c3c66.json": {
           "schema": 1,
           "harness": "claude",
-          "session": "e3a7cf6f-3281-40b0-b2c9-42effbfd96a5",
-          "createdAt": "2026-09-29T16:34:13.864Z",
-          "updatedAt": "2026-09-29T16:34:13.864Z",
+          "session": "421970d3-e6ce-4f9d-a6cc-6f14594c3c66",
+          "createdAt": "2026-09-29T16:45:23.013Z",
+          "updatedAt": "2026-09-29T16:45:23.013Z",
           "inside": {
-            "pid": 64941,
+            "pid": 69890,
             "delivery": {
               "via": "socket",
-              "address": "/tmp/cc-socks/64941.sock"
+              "address": "/tmp/cc-socks/69890.sock"
             },
-            "cwd": "$WORK/cwd-8ea335df",
+            "cwd": "$WORK/cwd-32598483",
             "status": "idle",
-            "since": "2026-09-29T16:34:13.862Z",
+            "since": "2026-09-29T16:45:23.011Z",
             "data": {
               "source": "startup",
-              "transcriptPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-which-session-am-i-InyFpy-cwd-8ea335df/e3a7cf6f-3281-40b0-b2c9-42effbfd96a5.jsonl",
-              "shortId": "e3a7cf6f",
-              "startedAt": "2026-09-29T16:34:13.862Z"
+              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-32598483/421970d3-e6ce-4f9d-a6cc-6f14594c3c66.jsonl",
+              "shortId": "421970d3",
+              "startedAt": "2026-09-29T16:45:23.011Z"
             }
           },
           "self": null
@@ -44,28 +44,28 @@
           ],
           "result": {
             "code": 0,
-            "stdout": "[\n  {\n    \"pid\": 64941,\n    \"id\": \"e3a7cf6f\",\n    \"cwd\": \"$WORK/cwd-8ea335df\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790699653814,\n    \"sessionId\": \"e3a7cf6f-3281-40b0-b2c9-42effbfd96a5\",\n    \"name\": \"porch-conformance-8ea335df\",\n    \"status\": \"idle\",\n    \"state\": \"blocked\"\n  }\n]\n",
+            "stdout": "[\n  {\n    \"pid\": 69890,\n    \"id\": \"421970d3\",\n    \"cwd\": \"$WORK/cwd-32598483\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790700322956,\n    \"sessionId\": \"421970d3-e6ce-4f9d-a6cc-6f14594c3c66\",\n    \"name\": \"porch-conformance-32598483\",\n    \"status\": \"idle\",\n    \"state\": \"blocked\"\n  }\n]\n",
             "stderr": ""
           }
         },
         {
           "op": "readFile",
-          "path": "$HOME/.claude/jobs/e3a7cf6f/state.json",
-          "result": "{\n  \"state\": \"working\",\n  \"detail\": \"(idle — send a prompt to start)\",\n  \"tempo\": \"blocked\",\n  \"needs\": \"send a prompt to start\",\n  \"output\": null,\n  \"children\": null,\n  \"linkScanOffset\": 0,\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"-n\",\n    \"porch-conformance-8ea335df\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--settings\",\n    \"$WORK/settings-hooks.json\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"providerEnv\": {},\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-8ea335df\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"e3a7cf6f-3281-40b0-b2c9-42effbfd96a5\",\n  \"resumeSessionId\": \"e3a7cf6f-3281-40b0-b2c9-42effbfd96a5\",\n  \"daemonShort\": \"e3a7cf6f\",\n  \"cwd\": \"$WORK/cwd-8ea335df\",\n  \"createdAt\": \"2026-09-29T16:34:13.420Z\",\n  \"updatedAt\": \"2026-09-29T16:34:13.819Z\",\n  \"firstTerminalAt\": null,\n  \"backend\": \"daemon\"\n}"
+          "path": "$HOME/.claude/jobs/421970d3/state.json",
+          "result": "{\n  \"state\": \"working\",\n  \"detail\": \"(idle — send a prompt to start)\",\n  \"tempo\": \"blocked\",\n  \"needs\": \"send a prompt to start\",\n  \"output\": null,\n  \"children\": null,\n  \"linkScanOffset\": 0,\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"-n\",\n    \"porch-conformance-32598483\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--settings\",\n    \"$WORK/settings-hooks.json\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"providerEnv\": {},\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-32598483\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"421970d3-e6ce-4f9d-a6cc-6f14594c3c66\",\n  \"resumeSessionId\": \"421970d3-e6ce-4f9d-a6cc-6f14594c3c66\",\n  \"daemonShort\": \"421970d3\",\n  \"cwd\": \"$WORK/cwd-32598483\",\n  \"createdAt\": \"2026-09-29T16:45:22.462Z\",\n  \"updatedAt\": \"2026-09-29T16:45:22.962Z\",\n  \"firstTerminalAt\": null,\n  \"backend\": \"daemon\"\n}"
         }
       ],
       "observations": [
         {
           "schema": 1,
           "harness": "claude",
-          "session": "e3a7cf6f-3281-40b0-b2c9-42effbfd96a5",
+          "session": "421970d3-e6ce-4f9d-a6cc-6f14594c3c66",
           "status": "idle",
-          "since": "2026-09-29T16:34:13.862Z",
+          "since": "2026-09-29T16:45:23.011Z",
           "detail": {
-            "pid": 64941,
-            "shortId": "e3a7cf6f",
-            "name": "porch-conformance-8ea335df",
-            "cwd": "$WORK/cwd-8ea335df",
+            "pid": 69890,
+            "shortId": "421970d3",
+            "name": "porch-conformance-32598483",
+            "cwd": "$WORK/cwd-32598483",
             "prompt": null,
             "promptNeeds": null,
             "hasInsidePart": true,
@@ -81,13 +81,13 @@
           },
           "raw": {
             "listing": {
-              "pid": 64941,
-              "id": "e3a7cf6f",
-              "cwd": "$WORK/cwd-8ea335df",
+              "pid": 69890,
+              "id": "421970d3",
+              "cwd": "$WORK/cwd-32598483",
               "kind": "background",
-              "startedAt": 1790699653814,
-              "sessionId": "e3a7cf6f-3281-40b0-b2c9-42effbfd96a5",
-              "name": "porch-conformance-8ea335df",
+              "startedAt": 1790700322956,
+              "sessionId": "421970d3-e6ce-4f9d-a6cc-6f14594c3c66",
+              "name": "porch-conformance-32598483",
               "status": "idle",
               "state": "blocked"
             },
@@ -102,7 +102,7 @@
               "template": "bg",
               "respawnFlags": [
                 "-n",
-                "porch-conformance-8ea335df",
+                "porch-conformance-32598483",
                 "--permission-mode",
                 "default",
                 "--setting-sources",
@@ -116,37 +116,37 @@
               ],
               "providerEnv": {},
               "intent": "",
-              "name": "porch-conformance-8ea335df",
+              "name": "porch-conformance-32598483",
               "nameSource": "user",
-              "sessionId": "e3a7cf6f-3281-40b0-b2c9-42effbfd96a5",
-              "resumeSessionId": "e3a7cf6f-3281-40b0-b2c9-42effbfd96a5",
-              "daemonShort": "e3a7cf6f",
-              "cwd": "$WORK/cwd-8ea335df",
-              "createdAt": "2026-09-29T16:34:13.420Z",
-              "updatedAt": "2026-09-29T16:34:13.819Z",
+              "sessionId": "421970d3-e6ce-4f9d-a6cc-6f14594c3c66",
+              "resumeSessionId": "421970d3-e6ce-4f9d-a6cc-6f14594c3c66",
+              "daemonShort": "421970d3",
+              "cwd": "$WORK/cwd-32598483",
+              "createdAt": "2026-09-29T16:45:22.462Z",
+              "updatedAt": "2026-09-29T16:45:22.962Z",
               "firstTerminalAt": null,
               "backend": "daemon"
             },
             "record": {
               "schema": 1,
               "harness": "claude",
-              "session": "e3a7cf6f-3281-40b0-b2c9-42effbfd96a5",
-              "createdAt": "2026-09-29T16:34:13.864Z",
-              "updatedAt": "2026-09-29T16:34:13.864Z",
+              "session": "421970d3-e6ce-4f9d-a6cc-6f14594c3c66",
+              "createdAt": "2026-09-29T16:45:23.013Z",
+              "updatedAt": "2026-09-29T16:45:23.013Z",
               "inside": {
-                "pid": 64941,
+                "pid": 69890,
                 "delivery": {
                   "via": "socket",
-                  "address": "/tmp/cc-socks/64941.sock"
+                  "address": "/tmp/cc-socks/69890.sock"
                 },
-                "cwd": "$WORK/cwd-8ea335df",
+                "cwd": "$WORK/cwd-32598483",
                 "status": "idle",
-                "since": "2026-09-29T16:34:13.862Z",
+                "since": "2026-09-29T16:45:23.011Z",
                 "data": {
                   "source": "startup",
-                  "transcriptPath": "$HOME/.claude/projects/-Users-dylankuhlenthal-porch--claude-worktrees-trv-1135--conformance-tmp-porch-conformance-which-session-am-i-InyFpy-cwd-8ea335df/e3a7cf6f-3281-40b0-b2c9-42effbfd96a5.jsonl",
-                  "shortId": "e3a7cf6f",
-                  "startedAt": "2026-09-29T16:34:13.862Z"
+                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-32598483/421970d3-e6ce-4f9d-a6cc-6f14594c3c66.jsonl",
+                  "shortId": "421970d3",
+                  "startedAt": "2026-09-29T16:45:23.011Z"
                 }
               },
               "self": null

@@ -247,6 +247,8 @@ export function createClaudeDriver(options: ClaudeDriverOptions = {}): HarnessDr
           if (typeof ended === "string" && ended > sentAt && row?.status === "idle") break;
         }
       }
+      // A driver failure, not an adapter one: the model never ran the command.
+      throw new Error(`session ${String(s.short)} did not stop at a permission prompt after two attempts`);
     },
     async kill(s) {
       const entry = mine(s);

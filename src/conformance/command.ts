@@ -70,11 +70,6 @@ export async function conformanceCommand(argv: string[], io: ConformanceCommandI
     ...(io.env.USER ? { USER: io.env.USER } : {}),
     ...Object.fromEntries(passed.map((k) => [k, io.env[k]])),
   };
-  const unavailable = await entry.unavailableReason?.(baseEnv).catch((err: unknown) => errorMessage(err));
-  if (unavailable) {
-    io.stdout(JSON.stringify({ schema: 1, harness, skipped: unavailable }) + "\n");
-    return CONFORMANCE_EXIT.skipped;
-  }
   const detected = await adapter.detect(new Porch({ env: baseEnv, adapters: [adapter] }).ctx).catch((err: unknown) => ({
     available: false,
     reason: errorMessage(err),
@@ -82,6 +77,13 @@ export async function conformanceCommand(argv: string[], io: ConformanceCommandI
   if (!detected.available && entry.needsInstalledHarness) {
     io.stderr(`${harness} is not available here: ${detected.reason}\n`);
     return CONFORMANCE_EXIT.usage;
+  }
+  // Only once the harness is known to be installed: a missing or broken install is
+  // a failure (exit 2), never a skip.
+  const unavailable = await entry.unavailableReason?.(baseEnv).catch((err: unknown) => errorMessage(err));
+  if (unavailable) {
+    io.stdout(JSON.stringify({ schema: 1, harness, skipped: unavailable }) + "\n");
+    return CONFORMANCE_EXIT.skipped;
   }
   let report;
   try {

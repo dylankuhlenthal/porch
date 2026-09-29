@@ -40,9 +40,9 @@ Each hook runs `porch hooks claude on <event>` with Claude Code's hook JSON on s
 
 | Event | Change to the record |
 | --- | --- |
-| `SessionStart` | `pid` (from `CLAUDE_PID`, or the number in the socket name), `delivery: { via: "socket", address: $CLAUDE_CODE_MESSAGING_SOCKET }`, `cwd`, `status: idle` (except after a compaction, which may happen mid-turn, when the status is left alone), and in `data`: `source`, `transcriptPath`, `shortId` (from `CLAUDE_JOB_DIR`), `startedAt` |
+| `SessionStart` | `pid` (from `CLAUDE_PID`, or the number in the socket name), `delivery: { via: "socket", address: $CLAUDE_CODE_MESSAGING_SOCKET }`, `cwd`, `status: idle` (except after a compaction, which may happen mid-turn, when the status is left alone), and in `data`: `source`, `transcriptPath`, `shortId` (from `CLAUDE_JOB_DIR`), `startedAt` (kept through a compaction) |
 | `UserPromptSubmit` | `status: busy`, `lastTurnStart: now`. It fires for every prompt, including a message delivered mid-turn, so `lastTurnStart` is the last prompt, the same as sous chef's `sc hook worker-prompt` recorded |
-| `Stop` | `status: idle`, `lastTurnEnd: now`, `backgroundTasks`: the number of entries in the hook's `background_tasks` list |
+| `Stop` | `status: idle`, `lastTurnEnd: now`, `backgroundTasks`: the number of entries in the hook's `background_tasks` list (null when the hook gives none) |
 | `StopFailure` | `status: idle`, `lastTurnEnd: now`, `data.lastStopFailure: { at, error }` |
 | `PermissionRequest` | `data.lastPermissionRequest: { at, tool }` only. Whether a prompt is open comes from the listing; this write makes `porch watch` look again at once |
 | `SessionEnd` | the record is removed |
@@ -80,7 +80,7 @@ Because watch compares `detail`, a change in `activity` (for example the session
 
 ## Deliver
 
-`deliver` looks the session up in the listing first: not listed or no `pid` means `not-running`. Otherwise it writes one line, `{"type":"user","message":{"role":"user","content":"<text>"}}`, to the socket the `SessionStart` hook recorded, when the recorded `pid` matches the listing (after a resume without the hooks the recorded socket belongs to an old process). Without a usable record it tries `/tmp/cc-socks/<pid>.sock`, then `/tmp/cc-socks-<uid>/<pid>.sock`, and says `guessed: true` (decision 10). Nothing listening there, or any other socket error, is `failed` with the reason. The socket sends nothing back, so `delivered` means written, with `statusAtSend` the status at that moment. `CLAUDE_CODE_MESSAGING_TOKEN` is never used.
+`deliver` looks the session up in the listing first: not listed or no `pid` means `not-running`. Otherwise it writes one line, `{"type":"user","message":{"role":"user","content":"<text>"}}`, to the socket the `SessionStart` hook recorded, when the recorded `pid` matches the listing (after a resume without the hooks the recorded socket belongs to an old process). Without a usable record, or when nothing listens on the recorded socket any more, it tries `/tmp/cc-socks/<pid>.sock`, then `/tmp/cc-socks-<uid>/<pid>.sock`, and says `guessed: true` when one of those was used (decision 10). Nothing listening there, or any other socket error, is `failed` with the reason. The socket sends nothing back, so `delivered` means written, with `statusAtSend` the status at that moment. `CLAUDE_CODE_MESSAGING_TOKEN` is never used.
 
 What the session does with it (observed with 2.1.284): an idle session starts a turn; a busy one takes it in between tool calls (it appears in the transcript as a `queued_command` attachment); a bypass-mode session without `crossSessionInbound: accept` holds it for approval, which shows as `waiting-on-prompt` with `prompt: "permission prompt"`.
 
@@ -119,7 +119,7 @@ What the session does with it (observed with 2.1.284): an idle session starts a 
 
 Requirements: Claude Code logged in, or `ANTHROPIC_API_KEY` set (otherwise the run is skipped, exit 3); and the checkout inside a folder Claude Code trusts, because the sessions run under `.conformance-tmp/` in the checkout.
 
-Last run: Claude Code 2.1.284 on darwin-arm64, 2026-09-29, all nine cases passed (`conformance/reports/claude.json`). Fixtures in `conformance/fixtures/claude/`; they keep only the case's own sessions from the listing.
+Last run: Claude Code 2.1.284 on darwin-arm64, 2026-09-29, all nine cases passed (`conformance/reports/claude.json`). Fixtures in `conformance/fixtures/claude/`; they keep only the case's own sessions from the listing (`scrubClaudeSnapshot` in `src/conformance/drivers/index.ts`), and a per-PR test checks they hold no other session and no home folder path.
 
 ## Known limits
 

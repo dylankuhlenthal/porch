@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -13,7 +13,7 @@ import { parseListing } from "../src/adapters/claude/listing.js";
 import { jobActivity } from "../src/adapters/claude/observe.js";
 import { socketLine } from "../src/adapters/claude/socket.js";
 import { DRIVERS, scrubClaudeSnapshot } from "../src/conformance/drivers/index.js";
-import { replayFixture, type Fixture, type Snapshot } from "../src/conformance/recorder.js";
+import { dashedPath, fromPlaceholders, replayFixture, toPlaceholders, type Fixture, type Snapshot } from "../src/conformance/recorder.js";
 import type { Env } from "../src/home.js";
 import type { HarnessIO, RunResult } from "../src/io.js";
 import { Porch } from "../src/porch.js";
@@ -277,6 +277,18 @@ describe("Claude Code adapter: deliver", () => {
     expect(got.length).toBe(1);
   });
 
+  it("falls back to the pid-based socket, marked guessed, when the recorded socket file has gone", async () => {
+    const dir = sockDir();
+    const got = await listen(path.join(dir, "4242.sock"));
+    const env = { ...scratchEnv(), CLAUDE_CODE_MESSAGING_SOCKET: path.join(sockDir(), "4242.sock"), CLAUDE_PID: "4242" };
+    const porch = porchWith(stubIO([row()]), env, { socketDirs: [dir] });
+    await hook({ ...porch.ctx, env }, "SessionStart", { source: "startup" });
+    const r = await porch.deliver(SID, "hi", { from: "x" });
+    expect(r).toMatchObject({ result: "delivered", guessed: true });
+    await waitFor(() => got.length === 1);
+    expect(got.length).toBe(1);
+  });
+
   it("says failed, with the reason, when nothing listens on the socket", async () => {
     const porch = porchWith(stubIO([row()]), scratchEnv(), { socketDirs: [sockDir()] });
     const r = await porch.deliver(SID, "hi", { from: "x" });
@@ -345,6 +357,26 @@ describe("Claude Code hooks (the inside part)", () => {
     await run("StopFailure", { error: "rate_limit" });
     inside = (await readRecord(env))!.inside!;
     expect(inside).toMatchObject({ status: "idle", lastTurnEnd: "2026-09-29T16:00:07.000Z", data: { lastStopFailure: { error: "rate_limit" } } });
+  });
+
+  it("clears the background task count when a Stop hook does not give one", async () => {
+    const env = hookEnv();
+    const run = (event: string, input: Record<string, unknown> = {}) =>
+      cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    await run("Stop", { background_tasks: [{}, {}] });
+    expect((await readRecord(env))!.inside!.backgroundTasks).toBe(2);
+    await run("Stop");
+    expect((await readRecord(env))!.inside!.backgroundTasks).toBeNull();
+  });
+
+  it("keeps startedAt through a compaction", async () => {
+    const env = hookEnv();
+    let t = Date.parse("2026-09-29T16:00:00Z");
+    const now = () => new Date(t);
+    await cli(["hooks", "claude", "on", "SessionStart"], env, { stdin: JSON.stringify({ session_id: SID, source: "startup" }), now });
+    t += 60000;
+    await cli(["hooks", "claude", "on", "SessionStart"], env, { stdin: JSON.stringify({ session_id: SID, source: "compact" }), now });
+    expect((await readRecord(env))!.inside!.data).toMatchObject({ source: "compact", startedAt: "2026-09-29T16:00:00.000Z" });
   });
 
   it("keeps the status through a compaction, and SessionEnd removes the record", async () => {
@@ -475,5 +507,34 @@ describe("conformance recordings of Claude Code", () => {
     call.result.stdout = call.result.stdout.replace('"waiting"', '"idle"');
     const mismatches = await replayFixture(tampered, DRIVERS.claude!.adapter(), scratch);
     expect(mismatches.map((m) => m.snapshot)).toEqual(["held"]);
+  });
+
+  it("turn paths written as one folder name into placeholders too, and back", () => {
+    const env = { HOME: "/Users/someone", PORCH_HOME: "/w/case/porch-home" };
+    const text = `/Users/someone/.claude/projects/${dashedPath("/w/case")}-cwd-1/x.jsonl and ${dashedPath("/Users/someone")}-other`;
+    const stored = toPlaceholders(text, env, "/w/case");
+    expect(stored).toBe("$HOME/.claude/projects/$WORK_DASHED-cwd-1/x.jsonl and $HOME_DASHED-other");
+    expect(fromPlaceholders(stored, { HOME: "/h2", PORCH_HOME: "/w2/porch-home" }, "/w2")).toBe(
+      `/h2/.claude/projects/${dashedPath("/w2")}-cwd-1/x.jsonl and ${dashedPath("/h2")}-other`,
+    );
+  });
+
+  it("committed Claude fixtures hold only the case's own sessions and no home folder", () => {
+    const dir = path.join(REPO, "conformance", "fixtures", "claude");
+    // The real home folder: tests/setup.ts points HOME (and so os.homedir()) at a scratch folder.
+    const home = os.userInfo().homedir;
+    for (const name of readdirSync(dir)) {
+      const text = readFileSync(path.join(dir, name), "utf8");
+      expect(text.includes(home) || text.includes(dashedPath(home)), `${name} mentions the home folder`).toBe(false);
+      const fixture = JSON.parse(text) as Fixture;
+      for (const snap of fixture.snapshots) {
+        for (const call of snap.io) {
+          if (call.op !== "run" || call.args[0] !== "agents") continue;
+          for (const r of JSON.parse(call.result.stdout) as { cwd?: string }[]) {
+            expect(r.cwd === "$WORK" || r.cwd?.startsWith("$WORK/"), `${name}: a session outside the case (${r.cwd})`).toBe(true);
+          }
+        }
+      }
+    }
   });
 });
