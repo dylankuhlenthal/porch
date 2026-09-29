@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "held-at-prompt",
+  "recordedAt": "2026-09-29T15:46:15.171Z",
+  "snapshots": [
+    {
+      "label": "held",
+      "at": "2026-09-29T15:46:15.169Z",
+      "records": {
+        "fake-conf-babae668.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-babae668",
+          "createdAt": "2026-09-29T15:46:15.168Z",
+          "updatedAt": "2026-09-29T15:46:15.168Z",
+          "inside": {
+            "pid": 42827,
+            "status": "busy",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-babae668"
+            },
+            "since": "2026-09-29T15:46:15.168Z",
+            "lastTurnStart": "2026-09-29T15:46:15.168Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-babae668\": {\n      \"alive\": true,\n      \"pid\": 42827,\n      \"prompt\": \"Allow Bash: rm -rf build?\",\n      \"promptSince\": \"2026-09-29T15:46:15.169Z\",\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-babae668",
+          "status": "waiting-on-prompt",
+          "since": "2026-09-29T15:46:15.169Z",
+          "detail": {
+            "pid": 42827,
+            "prompt": "Allow Bash: rm -rf build?",
+            "hasInsidePart": true,
+            "lastTurnStart": "2026-09-29T15:46:15.168Z",
+            "lastTurnEnd": null,
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 42827,
+              "prompt": "Allow Bash: rm -rf build?",
+              "promptSince": "2026-09-29T15:46:15.169Z",
+              "goneSince": null,
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-babae668",
+              "createdAt": "2026-09-29T15:46:15.168Z",
+              "updatedAt": "2026-09-29T15:46:15.168Z",
+              "inside": {
+                "pid": 42827,
+                "status": "busy",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-babae668"
+                },
+                "since": "2026-09-29T15:46:15.168Z",
+                "lastTurnStart": "2026-09-29T15:46:15.168Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    },
+    {
+      "label": "after delivery",
+      "at": "2026-09-29T15:46:15.171Z",
+      "records": {
+        "fake-conf-babae668.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-babae668",
+          "createdAt": "2026-09-29T15:46:15.168Z",
+          "updatedAt": "2026-09-29T15:46:15.168Z",
+          "inside": {
+            "pid": 42827,
+            "status": "busy",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-babae668"
+            },
+            "since": "2026-09-29T15:46:15.168Z",
+            "lastTurnStart": "2026-09-29T15:46:15.168Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-babae668\": {\n      \"alive\": true,\n      \"pid\": 42827,\n      \"prompt\": \"Allow Bash: rm -rf build?\",\n      \"promptSince\": \"2026-09-29T15:46:15.169Z\",\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": [\n    {\n      \"session\": \"conf-babae668\",\n      \"text\": \"[from porch-conformance] porch conformance held 647d5884\",\n      \"at\": \"2026-09-29T15:46:15.170Z\",\n      \"statusAtSend\": \"waiting-on-prompt\"\n    }\n  ]\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-babae668",
+          "status": "waiting-on-prompt",
+          "since": "2026-09-29T15:46:15.169Z",
+          "detail": {
+            "pid": 42827,
+            "prompt": "Allow Bash: rm -rf build?",
+            "hasInsidePart": true,
+            "lastTurnStart": "2026-09-29T15:46:15.168Z",
+            "lastTurnEnd": null,
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 42827,
+              "prompt": "Allow Bash: rm -rf build?",
+              "promptSince": "2026-09-29T15:46:15.169Z",
+              "goneSince": null,
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-babae668",
+              "createdAt": "2026-09-29T15:46:15.168Z",
+              "updatedAt": "2026-09-29T15:46:15.168Z",
+              "inside": {
+                "pid": 42827,
+                "status": "busy",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-babae668"
+                },
+                "since": "2026-09-29T15:46:15.168Z",
+                "lastTurnStart": "2026-09-29T15:46:15.168Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}

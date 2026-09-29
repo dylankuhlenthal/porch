@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/deliver.schema.json",
+  "title": "Porch deliver output (schema 1)",
+  "type": "object",
+  "required": ["schema", "harness", "session", "result", "statusAtSend", "via", "guessed", "reason"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "harness": { "type": ["string", "null"] },
+    "session": { "type": "string" },
+    "result": { "enum": ["delivered", "not-running", "failed"] },
+    "statusAtSend": {
+      "oneOf": [{ "type": "null" }, { "$ref": "observation.schema.json#/$defs/sessionStatus" }]
+    },
+    "via": { "type": ["string", "null"] },
+    "guessed": { "type": "boolean" },
+    "reason": { "type": ["string", "null"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "result": { "const": "delivered" } } },
+      "then": { "properties": { "reason": { "type": "null" }, "statusAtSend": { "not": { "type": "null" } } } },
+      "else": { "properties": { "reason": { "type": "string" } } }
+    }
+  ]
+}

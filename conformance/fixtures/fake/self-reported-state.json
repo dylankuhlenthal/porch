@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "self-reported-state",
+  "recordedAt": "2026-09-29T15:46:15.821Z",
+  "snapshots": [
+    {
+      "label": "self reported",
+      "at": "2026-09-29T15:46:15.821Z",
+      "records": {
+        "fake-conf-de7bc992.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-de7bc992",
+          "createdAt": "2026-09-29T15:46:15.818Z",
+          "updatedAt": "2026-09-29T15:46:15.820Z",
+          "inside": {
+            "pid": 42827,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-de7bc992"
+            },
+            "since": "2026-09-29T15:46:15.818Z"
+          },
+          "self": {
+            "status": "needs-input",
+            "text": "which branch?",
+            "since": "2026-09-29T15:46:15.819Z"
+          }
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-de7bc992\": {\n      \"alive\": true,\n      \"pid\": 42827,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-de7bc992",
+          "status": "idle",
+          "since": "2026-09-29T15:46:15.818Z",
+          "detail": {
+            "pid": 42827,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": null,
+            "lastTurnEnd": null,
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 42827,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": null,
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-de7bc992",
+              "createdAt": "2026-09-29T15:46:15.818Z",
+              "updatedAt": "2026-09-29T15:46:15.820Z",
+              "inside": {
+                "pid": 42827,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-de7bc992"
+                },
+                "since": "2026-09-29T15:46:15.818Z"
+              },
+              "self": {
+                "status": "needs-input",
+                "text": "which branch?",
+                "since": "2026-09-29T15:46:15.819Z"
+              }
+            }
+          },
+          "self": {
+            "status": "needs-input",
+            "text": "which branch?",
+            "since": "2026-09-29T15:46:15.819Z"
+          }
+        }
+      ]
+    }
+  ]
+}

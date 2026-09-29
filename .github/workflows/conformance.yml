@@ -1,0 +1,88 @@
+# The real-harness conformance suite: on a schedule, on demand, and so within a day
+# of a new harness version (each run installs the latest harness). It runs on this
+# repository only, never on pull requests, because it needs the API key secret.
+# A harness whose required variables (see src/conformance/drivers/index.ts) are not
+# set is skipped with a notice, not failed. Each run uploads its report and
+# fixtures; a person commits them in a PR. See docs/operations/ci.md.
+name: conformance
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      harness:
+        description: "Run only this harness (empty: all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  harnesses:
+    name: list harnesses
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - id: list
+        env:
+          ONLY: ${{ inputs.harness }}
+        run: |
+          list=$(node --input-type=module -e '
+            const { DRIVERS } = await import("./dist/conformance/drivers/index.js");
+            const only = process.env.ONLY;
+            const names = Object.keys(DRIVERS).filter((h) => !only || h === only);
+            if (names.length === 0) { console.error("unknown harness: " + only); process.exit(1); }
+            console.log(JSON.stringify(names));
+          ')
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
+  conformance:
+    name: conformance (${{ matrix.harness }})
+    needs: harnesses
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        harness: ${{ fromJSON(needs.harnesses.outputs.list) }}
+    env:
+      # Empty when the secret is not set; the conformance command then exits 3 (skipped).
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      HARNESS: ${{ matrix.harness }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # A real harness adapter adds its install step here, for example:
+      #   - if: matrix.harness == 'claude'
+      #     run: npm install -g @anthropic-ai/claude-code@latest
+      - name: run the suite
+        run: |
+          set +e
+          npm run conformance -- --harness "$HARNESS" --record
+          code=$?
+          if [ "$code" -eq 3 ]; then
+            echo "::notice::conformance for $HARNESS skipped: a required secret is not set"
+            exit 0
+          fi
+          exit "$code"
+      - name: upload report and fixtures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-${{ matrix.harness }}
+          path: conformance/
+          if-no-files-found: ignore

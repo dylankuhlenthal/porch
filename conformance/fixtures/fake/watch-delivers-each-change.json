@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "watch-delivers-each-change",
+  "recordedAt": "2026-09-29T15:46:15.812Z",
+  "snapshots": [
+    {
+      "label": "idle after busy",
+      "at": "2026-09-29T15:46:15.704Z",
+      "records": {
+        "fake-conf-ebbaacb8.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-ebbaacb8",
+          "createdAt": "2026-09-29T15:46:15.386Z",
+          "updatedAt": "2026-09-29T15:46:15.598Z",
+          "inside": {
+            "pid": 42827,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-ebbaacb8"
+            },
+            "since": "2026-09-29T15:46:15.596Z",
+            "lastTurnStart": "2026-09-29T15:46:15.490Z",
+            "lastTurnEnd": "2026-09-29T15:46:15.596Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-ebbaacb8\": {\n      \"alive\": true,\n      \"pid\": 42827,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-ebbaacb8",
+          "status": "idle",
+          "since": "2026-09-29T15:46:15.596Z",
+          "detail": {
+            "pid": 42827,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": "2026-09-29T15:46:15.490Z",
+            "lastTurnEnd": "2026-09-29T15:46:15.596Z",
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 42827,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": null,
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-ebbaacb8",
+              "createdAt": "2026-09-29T15:46:15.386Z",
+              "updatedAt": "2026-09-29T15:46:15.598Z",
+              "inside": {
+                "pid": 42827,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-ebbaacb8"
+                },
+                "since": "2026-09-29T15:46:15.596Z",
+                "lastTurnStart": "2026-09-29T15:46:15.490Z",
+                "lastTurnEnd": "2026-09-29T15:46:15.596Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    },
+    {
+      "label": "gone",
+      "at": "2026-09-29T15:46:15.811Z",
+      "records": {
+        "fake-conf-ebbaacb8.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-ebbaacb8",
+          "createdAt": "2026-09-29T15:46:15.386Z",
+          "updatedAt": "2026-09-29T15:46:15.598Z",
+          "inside": {
+            "pid": 42827,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-ebbaacb8"
+            },
+            "since": "2026-09-29T15:46:15.596Z",
+            "lastTurnStart": "2026-09-29T15:46:15.490Z",
+            "lastTurnEnd": "2026-09-29T15:46:15.596Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-ebbaacb8\": {\n      \"alive\": false,\n      \"pid\": 42827,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": \"2026-09-29T15:46:15.705Z\",\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-ebbaacb8",
+          "status": "gone",
+          "since": "2026-09-29T15:46:15.705Z",
+          "detail": {
+            "pid": 42827,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": "2026-09-29T15:46:15.490Z",
+            "lastTurnEnd": "2026-09-29T15:46:15.596Z",
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": false,
+              "pid": 42827,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": "2026-09-29T15:46:15.705Z",
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-ebbaacb8",
+              "createdAt": "2026-09-29T15:46:15.386Z",
+              "updatedAt": "2026-09-29T15:46:15.598Z",
+              "inside": {
+                "pid": 42827,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-ebbaacb8"
+                },
+                "since": "2026-09-29T15:46:15.596Z",
+                "lastTurnStart": "2026-09-29T15:46:15.490Z",
+                "lastTurnEnd": "2026-09-29T15:46:15.596Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}

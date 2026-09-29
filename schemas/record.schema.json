@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/record.schema.json",
+  "title": "Porch session record (schema 1)",
+  "description": "One file per session at <PORCH_HOME>/sessions/<harness>-<session>.json. The inside part is written only by the adapter's inside part; the self part only by porch status set.",
+  "type": "object",
+  "required": ["schema", "harness", "session", "createdAt", "updatedAt", "inside", "self"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "harness": { "type": "string", "pattern": "^[a-z][a-z0-9]{0,31}$" },
+    "session": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "inside": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pid": { "type": ["integer", "null"] },
+            "status": {
+              "oneOf": [{ "type": "null" }, { "$ref": "observation.schema.json#/$defs/sessionStatus" }]
+            },
+            "since": { "type": ["string", "null"], "format": "date-time" },
+            "delivery": {
+              "oneOf": [
+                { "type": "null" },
+                {
+                  "type": "object",
+                  "required": ["via", "address"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "via": { "type": "string" },
+                    "address": { "type": "string" }
+                  }
+                }
+              ]
+            },
+            "cwd": { "type": ["string", "null"] },
+            "lastTurnStart": { "type": ["string", "null"], "format": "date-time" },
+            "lastTurnEnd": { "type": ["string", "null"], "format": "date-time" },
+            "backgroundTasks": { "type": ["integer", "null"], "minimum": 0 },
+            "data": { "type": "object" }
+          }
+        }
+      ]
+    },
+    "self": {
+      "oneOf": [{ "type": "null" }, { "$ref": "observation.schema.json#/$defs/selfReport" }]
+    }
+  }
+}
