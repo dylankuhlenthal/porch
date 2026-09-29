@@ -46,8 +46,8 @@
     "test": "npm run build && vitest run",
     "//conformance": "Run the conformance suite against one harness: npm run conformance -- --harness fake [--record]. See docs/patterns/conformance.md.",
     "conformance": "npm run build && node dist/conformance/main.js",
-    "//prepack": "Make sure a packed tarball always contains a fresh build.",
-    "prepack": "npm run build"
+    "//prepare": "Build after npm install, so installing from git (before Porch is on npm) gets dist/, and packing always has a fresh build.",
+    "prepare": "npm run build"
   },
   "publishConfig": {
     "access": "public"
