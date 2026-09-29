@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -304,6 +304,47 @@ describe("Claude Code adapter: deliver", () => {
     const r = await porch.deliver(SID, "hi", { from: "x" });
     expect(r).toMatchObject({ result: "failed", via: "socket", guessed: true });
     expect(r.reason).toMatch(/nothing is listening/);
+  });
+
+  it("refuses a guessed socket owned by another user, and never reports it delivered", async () => {
+    const dir = sockDir();
+    const got = await listen(path.join(dir, "4242.sock"));
+    // Another user's socket, simulated through the check's inputs: the listening socket is ours, the uid it must match is not.
+    const uid = (process.getuid?.() ?? 0) + 1;
+    const porch = porchWith(stubIO([row()]), scratchEnv(), { socketDirs: [dir], socketCheck: { uid } });
+    const r = await porch.deliver(SID, "hi", { from: "x" });
+    expect(r).toMatchObject({ result: "failed", via: "socket", guessed: true });
+    expect(r.reason).toMatch(/belongs to another user/);
+    await new Promise((res) => setTimeout(res, 50));
+    expect(got).toEqual([]);
+  });
+
+  it("refuses a guessed path that is a symlink or a regular file, and tries the next one", async () => {
+    const [first, second, target] = [sockDir(), sockDir(), sockDir()];
+    // A symlink to a real listening socket we own must still be refused: someone else could have placed it.
+    const linkedTo = await listen(path.join(target, "real.sock"));
+    symlinkSync(path.join(target, "real.sock"), path.join(first, "4242.sock"));
+    writeFileSync(path.join(second, "4242.sock"), "not a socket");
+    const porch = porchWith(stubIO([row()]), scratchEnv(), { socketDirs: [first, second] });
+    const r = await porch.deliver(SID, "hi", { from: "x" });
+    expect(r).toMatchObject({ result: "failed", guessed: true });
+    expect(r.reason).toMatch(/symlink, not a socket.*; .*is not a socket/);
+    await new Promise((res) => setTimeout(res, 50));
+    expect(linkedTo).toEqual([]);
+  });
+
+  it("checks the owner of the recorded socket too", async () => {
+    const dir = sockDir();
+    const got = await listen(path.join(dir, "4242.sock"));
+    const env = { ...scratchEnv(), CLAUDE_CODE_MESSAGING_SOCKET: path.join(dir, "4242.sock"), CLAUDE_PID: "4242" };
+    const lstat = async () => ({ uid: 1, isSocket: () => true, isSymbolicLink: () => false });
+    const porch = porchWith(stubIO([row()]), env, { socketDirs: [], socketCheck: { lstat, uid: 2 } });
+    await hook({ ...porch.ctx, env }, "SessionStart", { source: "startup" });
+    const r = await porch.deliver(SID, "hi", { from: "x" });
+    expect(r).toMatchObject({ result: "failed", guessed: false });
+    expect(r.reason).toMatch(/belongs to another user \(uid 1\)/);
+    await new Promise((res) => setTimeout(res, 50));
+    expect(got).toEqual([]);
   });
 
   it("says not-running for a session whose process is gone, and for one Claude Code does not know", async () => {
