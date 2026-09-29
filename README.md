@@ -25,7 +25,7 @@ porch current                                # the session this command runs in
 porch status set needs-input "which branch?" # run inside a session: say what you need
 ```
 
-For Claude Code, give sessions Porch's hooks so it sees busy and idle as they happen and learns each session's socket: `porch hooks claude` prints the settings to pass with `claude --settings` (see [docs/domains/claude-adapter.md](docs/domains/claude-adapter.md)). Sessions without the hooks can still be listed and woken, with a coarser status.
+For Claude Code, give sessions Porch's hooks so it sees busy and idle as they happen and learns each session's socket: `porch hooks claude` prints JSON whose `settings` field is what to pass with `claude --settings` (see [docs/domains/claude-adapter.md](docs/domains/claude-adapter.md)). Sessions without the hooks can still be listed and woken, with a coarser status.
 
 `porch --help` lists every command, including the harness commands. All output is JSON with `"schema": 1`; errors are JSON too, with documented exit codes. Session records live in `~/.porch/sessions/` (set `PORCH_HOME` to move them).
 

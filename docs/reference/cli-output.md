@@ -6,7 +6,7 @@ What tools that call `porch` as a subprocess can rely on. `porch --help` lists t
 
 - Every command prints JSON on stdout, one document per line, and every document has `"schema": 1`. `porch watch` prints one line per change; every other command prints exactly one line. The exceptions are help (`porch --help`, `-h` or `help`), which prints text (`porch` with no command prints the help text to stderr and a `usage` error on stdout), and `porch hooks claude on <event>`, the command Claude Code's hooks run inside a session, which prints nothing on stdout and always exits 0, because Claude Code would read its output and exit code as instructions (`docs/domains/claude-adapter.md`).
 - When a command fails it prints an error document instead, `{ "schema": 1, "error": { "code", "message" } }`, on stdout, and exits with the code's exit status. The message is for people; match on `code`.
-- A breaking change to any output, the record format or an exit code bumps `schema`. Adding an optional field does not.
+- A breaking change to any output, the record format or an exit code bumps `schema`: removing or renaming a field, changing its meaning, or changing an exit code. Bump `SCHEMA_VERSION` in `src/types.ts` and the `schema` constant in every file in `schemas/`. Adding an optional field is not a breaking change.
 - `porch watch` reports errors that do not stop it (an adapter's listing failing) as error documents on stderr, and keeps running. It exits 0 on SIGINT or SIGTERM, or when its stdout is closed; it notices a closed stdout at its next write, so after the reader goes away it keeps running until the next change.
 
 ## Outputs and their schemas
