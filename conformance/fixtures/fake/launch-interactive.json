@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "launch-interactive",
+  "recordedAt": "2026-09-30T08:42:23.724Z",
+  "snapshots": [
+    {
+      "label": "started",
+      "at": "2026-09-30T08:42:21.566Z",
+      "records": {
+        "fake-conf-677c4ab8.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-677c4ab8",
+          "createdAt": "2026-09-30T08:42:21.560Z",
+          "updatedAt": "2026-09-30T08:42:21.560Z",
+          "inside": {
+            "pid": 7343,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-677c4ab8"
+            },
+            "since": "2026-09-30T08:42:21.560Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-677c4ab8\": {\n      \"alive\": true,\n      \"pid\": 7343,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-677c4ab8",
+          "status": "idle",
+          "since": "2026-09-30T08:42:21.560Z",
+          "detail": {
+            "pid": 7343,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": null,
+            "lastTurnEnd": null,
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 7343,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": null,
+              "failDeliver": null,
+              "exitCode": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-677c4ab8",
+              "createdAt": "2026-09-30T08:42:21.560Z",
+              "updatedAt": "2026-09-30T08:42:21.560Z",
+              "inside": {
+                "pid": 7343,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-677c4ab8"
+                },
+                "since": "2026-09-30T08:42:21.560Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    },
+    {
+      "label": "after a turn",
+      "at": "2026-09-30T08:42:22.181Z",
+      "records": {
+        "fake-conf-677c4ab8.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-677c4ab8",
+          "createdAt": "2026-09-30T08:42:21.560Z",
+          "updatedAt": "2026-09-30T08:42:22.120Z",
+          "inside": {
+            "pid": 7343,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-677c4ab8"
+            },
+            "since": "2026-09-30T08:42:22.118Z",
+            "lastTurnStart": "2026-09-30T08:42:21.613Z",
+            "lastTurnEnd": "2026-09-30T08:42:22.118Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-677c4ab8\": {\n      \"alive\": true,\n      \"pid\": 7343,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": [\n    {\n      \"session\": \"conf-677c4ab8\",\n      \"text\": \"[from porch-conformance] porch conformance interactive f6c8dd66. Reply with just OK.\",\n      \"at\": \"2026-09-30T08:42:21.567Z\",\n      \"statusAtSend\": \"idle\"\n    }\n  ]\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-677c4ab8",
+          "status": "idle",
+          "since": "2026-09-30T08:42:22.118Z",
+          "detail": {
+            "pid": 7343,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": "2026-09-30T08:42:21.613Z",
+            "lastTurnEnd": "2026-09-30T08:42:22.118Z",
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 7343,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": null,
+              "failDeliver": null,
+              "exitCode": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-677c4ab8",
+              "createdAt": "2026-09-30T08:42:21.560Z",
+              "updatedAt": "2026-09-30T08:42:22.120Z",
+              "inside": {
+                "pid": 7343,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-677c4ab8"
+                },
+                "since": "2026-09-30T08:42:22.118Z",
+                "lastTurnStart": "2026-09-30T08:42:21.613Z",
+                "lastTurnEnd": "2026-09-30T08:42:22.118Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}

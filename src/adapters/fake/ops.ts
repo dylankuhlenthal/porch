@@ -25,7 +25,7 @@ export async function startSession(ctx: AdapterContext, session: string, options
   // Validate the id before touching the listing, so a bad id changes nothing.
   ctx.records.recordPath(HARNESS, session);
   await updateState(fakeStatePath(ctx.env), (state) => {
-    state.sessions[session] = { alive: true, pid, prompt: null, promptSince: null, goneSince: null, failDeliver: null };
+    state.sessions[session] = { alive: true, pid, prompt: null, promptSince: null, goneSince: null, failDeliver: null, exitCode: null };
   });
   if (inside) {
     await ctx.records.updateInside(HARNESS, session, {
@@ -87,6 +87,19 @@ export async function setPrompt(ctx: AdapterContext, session: string, prompt: st
 
 /** The session dies without its end hook running: the record is left behind. */
 export async function killSession(ctx: AdapterContext, session: string): Promise<void> {
+  await markGone(ctx, session, null);
+}
+
+/**
+ * The session ends cleanly: its end hook removes the record. A launched session's
+ * process (`porch fake run`) then exits with `exitCode` (default 0).
+ */
+export async function endSession(ctx: AdapterContext, session: string, options: { exitCode?: number } = {}): Promise<void> {
+  await markGone(ctx, session, options.exitCode ?? 0);
+  await ctx.records.remove(HARNESS, session);
+}
+
+async function markGone(ctx: AdapterContext, session: string, exitCode: number | null): Promise<void> {
   const now = ctx.now().toISOString();
   await updateState(fakeStatePath(ctx.env), (state) => {
     const row = requireRow(state.sessions[session], session);
@@ -94,13 +107,8 @@ export async function killSession(ctx: AdapterContext, session: string): Promise
     row.prompt = null;
     row.promptSince = null;
     row.goneSince = now;
+    row.exitCode = exitCode;
   });
-}
-
-/** The session ends cleanly: its end hook removes the record. */
-export async function endSession(ctx: AdapterContext, session: string): Promise<void> {
-  await killSession(ctx, session);
-  await ctx.records.remove(HARNESS, session);
 }
 
 /** Make deliver to this session fail with `reason`, or succeed again with null. */

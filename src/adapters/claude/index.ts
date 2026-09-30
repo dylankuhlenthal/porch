@@ -2,7 +2,8 @@
  * The Claude Code adapter. Its inside part is hook commands (hooks.ts) that write
  * the session record; its outside part combines those records with
  * `claude agents --json` and Claude Code's job files (listing.ts, observe.ts), and
- * delivers through the session's messaging socket (socket.ts).
+ * delivers through the session's messaging socket (socket.ts). `porch launch claude`
+ * starts Claude Code with the hooks merged into its settings (launch.ts).
  * docs/domains/claude-adapter.md describes it, including what it relies on.
  */
 import { deliverResult, type Adapter, type AdapterContext, type Capabilities } from "../../adapter.js";
@@ -10,6 +11,7 @@ import type { SessionRecord } from "../../records.js";
 import { validateSessionId } from "../../records.js";
 import type { DeliverResult, Observation } from "../../types.js";
 import { claudeCommands } from "./hooks.js";
+import { claudeLaunchPlan } from "./launch.js";
 import { claudeBin, readJob, readListing, type Listing, type ListingRow } from "./listing.js";
 import { CLAUDE_HARNESS, claudeObservation } from "./observe.js";
 import {
@@ -60,6 +62,7 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
     insidePart: true,
     // Prompts opening and sessions dying without SessionEnd show only in the listing.
     pollIntervalMs: options.pollIntervalMs ?? 3000,
+    launch: true,
   };
   const socketDirs = options.socketDirs ?? defaultSocketDirs();
 
@@ -133,6 +136,8 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
       const match = observations.find((o) => o.session === id) ?? observations.find((o) => o.detail?.shortId === id);
       return match?.session ?? null;
     },
+
+    launch: claudeLaunchPlan,
 
     async current(ctx) {
       const id = ctx.env[CLAUDE_SESSION_ENV];

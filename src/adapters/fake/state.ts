@@ -8,7 +8,7 @@
  *   {
  *     "sessions": {
  *       "<id>": { "alive": true, "pid": 4242, "prompt": null, "promptSince": null,
- *                 "goneSince": null, "failDeliver": null }
+ *                 "goneSince": null, "failDeliver": null, "exitCode": null }
  *     },
  *     "deliveries": [ { "session": "<id>", "text": "...", "at": "<iso>", "statusAtSend": "idle" } ]
  *   }
@@ -18,6 +18,9 @@
  * - "prompt": a string models a session held at a permission prompt or dialog; only
  *   the outside listing can see it, as with Claude Code.
  * - "failDeliver": a string makes deliver fail with that reason.
+ * - "exitCode": set when the session ended cleanly (`porch fake end`): the code a
+ *   launched session's process (`porch fake run`) exits with. Null while running
+ *   and after a kill, which that process dies of (SIGKILL) instead.
  * - "deliveries": every message deliver sent, in order.
  */
 import { promises as fs } from "node:fs";
@@ -35,6 +38,7 @@ export interface FakeSession {
   promptSince?: string | null;
   goneSince?: string | null;
   failDeliver?: string | null;
+  exitCode?: number | null;
 }
 
 export interface FakeDelivery {

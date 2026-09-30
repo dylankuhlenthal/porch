@@ -27,7 +27,8 @@
               "seesPrompts": { "type": "boolean" },
               "outsideListing": { "type": "boolean" },
               "insidePart": { "type": "boolean" },
-              "pollIntervalMs": { "type": ["integer", "null"] }
+              "pollIntervalMs": { "type": ["integer", "null"] },
+              "launch": { "type": "boolean", "description": "porch launch can start this harness with the inside part attached. Added after schema 1 was first published, so older output may not have it." }
             }
           },
           "inside": {

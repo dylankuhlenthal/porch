@@ -4,7 +4,7 @@ import { deliverResult, type Adapter } from "../src/adapter.js";
 export function stubAdapter(harness: string, overrides: Partial<Adapter> = {}): Adapter {
   return {
     harness,
-    capabilities: { queuesWhileBusy: false, seesPrompts: false, outsideListing: false, insidePart: false, pollIntervalMs: null },
+    capabilities: { queuesWhileBusy: false, seesPrompts: false, outsideListing: false, insidePart: false, pollIntervalMs: null, launch: false },
     inside: null,
     detect: async () => ({ available: true, version: "1", reason: null }),
     list: async () => [],

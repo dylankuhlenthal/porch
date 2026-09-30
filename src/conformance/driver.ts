@@ -21,6 +21,12 @@ export interface DriverContext {
   adapterContext: AdapterContext;
 }
 
+/** How a `porch launch` process ended: its exit code, or the signal that killed it. */
+export interface LaunchEnd {
+  code: number | null;
+  signal: string | null;
+}
+
 /** A session the driver started. `id` is the harness's own session id, as Porch reports it. */
 export interface DriverSession {
   id: string;
@@ -67,6 +73,33 @@ export interface HarnessDriver {
   received(session: DriverSession): Promise<string[]>;
   /** End the session cleanly. */
   stop(session: DriverSession): Promise<void>;
+
+  // Launch cases: used only when the adapter can launch (`capabilities.launch`).
+
+  /**
+   * Start a background session the way a tool would, through `porch launch` with the
+   * case's PORCH_HOME and the caller's own harness settings, which hold a marker the
+   * driver can check (for Claude Code, a SessionStart hook that writes a file).
+   * Resolve once the session is running.
+   */
+  launchBackground(): Promise<DriverSession>;
+  /**
+   * Whether the caller's own settings passed to `porch launch` took effect in the
+   * session (the marker ran), or null when the harness takes no settings of the caller's.
+   */
+  callerSettingsApplied(session: DriverSession): Promise<boolean | null>;
+  /**
+   * Start an interactive session through `porch launch` in a terminal (a
+   * pseudo-terminal for a real harness), as a person would. Resolve once the
+   * harness lists it as running.
+   */
+  launchInteractive(): Promise<DriverSession>;
+  /** Press Ctrl+C once in the interactive session's terminal. */
+  interrupt(session: DriverSession): Promise<void>;
+  /** Whether the `porch launch` process of an interactive session is still running. */
+  launchRunning(session: DriverSession): boolean;
+  /** End the interactive session the way a person would (`/exit`), and resolve with how `porch launch` ended. */
+  exitInteractive(session: DriverSession): Promise<LaunchEnd>;
   /** Stop everything this driver started in the current case. Always called, even after a failure. */
   cleanup(): Promise<void>;
 }

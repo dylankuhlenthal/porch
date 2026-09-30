@@ -3,7 +3,7 @@
   "target": "branch",
   "enforcement": "active",
   "conditions": {
-    "ref_name": { "include": ["refs/heads/main", "refs/heads/dyl/TRV-1133-porch"], "exclude": [] }
+    "ref_name": { "include": ["refs/heads/main"], "exclude": [] }
   },
   "rules": [
     {

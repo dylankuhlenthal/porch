@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Porch lets Dylan, and the tools he builds on agents (sous chef and shape-gui first), wake any running agent session with a message and read what it is doing and whether it needs something, through one interface that behaves the same whichever harness the session runs in. It covers two layers only: delivery (one adapter per harness) and state tracking (observed plus self-reported). Storing or routing messages, launching or judging sessions, and agent GUIs are built on top of Porch elsewhere. How it works: `docs/architecture.md`.
+Porch lets Dylan, and the tools he builds on agents (sous chef and shape-gui first), wake any running agent session with a message and read what it is doing and whether it needs something, through one interface that behaves the same whichever harness the session runs in. It covers two layers only: delivery (one adapter per harness) and state tracking (observed plus self-reported). It also starts a harness with its inside part attached (`porch launch`), so a session is visible from the start. Storing or routing messages, deciding when to launch sessions and everything around a launch (resume, stop, cleanup), judging sessions, and agent GUIs are built on top of Porch elsewhere. How it works: `docs/architecture.md`.
 
 ## Stack
 
@@ -10,7 +10,7 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 
 ## Layout & filing
 
-- `src/`: the package. `src/cli/` is the `porch` command, `src/porch.ts` the library, `src/adapter.ts` the adapter contract, `src/records.ts` the session records, `src/watch.ts` watch, `src/adapters/<harness>/` one folder per adapter, `src/conformance/` the conformance suite.
+- `src/`: the package. `src/cli/` is the `porch` command, `src/porch.ts` the library, `src/adapter.ts` the adapter contract, `src/records.ts` the session records, `src/watch.ts` watch, `src/launch.ts` running a launch plan, `src/adapters/<harness>/` one folder per adapter, `src/conformance/` the conformance suite.
 - `schemas/`: JSON Schema for every output and the record format. Shipped in the package.
 - `tests/`: per-PR tests (`*.test.ts`). `conformance/`: the recorded fixtures and reports from conformance runs, committed.
 - `docs/`: filed by lifetime, following the documentation standard in `docs/patterns/documentation.md`: `architecture.md` is the overview; `domains/` says how parts work; `patterns/` sets out the approved way to do things; `operations/` holds runbooks; `reference/` holds contracts; `decisions/` holds append-only decision records (`NNNN-slug.md`, never edited after merge). Plans and specs stay in Linear, never in the repo. Every doc names the files it describes. Change the docs in the same PR as the code.

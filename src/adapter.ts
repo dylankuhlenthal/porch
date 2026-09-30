@@ -41,6 +41,8 @@ export interface Capabilities {
    * dying without its end hook, a prompt opening). Null: record changes are enough.
    */
   pollIntervalMs: number | null;
+  /** The adapter can start its harness with the inside part attached (`launch`, run by `porch launch`). */
+  launch: boolean;
 }
 
 export interface DetectResult {
@@ -58,6 +60,27 @@ export interface InsidePartInfo {
   description: string;
   /** The command a person runs to set it up, for example "porch hooks claude". */
   setup: string;
+}
+
+/**
+ * How to start the harness with Porch's inside part attached: the program and its
+ * arguments. The core runs it (src/launch.ts); `porch launch --dry-run` prints it.
+ */
+export interface LaunchPlan {
+  command: string;
+  args: string[];
+}
+
+export interface LaunchOptions {
+  /**
+   * The records folder to bake into the inside part (from `--porch-home` or
+   * `PORCH_HOME`), as an absolute path, or null to leave it to the session's own
+   * environment. A background session may start in a process carrying an earlier
+   * launch's environment, so an adapter should put it into the inside part itself.
+   */
+  porchHome: string | null;
+  /** Print one warning line on stderr (for example: Porch will not see this session). */
+  warn(message: string): void;
 }
 
 /** What a CLI command added by an adapter gets. */
@@ -114,6 +137,15 @@ export interface Adapter {
    * takes only the full id leave it out.
    */
   sessionIdIn?(id: string, observations: Observation[]): string | null;
+
+  /**
+   * The plan for starting the harness with the inside part attached, given the
+   * arguments the caller wrote after the harness name. Pass them through; add only
+   * what attaches the inside part (docs/patterns/adapter-contract.md). Throw
+   * PorchError("usage", ...) for arguments that cannot work, before anything starts.
+   * Adapters that cannot launch leave it out and set `capabilities.launch` false.
+   */
+  launch?(ctx: AdapterContext, args: string[], options: LaunchOptions): Promise<LaunchPlan>;
 
   /** Extra files or folders `watch` should react to besides the records folder. */
   watchPaths?(ctx: AdapterContext): string[];

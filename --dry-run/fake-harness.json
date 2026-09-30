@@ -1,0 +1,14 @@
+{
+  "sessions": {
+    "s1": {
+      "alive": false,
+      "pid": 13424,
+      "prompt": null,
+      "promptSince": null,
+      "goneSince": "2026-09-30T08:51:46.196Z",
+      "failDeliver": null,
+      "exitCode": 0
+    }
+  },
+  "deliveries": []
+}

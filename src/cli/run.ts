@@ -5,13 +5,15 @@
  * exit codes in exit-codes.ts.
  */
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import { parseArgs } from "node:util";
 
-import type { Adapter, AdapterCommand } from "../adapter.js";
+import type { Adapter, AdapterCommand, LaunchPlan } from "../adapter.js";
 import { PorchError } from "../errors.js";
 import { errorMessage } from "../fsutil.js";
 import type { Env } from "../home.js";
 import type { HarnessIO } from "../io.js";
+import { runLaunchPlan, signalExitCode } from "../launch.js";
 import { Porch } from "../porch.js";
 import { SCHEMA_VERSION, SELF_STATUSES, type ErrorResult } from "../types.js";
 import { EXIT, exitCodeFor } from "./exit-codes.js";
@@ -24,6 +26,13 @@ export interface CliIO {
   readStdin(): Promise<string>;
   /** Ends `porch watch`. main.ts aborts it on SIGINT and SIGTERM. */
   signal?: AbortSignal;
+  /**
+   * Runs `porch launch`'s plan and returns the exit code to end with. main.ts runs it
+   * on the real terminal and, when a signal killed the harness, dies of that signal
+   * (src/launch.ts). Default: run it and return the harness's exit code, or 128 plus
+   * the signal's number.
+   */
+  runHarness?(plan: LaunchPlan, env: Env): Promise<number>;
 }
 
 export interface CliOptions {
@@ -42,7 +51,40 @@ const CORE_USAGE = [
   `porch status set <${SELF_STATUSES.join("|")}> [text...]`,
   "                                                    self-reported state of the calling session",
   "porch adapters                                      which harnesses are installed here",
+  "porch launch [--porch-home <dir>] [--dry-run] <harness> [harness arguments...]",
+  "                                                    start the harness with Porch attached",
 ];
+
+const LAUNCH_USAGE = "porch launch [--porch-home <dir>] [--dry-run] <harness> [harness arguments...]";
+
+/**
+ * `porch launch`'s own options, up to the harness name. Everything after the harness
+ * name belongs to the harness and passes through unchanged, so there is no `--`.
+ */
+export function parseLaunchArgs(args: string[]): { porchHome: string | null; dryRun: boolean; harness: string; rest: string[] } {
+  let porchHome: string | null = null;
+  let dryRun = false;
+  let i = 0;
+  for (; i < args.length; i++) {
+    const arg = args[i]!;
+    if (arg === "--dry-run") dryRun = true;
+    else if (arg === "--porch-home" || arg.startsWith("--porch-home=")) {
+      const value = arg === "--porch-home" ? args[++i] : arg.slice("--porch-home=".length);
+      // A flag-shaped value is another option the caller forgot the folder before, not a folder.
+      if (value === undefined || value.trim() === "" || value.startsWith("-")) throw new PorchError("usage", "--porch-home needs a folder");
+      porchHome = value;
+    } else if (arg.startsWith("-")) throw new PorchError("usage", `unknown option '${arg}' before the harness name; usage: ${LAUNCH_USAGE}`);
+    else break;
+  }
+  const harness = args[i];
+  if (harness === undefined) throw new PorchError("usage", `no harness given; usage: ${LAUNCH_USAGE}`);
+  return { porchHome, dryRun, harness, rest: args.slice(i + 1) };
+}
+
+async function defaultRunHarness(plan: LaunchPlan, env: Env): Promise<number> {
+  const outcome = await runLaunchPlan(plan, env);
+  return outcome.signal !== null ? signalExitCode(outcome.signal) : (outcome.code ?? 1);
+}
 
 export function version(): string {
   const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string };
@@ -61,6 +103,8 @@ function helpText(adapters: Adapter[]): string {
     "All output is JSON on stdout with \"schema\": 1. Errors are JSON too. Exit codes:",
     "  0 ok, 1 internal error, 2 usage, 3 session not found, 4 message not delivered,",
     "  5 not inside a session, 6 more than one session matches.",
+    "porch launch prints nothing of its own once the harness has started: the output and",
+    "  exit code are the harness's. Example: alias claude='porch launch claude'.",
     "Records folder: $PORCH_HOME/sessions (default ~/.porch/sessions).",
     "",
   ].join("\n");
@@ -181,6 +225,22 @@ export async function runCli(argv: string[], io: CliIO, options: CliOptions = {}
         );
         out({ schema: SCHEMA_VERSION, adapters });
         return EXIT.ok;
+      }
+      case "launch": {
+        const parsed = parseLaunchArgs(args);
+        // --porch-home also reaches the harness's environment, so commands run in the
+        // session (`porch status set`) use the same records folder as its inside part.
+        const env = parsed.porchHome === null ? io.env : { ...io.env, PORCH_HOME: path.resolve(parsed.porchHome) };
+        const launcher = new Porch({ env, adapters: porch.adapters, io: options.harnessIO, now: options.now });
+        const plan = await launcher.launchPlan(parsed.harness, parsed.rest, {
+          warn: (message) => io.stderr(`porch launch: ${message}\n`),
+        });
+        if (parsed.dryRun) {
+          out(plan);
+          return EXIT.ok;
+        }
+        // From here on the harness owns stdout, stderr and the exit code (docs/reference/cli-output.md).
+        return await (io.runHarness ?? defaultRunHarness)({ command: plan.command, args: plan.args }, env);
       }
       default: {
         const found = findAdapterCommand(porch.adapters, argv);
