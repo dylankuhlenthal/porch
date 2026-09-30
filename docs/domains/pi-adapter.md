@@ -119,7 +119,7 @@ The socket is `<tmp>/porch-<uid>/pi-<pid>.sock`, where `<tmp>` is Pi's temporary
 
 Requirements: Pi installed and logged in to the model's provider (`pi auth check --model openai/gpt-4.1-mini` says ready; otherwise the run is skipped, exit 3), or `OPENAI_API_KEY` set. Real turns cost a little (about half a US cent each with this model; a full run makes about seven).
 
-Last recorded run: Pi 0.87.1 on darwin-arm64 with Node 22.19, 2026-09-30: ten cases passed, and `without-inside-part` was skipped because Pi has no outside listing (`conformance/reports/pi.json`, fixtures in `conformance/fixtures/pi/`). All fixtures were re-recorded then for TRV-1148 (the `attached` field); `held-at-prompt` was recorded again on its own the same day, because in its first recording the delivered message started a turn between the moment the snapshot copied the session record (idle) and the moment the adapter read it (busy), so that fixture could not replay.
+Last recorded run: Pi 0.87.1 on darwin-arm64 with Node 22.19, 2026-09-30: ten cases passed, and `without-inside-part` was skipped because Pi has no outside listing (`conformance/reports/pi.json`, fixtures in `conformance/fixtures/pi/`). All fixtures were re-recorded then for TRV-1148 (the `attached` field); `held-at-prompt` was recorded again on its own the same day, because in its first recording the delivered message started a turn between the moment the snapshot copied the session record (idle) and the moment the adapter read it (busy), so that fixture could not replay. Since TRV-1149 the adapter lists against the copied records during a snapshot, so this can no longer happen (`docs/patterns/conformance.md`, Recordings).
 
 ## Known limits
 

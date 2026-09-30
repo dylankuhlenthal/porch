@@ -2,9 +2,11 @@
  * Record and replay of what a harness returned.
  *
  * During a conformance run, the suite's adapter context uses a RecordingIO, and at
- * chosen points a case takes a snapshot: the session records in the scratch
- * folder, every outside read the adapter made while listing (commands run, files
- * read, with their results), and the observations the adapter produced from them.
+ * chosen points a case takes a snapshot: a copy of the session records in the
+ * scratch folder, every outside read the adapter made while listing (commands run,
+ * files read, with their results), and the observations the adapter produced from
+ * them. The adapter lists against the copy, so the records and the observations
+ * always agree (takeSnapshot).
  * A case's snapshots are saved as one fixture file.
  *
  * The per-PR tests replay every fixture (replayFixture): write the records into a
@@ -157,7 +159,16 @@ function mapStrings<T>(value: T, fn: (s: string) => string): T {
   return value;
 }
 
-/** Take one snapshot: the records as they are now, and a listing through the recording io. */
+/**
+ * Take one snapshot: copy the records as they are now, and list through the
+ * recording io.
+ *
+ * The adapter lists against the copy, written into a private folder exactly as
+ * replay writes it, never against the live records folder. A record that changes
+ * while the snapshot is taken (a session's inside part writing as it is held at a
+ * prompt, for example) then cannot leave the fixture holding one version of the
+ * record and observations made from another, so every snapshot replays.
+ */
 export async function takeSnapshot(
   label: string,
   adapter: Adapter,
@@ -181,11 +192,30 @@ export async function takeSnapshot(
       // removed or replaced between readdir and read: leave it out
     }
   }
-  io.take();
-  const at = ctx.now().toISOString();
-  const frozen: AdapterContext = { ...ctx, now: () => new Date(at) };
-  const observations = await adapter.list(frozen);
-  return toPlaceholders({ label, at, records, io: io.take(), observations }, ctx.env, workDir, secrets);
+  const copyDir = await fs.mkdtemp(path.join(os.tmpdir(), "porch-snapshot-"));
+  try {
+    await writeRecords(copyDir, records);
+    io.take();
+    const at = ctx.now().toISOString();
+    const frozen: AdapterContext = {
+      ...ctx,
+      records: new RecordStore(copyDir, { now: () => new Date(at) }),
+      now: () => new Date(at),
+    };
+    const observations = await adapter.list(frozen);
+    // Anything that names the copy's folder is saved as naming the live records folder, which becomes $PORCH_HOME.
+    const snap = mapStrings({ label, at, records, io: io.take(), observations }, (s) => s.split(copyDir).join(ctx.records.dir));
+    return toPlaceholders(snap, ctx.env, workDir, secrets);
+  } finally {
+    await fs.rm(copyDir, { recursive: true, force: true });
+  }
+}
+
+/** Write a snapshot's records into `dir`, one file each. Recording and replay both list against records written this way. */
+async function writeRecords(dir: string, records: Record<string, unknown>): Promise<void> {
+  for (const [name, contents] of Object.entries(records)) {
+    await fs.writeFile(path.join(dir, name), JSON.stringify(contents));
+  }
 }
 
 export interface ReplayMismatch {
@@ -209,9 +239,7 @@ export async function replayFixture(
     const dir = sessionsDir(scratch.env);
     await fs.rm(dir, { recursive: true, force: true });
     await fs.mkdir(dir, { recursive: true });
-    for (const [name, contents] of Object.entries(snap.records)) {
-      await fs.writeFile(path.join(dir, name), JSON.stringify(contents));
-    }
+    await writeRecords(dir, snap.records);
     const ctx: AdapterContext = {
       env: scratch.env,
       home: porchHome(scratch.env),
