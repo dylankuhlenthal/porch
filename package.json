@@ -2,7 +2,7 @@
   "name": "@dylankuhlenthal/porch",
   "version": "0.1.0",
   "description": "Wake any agent session with a message and read its state, across harnesses.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "author": "Dylan Kuhlenthal",
   "repository": {
     "type": "git",
