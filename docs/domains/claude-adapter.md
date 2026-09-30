@@ -161,7 +161,7 @@ What the session does with it (observed with 2.1.284): an idle session starts a 
 - Started from inside another Claude Code session with that session's `CLAUDE_*` variables, interactive Claude Code says "Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker"; Porch's hooks still run and write the record.
 - From `claude --help`, not run: `--bare` and `--safe-mode` skip hooks from settings.
 
-**Observed with 2.1.285, how sessions end** (checked by running each, 2026-09-30, with a `SessionEnd` hook logging its input next to Porch's hooks). `SessionEnd`'s documented `reason` values are `clear`, `resume`, `logout`, `prompt_input_exit` and `other`. Every close below ran `SessionEnd`, so each shows as `ended`:
+**Observed with 2.1.285, how sessions end** (checked by running each, 2026-09-30, with a `SessionEnd` hook logging its input next to Porch's hooks). `SessionEnd`'s documented `reason` values are `clear`, `resume`, `logout`, `prompt_input_exit` and `other`.
 
 | Close | `endReason` | Exit code |
 | --- | --- | --- |
@@ -169,9 +169,10 @@ What the session does with it (observed with 2.1.284): an idle session starts a 
 | the terminal closing, or SIGHUP to `porch launch` (interactive) | `other` | 129 |
 | SIGTERM to Claude Code (interactive) | `other` | 143 |
 | `claude stop` on a background session | `other` | |
-| Claude Code stopping an idle background session | IDLE_STOP_PENDING | |
 
-A session killed with SIGKILL runs no hook and shows as `gone`.
+Every close in the table ran `SessionEnd`, so each shows as `ended`. Two do not:
+- **Claude Code stopping an idle background session does not run `SessionEnd`** (observed once, 2026-09-30). Claude Code retires a background session only once it has settled after a turn and been idle for an hour (60 seconds when the machine is short of memory). A session that has never been given a prompt is not retired. The probe went idle at 14:06 and its process was gone by 15:39. Neither Porch's hooks nor a separate logging hook saw a `SessionEnd`, so the session showed as `gone`. Afterwards `claude agents --json --all` listed it with `state: done` and no pid.
+- A session killed with SIGKILL runs no hook and shows as `gone`.
 
 ## Conformance
 
@@ -186,6 +187,7 @@ Last recorded run: Claude Code 2.1.285 on darwin-arm64, 2026-09-30, all twelve c
 ## Known limits
 
 - **An interrupted turn leaves the record saying busy.** `Stop` does not fire when a person interrupts a turn (Escape), so the record's inside part says `busy` until a later turn ends. The status is still right, because the listing's idle wins (rule 4 above): checked with Claude Code 2.1.285 by attaching to a background session through a pseudo-terminal (`claude attach <short id>`) and sending Escape during a `sleep 30`; `porch observe` said `idle` with `detail.recordStatus: "busy"` from about a second after the Escape. What is still not handled: `lastTurnEnd` is not set for an interrupted turn, and `backgroundTasks` keeps the count from the last `Stop`. Listening to the `Notification` hook's `idle_prompt` event was suggested as a way to record the interrupt, but in one try no `Notification` event fired within 80 seconds of the interrupt.
+- **A session Claude Code stops for being idle shows as `gone`, like a crash.** Claude Code runs no `SessionEnd` hook when it retires an idle background session (see "how sessions end" above), so Porch cannot tell that session from one that died. Telling them apart would need a second signal, such as what `claude agents --json --all` or the job file shows for a retired session compared with a killed one. That has not been checked.
 - **`endReason` does not say who stopped a session.** Claude Code 2.1.285 gives `SessionEnd` reason `other` for `claude stop`, a closed terminal, SIGHUP and SIGTERM alike, so `endReason` tells a person quitting (`prompt_input_exit`), `/clear` (`clear`) and a logout (`logout`) apart from the rest, but not one of the rest from another. A killed session (SIGKILL, a crash) runs no hook and shows as `gone`.
 - **Interactive sessions have no short id.** They are checked by the `launch-interactive` conformance case (2.1.285) and behave like background ones, but `claude agents --json` gives them no short `id`, so `observe`, `deliver` and `watch --session` find them by their full session id only.
 - **No user-wide install command.** Porch does not write `~/.claude/settings.json`. To give every session a person starts Porch's hooks, use `alias claude='porch launch claude'` (decision 0009, no user-wide install for now). Sessions started some other way get the hooks only through settings their caller passes. An opt-in install command stays allowed for later, for sessions started by tools the person does not control.
