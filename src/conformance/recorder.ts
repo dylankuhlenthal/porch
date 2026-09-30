@@ -203,7 +203,9 @@ export async function takeSnapshot(
       now: () => new Date(at),
     };
     const observations = await adapter.list(frozen);
-    return toPlaceholders({ label, at, records, io: io.take(), observations }, ctx.env, workDir, secrets);
+    // Anything that names the copy's folder is saved as naming the live records folder, which becomes $PORCH_HOME.
+    const snap = mapStrings({ label, at, records, io: io.take(), observations }, (s) => s.split(copyDir).join(ctx.records.dir));
+    return toPlaceholders(snap, ctx.env, workDir, secrets);
   } finally {
     await fs.rm(copyDir, { recursive: true, force: true });
   }

@@ -253,12 +253,19 @@ describe("snapshots", () => {
       state.sessions.s1 = { alive: true, pid: 4242 };
     });
     await live.updateInside("fake", "s1", { status: "idle" });
-    const real = createFakeAdapter();
+    // An adapter that names the records folder it read: the fixture must not keep the copy's temporary path.
+    const namingItsRecordsDir = (): Adapter => {
+      const real = createFakeAdapter();
+      return withAdapter({
+        list: async (ctx) => (await real.list(ctx)).map((o) => ({ ...o, raw: { ...o.raw, recordsDir: ctx.records.dir } })),
+      });
+    };
+    const naming = namingItsRecordsDir();
     // The session's inside part writes between the recorder's copy of the records and the adapter's read.
     const adapter = withAdapter({
       list: async (ctx) => {
         await live.updateInside("fake", "s1", { status: "busy" });
-        return real.list(ctx);
+        return naming.list(ctx);
       },
     });
     const io = new RecordingIO(realIO);
@@ -268,10 +275,10 @@ describe("snapshots", () => {
 
     expect((await live.read("fake", "s1"))?.inside?.status).toBe("busy");
     expect((snap.records["fake-s1.json"] as SessionRecord).inside?.status).toBe("idle");
-    expect(snap.observations.map((o) => [o.session, o.status])).toEqual([["s1", "idle"]]);
+    expect(snap.observations.map((o) => [o.session, o.status, o.raw?.recordsDir])).toEqual([["s1", "idle", "$PORCH_HOME/sessions"]]);
     const fixture = newFixture("fake", "fake-1", "mid-change", [snap]);
     v.fixture!(fixture);
-    expect(await replayFixture(fixture, createFakeAdapter(), replayScratch())).toEqual([]);
+    expect(await replayFixture(fixture, namingItsRecordsDir(), replayScratch())).toEqual([]);
   });
 });
 
