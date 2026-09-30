@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/porch.png" alt="Porch" width="160"></p>
+
 # Porch
 
 Porch lets you wake a running agent session with a message and read what it is doing and whether it needs something, through one command that behaves the same whichever harness (Claude Code, Pi, ...) the session runs in.
