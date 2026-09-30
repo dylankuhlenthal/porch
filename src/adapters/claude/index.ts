@@ -60,6 +60,7 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
     insidePart: true,
     // Prompts opening and sessions dying without SessionEnd show only in the listing.
     pollIntervalMs: options.pollIntervalMs ?? 3000,
+    launch: false,
   };
   const socketDirs = options.socketDirs ?? defaultSocketDirs();
 

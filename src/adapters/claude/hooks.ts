@@ -11,11 +11,11 @@
  * always exits 0, prints nothing on stdout, and reports any problem on stderr only.
  */
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import type { AdapterCommand, AdapterContext, CommandContext } from "../../adapter.js";
 import { jsonLine } from "../../cli/output.js";
+import { porchCliPath } from "../../cli/path.js";
 import { PorchError } from "../../errors.js";
 import { errorMessage } from "../../fsutil.js";
 import { SCHEMA_VERSION } from "../../types.js";
@@ -28,10 +28,7 @@ export type HookEvent = (typeof HOOK_EVENTS)[number];
 /** How long Claude Code lets a hook run. A record write waits at most 5 s for its lock. */
 export const HOOK_TIMEOUT_SECONDS = 10;
 
-/** The built CLI (dist/cli/main.js) next to this file, so hooks run this exact Porch. */
-export function porchCliPath(): string {
-  return fileURLToPath(new URL("../../cli/main.js", import.meta.url));
-}
+export { porchCliPath };
 
 /** Quote for sh, which Claude Code runs hook commands with. */
 export function shQuote(s: string): string {

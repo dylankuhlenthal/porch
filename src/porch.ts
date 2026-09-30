@@ -10,12 +10,14 @@ import { PorchError } from "./errors.js";
 import { errorMessage } from "./fsutil.js";
 import { porchHome, sessionsDir, type Env } from "./home.js";
 import { realIO, type HarnessIO } from "./io.js";
+import { runLaunchPlan, type LaunchOutcome } from "./launch.js";
 import { InvalidIdError, RecordStore } from "./records.js";
 import {
   SCHEMA_VERSION,
   SELF_STATUSES,
   type CurrentResult,
   type DeliverResult,
+  type LaunchPlanResult,
   type ListResult,
   type Observation,
   type SelfStatus,
@@ -180,6 +182,36 @@ export class Porch {
       throw err;
     }
     return { schema: SCHEMA_VERSION, harness: current.harness, session: current.session, self };
+  }
+
+  /**
+   * How `porch launch` would start the harness with Porch's inside part attached,
+   * given the arguments the caller wrote after the harness name. Starts nothing. The
+   * records folder baked into the inside part is this Porch's `PORCH_HOME` when its
+   * environment sets one. Throws a usage error for an unknown harness, a harness
+   * whose adapter cannot launch, or arguments the adapter refuses.
+   */
+  async launchPlan(harness: string, args: string[], options: { warn?(message: string): void } = {}): Promise<LaunchPlanResult> {
+    const adapter = this.adaptersFor(harness)[0]!;
+    if (typeof adapter.launch !== "function") {
+      throw new PorchError("usage", `the ${adapter.harness} adapter cannot launch sessions`);
+    }
+    const fromEnv = this.ctx.env.PORCH_HOME;
+    const plan = await adapter.launch(this.ctx, args, {
+      porchHome: fromEnv && fromEnv.trim() !== "" ? path.resolve(fromEnv) : null,
+      warn: options.warn ?? (() => undefined),
+    });
+    return { schema: SCHEMA_VERSION, harness: adapter.harness, command: plan.command, args: plan.args };
+  }
+
+  /**
+   * Start the harness with Porch's inside part attached, sharing this process's
+   * terminal, and resolve with how it ended (src/launch.ts). Warnings go to
+   * `options.warn`.
+   */
+  async launch(harness: string, args: string[], options: { warn?(message: string): void } = {}): Promise<LaunchOutcome> {
+    const plan = await this.launchPlan(harness, args, options);
+    return runLaunchPlan(plan, this.ctx.env);
   }
 
   /** Stay running and call `onObservation` once per change. Resolves when `signal` aborts. */

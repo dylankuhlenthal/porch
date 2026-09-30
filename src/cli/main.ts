@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /** The `porch` executable: runs src/cli/run.ts against the real process. */
+import { endLikeHarness, runLaunchPlan } from "../launch.js";
 import { runCli } from "./run.js";
 
 async function readStdin(): Promise<string> {
@@ -27,5 +28,11 @@ const code = await runCli(process.argv.slice(2), {
   },
   readStdin,
   signal: controller.signal,
+  // `porch launch`: end the way the harness ended, dying of the same signal if one killed it.
+  runHarness: async (plan, env) => {
+    const outcome = await runLaunchPlan(plan, env);
+    endLikeHarness(outcome);
+    return Number(process.exitCode ?? 0);
+  },
 });
 process.exitCode = code;

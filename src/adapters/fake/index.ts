@@ -16,6 +16,7 @@ import {
   type AdapterContext,
   type Capabilities,
 } from "../../adapter.js";
+import { porchCliPath } from "../../cli/path.js";
 import type { DeliverResult } from "../../types.js";
 import { fakeCommands } from "./commands.js";
 import { FAKE_HARNESS, fakeObservation } from "./observe.js";
@@ -36,6 +37,7 @@ export function createFakeAdapter(options: { pollIntervalMs?: number } = {}): Ad
     insidePart: true,
     // The state file is also file-watched (watchPaths), so polling is only a backstop.
     pollIntervalMs: options.pollIntervalMs ?? 2000,
+    launch: true,
   };
 
   const adapter: Adapter = {
@@ -99,6 +101,13 @@ export function createFakeAdapter(options: { pollIntervalMs?: number } = {}): Ad
         state.deliveries.push({ session, text, at: ctx.now().toISOString(), statusAtSend: obs.status });
         return deliverResult({ harness: FAKE_HARNESS, session, result: "delivered", statusAtSend: obs.status, via, guessed });
       });
+    },
+
+    // `porch launch fake <session> [--no-inside]` runs `porch fake run` with those
+    // arguments, through this same Porch. The records folder reaches it through
+    // PORCH_HOME in its environment, which `porch launch --porch-home` sets.
+    async launch(_ctx, args) {
+      return { command: process.execPath, args: [porchCliPath(), "fake", "run", ...args] };
     },
 
     watchPaths(ctx) {

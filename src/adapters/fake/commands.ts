@@ -11,6 +11,7 @@ import { PorchError } from "../../errors.js";
 import { InvalidIdError } from "../../records.js";
 import { SCHEMA_VERSION } from "../../types.js";
 import { fakeObservation } from "./observe.js";
+import { runFakeSession } from "./run.js";
 import { fakeStatePath, parseState } from "./state.js";
 import {
   endSession,
@@ -137,11 +138,33 @@ export const fakeCommands: AdapterCommand[] = [
     await killSession(ctx.adapter, session);
     return printObservation(ctx, session);
   }),
-  command("end", "the session ends cleanly and its record is removed", "porch fake end <session>", async (args, ctx) => {
-    const session = one(args, "porch fake end <session>");
-    await endSession(ctx.adapter, session);
-    return printObservation(ctx, session);
-  }),
+  command(
+    "end",
+    "the session ends cleanly and its record is removed (a launched one exits with --exit-code, default 0)",
+    "porch fake end <session> [--exit-code <n>]",
+    async (args, ctx) => {
+      const usage = "porch fake end <session> [--exit-code <n>]";
+      const { values, positionals } = parseArgs({ args, allowPositionals: true, options: { "exit-code": { type: "string" } } });
+      const session = one(positionals, usage);
+      let exitCode: number | undefined;
+      if (values["exit-code"] !== undefined) {
+        exitCode = Number(values["exit-code"]);
+        if (!/^\d+$/.test(values["exit-code"]) || exitCode > 255) throw new PorchError("usage", "--exit-code must be a whole number from 0 to 255");
+      }
+      await endSession(ctx.adapter, session, { exitCode });
+      return printObservation(ctx, session);
+    },
+  ),
+  command(
+    "run",
+    "a fake session as a process, as `porch launch fake` starts it; exits when the session ends (see docs/domains/fake-adapter.md)",
+    "porch fake run <session> [--no-inside]",
+    async (args, ctx) => {
+      const { values, positionals } = parseArgs({ args, allowPositionals: true, options: { "no-inside": { type: "boolean" } } });
+      const session = one(positionals, "porch fake run <session> [--no-inside]");
+      return runFakeSession(ctx.adapter, session, { inside: !values["no-inside"] });
+    },
+  ),
   command(
     "fail-deliver",
     "make deliver to the session fail with a reason, or work again with --clear",

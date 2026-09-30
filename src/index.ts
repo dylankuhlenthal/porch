@@ -12,6 +12,7 @@ export { RecordStore, RecordError, InvalidIdError, CorruptRecordError, validateH
 export type { DeliveryAddress, InsidePart, SessionRecord, RecordProblem, RecordStoreOptions } from "./records.js";
 export { porchHome, sessionsDir, type Env } from "./home.js";
 export { realIO, type HarnessIO, type RunResult, type RunOptions } from "./io.js";
+export { runLaunchPlan, signalExitCode, type LaunchOutcome } from "./launch.js";
 export { watchSessions, comparisonKey, type WatchOptions } from "./watch.js";
 export { builtinAdapters } from "./adapters/index.js";
 export { createFakeAdapter, FAKE_HARNESS, FAKE_SESSION_ENV } from "./adapters/fake/index.js";

@@ -86,6 +86,16 @@ export interface StatusSetResult {
   self: SelfReport;
 }
 
+/** `porch launch --dry-run` output: what `porch launch` would run. */
+export interface LaunchPlanResult {
+  schema: SchemaVersion;
+  harness: string;
+  /** The program, as it will be looked up on PATH or as an absolute path. */
+  command: string;
+  /** Every argument, with what the adapter added to attach Porch's inside part. */
+  args: string[];
+}
+
 /** Error codes Porch prints as JSON. Each maps to one exit code (see src/cli/exit-codes.ts). */
 export const ERROR_CODES = [
   "usage",
