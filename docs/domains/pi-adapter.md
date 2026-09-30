@@ -46,7 +46,7 @@ A handler never disturbs the session: every one catches its own errors, and a pr
 
 ## How status is worked out
 
-The record is the only source; `ps` only says whether its process is still running. `list` runs one `ps -o pid=,etime= -p <pids>` for every Pi record (`readProcesses` in `process.ts`), through `ctx.io`, so conformance runs record it. A pid is the session's process only when the process with that pid started within 10 seconds of the record's `processStartedAt` (`ps` gives the elapsed time to the second), so a pid reused by another process after a crash does not revive the session. `ps` exiting 1 with no output means none of the pids is running. In order (`piObservation` in `observe.ts`):
+The record is the only source; `ps` only says whether its process is still running. `list` runs one `ps -o pid=,etime= -p <pids>` for every Pi record (`readProcesses` in `process.ts`), through `ctx.io`, so conformance runs record it. A pid is the session's process only when the process with that pid started within 10 seconds of the record's `processStartedAt` (`ps` gives the elapsed time to the second), so a pid reused by another process after a crash does not revive the session. A pid missing from `ps`'s output is not running; `ps` exiting 1 is read the same as 0, because it exits 1 when some or all of the pids are gone (macOS's `ps` exits 1 only when none is running, while Linux's procps may exit 1 and still print the running ones). The extension takes the start time from `performance.timeOrigin`, the wall-clock time its process started, which stays fixed for the process's life (the current time minus `process.uptime()` would drift by however long the machine slept). In order (`piObservation` in `observe.ts`):
 
 1. The record has no inside part or no `pid` (for example only a `self` part from `porch status set`): `unknown`.
 2. `ps` could not be run or printed something Porch cannot read: `unknown`.
@@ -69,7 +69,7 @@ The record is the only source; `ps` only says whether its process is still runni
 
 ## Deliver
 
-`deliver` observes the session first: no record, or `gone`, is `not-running`. Otherwise it connects to the socket the extension recorded, after checking it is a socket owned by this user and not a symlink (`checkSocketOwner`), writes one request line and waits up to 5 seconds for one reply line (`protocol.ts`):
+`deliver` observes the session first: no record, or `gone`, is `not-running`. Otherwise it connects to the socket the extension recorded, after checking that its path has the shape the extension makes for the recorded process (a folder named `porch-<uid>` for this user, holding `pi-<pid>.sock`), so a record pointing at another of the user's sockets is refused, and that it is a socket owned by this user and not a symlink (`checkSocketOwner`), writes one request line and waits up to 5 seconds for one reply line (`protocol.ts`):
 
 ```
 request: {"type":"deliver","text":"[from sous chef] ..."}
@@ -79,7 +79,7 @@ reply:   {"ok":true,"status":"idle"}     (or "busy", "waiting-on-prompt")
 
 The extension hands the text to Pi with `pi.sendUserMessage(text, { deliverAs: "followUp" })`: when Pi is idle this starts a turn; while it is busy the message waits until the current run has finished its work, then Pi takes it in the same run. The reply's `status` is the session's own status at that moment, and becomes `statusAtSend`. So `delivered` means Pi accepted the message, nothing more. No record socket, a refused path, nothing listening, no reply, or an error reply is `failed` with the reason. `guessed` is always false: the address is only ever the recorded one.
 
-The socket is `<tmp>/porch-<uid>/pi-<pid>.sock`, where `<tmp>` is Pi's temporary folder (`TMPDIR`, a per-user folder on macOS; `/tmp` when `TMPDIR` is not set). It is not in `PORCH_HOME` because a socket path has a length limit (104 bytes on macOS) that a deep scratch folder could pass. Before listening, the extension makes the folder with mode 0700 and refuses it if it is a symlink, belongs to another user, or others can write to it (`ensurePrivateDir`), since `/tmp` is shared; the socket file is set to mode 0600. A socket file left by an earlier process with the same pid is replaced. A request over 1 MB is refused.
+The socket is `<tmp>/porch-<uid>/pi-<pid>.sock`, where `<tmp>` is Pi's temporary folder (`TMPDIR`, a per-user folder on macOS; `/tmp` when `TMPDIR` is not set). It is not in `PORCH_HOME` because a socket path has a length limit (104 bytes on macOS) that a deep scratch folder could pass. Before listening, the extension makes the folder with mode 0700 and refuses it if it is a symlink, belongs to another user, or others can write to it (`ensurePrivateDir`), since `/tmp` is shared; the socket file is set to mode 0600. A socket file left by an earlier process with the same pid is replaced. A request over 1 MB (counted in bytes) is refused, and a connection that has not sent its whole request line within 5 seconds is closed (`CONNECTION_TIMEOUT_MS` in `extension.ts`). When the session ends, open connections are closed before the socket, so a client that never finishes cannot hold up the session's end.
 
 ## Other behaviour
 

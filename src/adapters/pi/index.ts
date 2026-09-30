@@ -9,6 +9,8 @@
  * (commands.ts). docs/domains/pi-adapter.md describes it, including what
  * it relies on from Pi.
  */
+import path from "node:path";
+
 import { deliverResult, type Adapter, type AdapterContext, type Capabilities } from "../../adapter.js";
 import { validateSessionId, type SessionRecord } from "../../records.js";
 import type { DeliverResult, Observation } from "../../types.js";
@@ -17,7 +19,7 @@ import { piCommands } from "./commands.js";
 import { piBin, piLaunchPlan } from "./launch.js";
 import { PI_HARNESS, piObservation } from "./observe.js";
 import { readProcesses } from "./process.js";
-import { sendToPiSocket } from "./protocol.js";
+import { piSocketDir, piSocketPath, sendToPiSocket } from "./protocol.js";
 
 /** The environment variable Pi sets for commands its bash tool runs. */
 export const PI_SESSION_ENV = "PI_SESSION_ID";
@@ -107,6 +109,19 @@ export function createPiAdapter(options: PiAdapterOptions = {}): Adapter {
       if (delivery === null || delivery.via !== "socket") {
         const why = typeof rec.inside?.data?.lastError === "string" ? `: ${rec.inside.data.lastError}` : "";
         return deliverResult({ harness: PI_HARNESS, session, result: "failed", reason: `the session recorded no delivery socket${why}` });
+      }
+      // Only a path of the shape the extension makes, for the recorded process, so a
+      // record pointing at some other socket of this user (an agent's, say) is refused.
+      const expected = path.basename(piSocketPath(rec.inside?.pid ?? -1, piSocketDir()));
+      const expectedDir = path.basename(piSocketDir());
+      if (path.basename(delivery.address) !== expected || path.basename(path.dirname(delivery.address)) !== expectedDir) {
+        return deliverResult({
+          harness: PI_HARNESS,
+          session,
+          result: "failed",
+          via: "socket",
+          reason: `refused ${delivery.address}: not ${expectedDir}/${expected}, the socket Porch's extension makes for this session`,
+        });
       }
       try {
         await checkSocketOwner(delivery.address, options.socketCheck);

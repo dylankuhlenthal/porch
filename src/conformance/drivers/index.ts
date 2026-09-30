@@ -98,7 +98,16 @@ async function piUnavailable(env: Env): Promise<string | null> {
     );
   });
   if (r.code === 0) return null;
-  return `Pi is not logged in to ${DEFAULT_PI_MODEL} (\`pi auth check\` said ${r.out.trim() || `exit ${r.code}`})`;
+  let status: unknown = null;
+  try {
+    status = (JSON.parse(r.out) as { status?: unknown }).status;
+  } catch {
+    // not JSON: Pi itself failed, which is not a reason to skip
+  }
+  // Skip only when Pi says it has no usable login. Any other failure (Pi not
+  // starting, for example on too old a Node) lets the run go ahead and fail loudly.
+  if (status !== "not_ready" && status !== "invalid") return null;
+  return `Pi is not logged in to ${DEFAULT_PI_MODEL} (\`pi auth check\` said ${r.out.trim()})`;
 }
 
 export const DRIVERS: Record<string, DriverEntry> = {

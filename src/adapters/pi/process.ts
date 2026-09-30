@@ -56,16 +56,18 @@ export function parsePs(output: string, now: Date): Map<number, number> | null {
 }
 
 /**
- * Look up the given pids. `ps` exits 1 with no output when none of them is running
- * (the runner puts its own error text in stderr then, so stderr is not looked at);
- * any other failure (no `ps`, another exit code, output Porch cannot read) gives null.
+ * Look up the given pids. `ps` exits 1 when some or all of them are not running
+ * (with no output when none is; macOS's `ps` exits 0 when at least one is, Linux's
+ * procps may exit 1 while still printing the running ones), so exit 1 is read like
+ * exit 0: a pid missing from the output is not running. The runner puts its own
+ * error text in stderr on a non-zero exit, so stderr is not looked at. Any other
+ * failure (no `ps`, another exit code, output Porch cannot read) gives null.
  */
 export async function readProcesses(ctx: AdapterContext, pids: number[]): Promise<ProcessTable | null> {
   const unique = [...new Set(pids)].sort((a, b) => a - b);
   if (unique.length === 0) return { started: new Map(), output: "" };
   const r = await ctx.io.run(psBin(ctx.env), ["-o", "pid=,etime=", "-p", unique.join(",")], { env: ctx.env, timeoutMs: 5000 });
-  if (r.code === 1 && r.stdout.trim() === "") return { started: new Map(), output: "" };
-  if (r.code !== 0) return null;
+  if (r.code !== 0 && r.code !== 1) return null;
   const started = parsePs(r.stdout, ctx.now());
   return started === null ? null : { started, output: r.stdout };
 }

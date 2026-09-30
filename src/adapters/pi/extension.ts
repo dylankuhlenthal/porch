@@ -69,13 +69,20 @@ export interface ExtensionOptions {
   /** When this process started (ISO 8601). */
   processStartedAt?: string;
   socketDir?: string;
+  /** How long a connection may take to send its request line before it is closed. */
+  connectionTimeoutMs?: number;
 }
+
+/** How long a client of the socket may take to send its request line. */
+export const CONNECTION_TIMEOUT_MS = 5000;
 
 interface Live {
   session: string;
   ctx: PiContext;
   server: net.Server | null;
   address: string | null;
+  /** Open connections, closed with the socket so a stalled client cannot hold up the session's end. */
+  connections: Set<net.Socket>;
   /** Open extension dialogs, most recent last. */
   prompts: { kind: string | null; title: string | null; since: string }[];
 }
@@ -84,7 +91,11 @@ export default function porchPiExtension(pi: PiExtensionAPI, options: ExtensionO
   const env = options.env ?? process.env;
   const now = options.now ?? (() => new Date());
   const pid = options.pid ?? process.pid;
-  const processStartedAt = options.processStartedAt ?? new Date(Date.now() - process.uptime() * 1000).toISOString();
+  // performance.timeOrigin is the wall-clock time the process started, fixed for its
+  // life. (Now minus process.uptime() is not: uptime does not count time the machine
+  // slept, so after a sleep and a /reload the start would be recorded too late.)
+  const processStartedAt = options.processStartedAt ?? new Date(performance.timeOrigin).toISOString();
+  const connectionTimeoutMs = options.connectionTimeoutMs ?? CONNECTION_TIMEOUT_MS;
   const records = new RecordStore(sessionsDir(env), { now });
   let live: Live | null = null;
   // Record writes run one after another, in event order.
@@ -136,21 +147,27 @@ export default function porchPiExtension(pi: PiExtensionAPI, options: ExtensionO
   }
 
   function handleConnection(l: Live, conn: net.Socket): void {
-    let buffer = "";
-    conn.setEncoding("utf8");
+    const chunks: Buffer[] = [];
+    let size = 0;
+    l.connections.add(conn);
+    conn.on("close", () => l.connections.delete(conn));
     conn.on("error", () => undefined);
+    // A client that never finishes its line is closed, so it holds nothing for long.
+    conn.setTimeout(connectionTimeoutMs, () => conn.destroy());
     const answer = (reply: PiReply) => conn.end(replyLine(reply));
-    conn.on("data", (chunk: string) => {
-      buffer += chunk;
-      if (buffer.length > MAX_REQUEST_BYTES) {
+    conn.on("data", (chunk: Buffer) => {
+      const nl = chunk.indexOf(0x0a);
+      chunks.push(nl < 0 ? chunk : chunk.subarray(0, nl));
+      size += nl < 0 ? chunk.length : nl;
+      if (size > MAX_REQUEST_BYTES) {
+        conn.removeAllListeners("data");
         answer({ ok: false, error: "request too long" });
-        conn.destroy();
         return;
       }
-      const nl = buffer.indexOf("\n");
       if (nl < 0) return;
       conn.removeAllListeners("data");
-      const request = parseRequest(buffer.slice(0, nl));
+      conn.setTimeout(0);
+      const request = parseRequest(Buffer.concat(chunks).toString("utf8"));
       if (request === null) {
         answer({ ok: false, error: "not a deliver request" });
         return;
@@ -172,6 +189,8 @@ export default function porchPiExtension(pi: PiExtensionAPI, options: ExtensionO
   async function closeSocket(l: Live): Promise<void> {
     const { server, address } = l;
     l.server = null;
+    // server.close() waits for open connections, so end them first.
+    for (const conn of l.connections) conn.destroy();
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
     if (address) await fs.rm(address, { force: true }).catch(() => undefined);
   }
@@ -190,7 +209,7 @@ export default function porchPiExtension(pi: PiExtensionAPI, options: ExtensionO
     "session_start",
     safely(async (event, ctx) => {
       const session = ctx.sessionManager.getSessionId();
-      const l: Live = { session, ctx, server: null, address: null, prompts: [] };
+      const l: Live = { session, ctx, server: null, address: null, connections: new Set(), prompts: [] };
       live = l;
       let socketError: string | null = null;
       try {

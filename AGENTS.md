@@ -10,7 +10,7 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 
 ## Layout & filing
 
-- `src/`: the package. `src/cli/` is the `porch` command, `src/porch.ts` the library, `src/adapter.ts` the adapter contract, `src/records.ts` the session records, `src/watch.ts` watch, `src/launch.ts` running a launch plan, `src/adapters/<harness>/` one folder per adapter, `src/conformance/` the conformance suite.
+- `src/`: the package. `src/cli/` is the `porch` command, `src/porch.ts` the library, `src/adapter.ts` the adapter contract, `src/records.ts` the session records, `src/watch.ts` watch, `src/launch.ts` running a launch plan, `src/unix-socket.ts` the socket check adapters run before delivering, `src/adapters/<harness>/` one folder per adapter, `src/conformance/` the conformance suite.
 - `schemas/`: JSON Schema for every output and the record format. Shipped in the package.
 - `tests/`: per-PR tests (`*.test.ts`). `conformance/`: the recorded fixtures and reports from conformance runs, committed.
 - `docs/`: filed by lifetime, following the documentation standard in `docs/patterns/documentation.md`: `architecture.md` is the overview; `domains/` says how parts work; `patterns/` sets out the approved way to do things; `operations/` holds runbooks; `reference/` holds contracts; `decisions/` holds append-only decision records (`NNNN-slug.md`, never edited after merge). Plans and specs stay in Linear, never in the repo. Every doc names the files it describes. Change the docs in the same PR as the code.

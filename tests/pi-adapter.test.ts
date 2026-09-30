@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdtempSync, statSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -10,7 +10,7 @@ import { createPiAdapter, PI_SESSION_ENV } from "../src/adapters/pi/index.js";
 import { piExtensionPath, PI_SUBCOMMANDS } from "../src/adapters/pi/launch.js";
 import { PI_HARNESS } from "../src/adapters/pi/observe.js";
 import { parseElapsed, parsePs, START_TOLERANCE_MS } from "../src/adapters/pi/process.js";
-import { ensurePrivateDir, sendToPiSocket } from "../src/adapters/pi/protocol.js";
+import { ensurePrivateDir, MAX_REQUEST_BYTES, piSocketDir, sendToPiSocket } from "../src/adapters/pi/protocol.js";
 import { EXIT } from "../src/cli/exit-codes.js";
 import type { Env } from "../src/home.js";
 import type { HarnessIO, RunResult } from "../src/io.js";
@@ -45,12 +45,37 @@ function psIO(procs: Record<number, Date>, override?: RunResult) {
   return { io, calls };
 }
 
+/** A fresh private folder named like the extension's own (`porch-<uid>`), so deliver accepts paths in it. */
+function socketFolder(): string {
+  const dir = path.join(mkdtempSync(path.join(os.tmpdir(), "pp-")), path.basename(piSocketDir()));
+  mkdirSync(dir, { mode: 0o700 });
+  return dir;
+}
+
 function porchWith(env: Env, io: HarnessIO) {
   return new Porch({ env, adapters: [createPiAdapter()], io, now: () => NOW });
 }
 
 async function writeRecord(porch: Porch, session: string, inside: Record<string, unknown>) {
   await porch.ctx.records.updateInside(PI_HARNESS, session, inside);
+}
+
+/** Write raw bytes to a socket and read the one reply line. */
+function rawRequest(address: string, text: string): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let out = "";
+    const c = net.createConnection(address, () => c.write(text));
+    c.setEncoding("utf8");
+    c.on("data", (d: string) => (out += d));
+    c.on("error", () => undefined);
+    c.on("close", () => {
+      try {
+        resolve(JSON.parse(out.split("\n")[0]!));
+      } catch (err) {
+        reject(new Error(`no reply line: ${JSON.stringify(out)} (${String(err)})`));
+      }
+    });
+  });
 }
 
 describe("pi adapter: ps output", () => {
@@ -99,6 +124,16 @@ describe("pi adapter: status", () => {
     expect(byId.dead!.status).toBe("gone");
     expect(byId.dead!.since).toBeNull();
     expect(byId.reused!.status).toBe("gone");
+  });
+
+  it("reads ps output even when ps exits 1 because some pids are not running (as Linux's procps may)", async () => {
+    const env = scratchEnv();
+    const porch = porchWith(env, psIO({}, { code: 1, stdout: "  100 00:05\n", stderr: "Command failed: ps" }).io);
+    const started2 = new Date(NOW.getTime() - 5000).toISOString();
+    await writeRecord(porch, "alive", { pid: 100, status: "idle", data: { processStartedAt: started2 } });
+    await writeRecord(porch, "dead", { pid: 101, status: "idle", data: { processStartedAt: started2 } });
+    const byId = Object.fromEntries((await porch.list()).sessions.map((o) => [o.session, o.status]));
+    expect(byId).toEqual({ alive: "idle", dead: "gone" });
   });
 
   it("says unknown when ps cannot be run, and when the record has no pid", async () => {
@@ -157,15 +192,34 @@ describe("pi adapter: deliver", () => {
 
   it("refuses a recorded path that is not a socket, and says failed when nothing listens", async () => {
     const env = scratchEnv();
-    const porch = porchWith(env, psIO({ 9: T0 }).io);
-    const dir = mkdtempSync(path.join(os.tmpdir(), "porch-pi-"));
-    await writeRecord(porch, "file", { pid: 9, status: "idle", delivery: { via: "socket", address: path.join(dir, "porch.ts") }, data: { processStartedAt: T0.toISOString() } });
-    await writeRecord(porch, "none", { pid: 9, status: "idle", delivery: { via: "socket", address: path.join(dir, "missing.sock") }, data: { processStartedAt: T0.toISOString() } });
-    await import("node:fs/promises").then((fs) => fs.writeFile(path.join(dir, "porch.ts"), "x"));
+    const porch = porchWith(env, psIO({ 9: T0, 10: T0 }).io);
+    const dir = socketFolder();
+    writeFileSync(path.join(dir, "pi-9.sock"), "x");
+    await writeRecord(porch, "file", { pid: 9, status: "idle", delivery: { via: "socket", address: path.join(dir, "pi-9.sock") }, data: { processStartedAt: T0.toISOString() } });
+    await writeRecord(porch, "none", { pid: 10, status: "idle", delivery: { via: "socket", address: path.join(dir, "pi-10.sock") }, data: { processStartedAt: T0.toISOString() } });
     const file = await porch.deliver("file", "hi", { from: "t" });
     expect(file.result).toBe("failed");
     expect(file.reason).toContain("not a socket");
     expect((await porch.deliver("none", "hi", { from: "t" })).result).toBe("failed");
+  });
+
+  it("refuses a recorded socket that is not the one the extension makes for that process", async () => {
+    const env = scratchEnv();
+    const porch = porchWith(env, psIO({ 9: T0 }).io);
+    const other = path.join(mkdtempSync(path.join(os.tmpdir(), "pp-")), "agent.sock");
+    const server = net.createServer((c) => c.end('{"ok":true,"status":"idle"}\n'));
+    await new Promise<void>((r) => server.listen(other, r));
+    try {
+      const wrongPid = path.join(socketFolder(), "pi-8.sock");
+      for (const address of [other, wrongPid]) {
+        await writeRecord(porch, "odd", { pid: 9, status: "idle", delivery: { via: "socket", address }, data: { processStartedAt: T0.toISOString() } });
+        const r = await porch.deliver("odd", "hi", { from: "t" });
+        expect(r.result).toBe("failed");
+        expect(r.reason).toContain("refused");
+      }
+    } finally {
+      server.close();
+    }
   });
 
   it("sendToPiSocket: nothing listening is SocketMissingError; a reply it cannot read is an error", async () => {
@@ -215,9 +269,9 @@ describe("pi extension (the inside part)", () => {
 
   async function setUp() {
     const env = scratchEnv();
-    const socketDir = path.join(mkdtempSync(path.join(os.tmpdir(), "pp-")), "s");
+    const socketDir = path.join(mkdtempSync(path.join(os.tmpdir(), "pp-")), path.basename(piSocketDir()));
     const pi = fakePi("sess-1", "/work/here/sessions/x_sess-1.jsonl");
-    porchPiExtension(pi.api, { env: env as NodeJS.ProcessEnv, pid: 4242, processStartedAt: T0.toISOString(), socketDir, now: () => NOW });
+    porchPiExtension(pi.api, { env: env as NodeJS.ProcessEnv, pid: 4242, processStartedAt: T0.toISOString(), socketDir, now: () => NOW, connectionTimeoutMs: 300 });
     const porch = porchWith(env, psIO({ 4242: T0 }).io);
     cleanups.push(() => pi.emit("session_shutdown", { reason: "quit" }));
     return { env, socketDir, pi, porch };
@@ -284,6 +338,38 @@ describe("pi extension (the inside part)", () => {
     await pi.emit("session_shutdown", { reason: "quit" });
     expect(await porch.ctx.records.read(PI_HARNESS, "sess-1")).toBeNull();
     expect(existsSync(address)).toBe(false);
+  });
+
+  it("refuses requests it cannot take: not a deliver request, and one over the size limit (counted in bytes)", async () => {
+    const { socketDir, pi } = await setUp();
+    await pi.emit("session_start", { reason: "startup" });
+    const address = path.join(socketDir, "pi-4242.sock");
+    expect(await rawRequest(address, '{"type":"other"}\n')).toEqual({ ok: false, error: "not a deliver request" });
+    expect(await rawRequest(address, "not json\n")).toEqual({ ok: false, error: "not a deliver request" });
+    // Two-byte characters: under the limit in characters, over it in bytes.
+    const big = JSON.stringify({ type: "deliver", text: "é".repeat(MAX_REQUEST_BYTES / 2 + 10) }) + "\n";
+    expect(await rawRequest(address, big)).toEqual({ ok: false, error: "request too long" });
+    expect(pi.sent).toEqual([]);
+  });
+
+  it("closes a connection that never finishes its request, and a stalled client does not hold up the session's end", async () => {
+    const { socketDir, pi, porch } = await setUp();
+    await pi.emit("session_start", { reason: "startup" });
+    const address = path.join(socketDir, "pi-4242.sock");
+    const idle = net.createConnection(address);
+    idle.on("error", () => undefined);
+    const closed = new Promise<void>((r) => idle.on("close", () => r()));
+    idle.write('{"type":"deliver","te');
+    await closed; // the 300 ms connection timeout set up in setUp
+    const stalled = net.createConnection(address);
+    stalled.on("error", () => undefined);
+    await new Promise<void>((r) => stalled.on("connect", () => r()));
+    stalled.write("{");
+    const started = Date.now();
+    await pi.emit("session_shutdown", { reason: "quit" });
+    expect(Date.now() - started).toBeLessThan(250);
+    expect(await porch.ctx.records.read(PI_HARNESS, "sess-1")).toBeNull();
+    stalled.destroy();
   });
 
   it("still writes the record, without a socket, when the socket folder is not private", async () => {
