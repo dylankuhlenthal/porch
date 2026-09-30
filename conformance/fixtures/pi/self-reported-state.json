@@ -3,40 +3,40 @@
   "harness": "pi",
   "harnessVersion": "0.87.1",
   "case": "self-reported-state",
-  "recordedAt": "2026-09-30T09:47:20.206Z",
+  "recordedAt": "2026-09-30T10:31:01.409Z",
   "snapshots": [
     {
       "label": "self reported",
-      "at": "2026-09-30T09:47:20.204Z",
+      "at": "2026-09-30T10:31:01.405Z",
       "records": {
-        "pi-porch-conformance-cbc634b9.json": {
+        "pi-porch-conformance-91ed2d23.json": {
           "schema": 1,
           "harness": "pi",
-          "session": "porch-conformance-cbc634b9",
-          "createdAt": "2026-09-30T09:47:20.179Z",
-          "updatedAt": "2026-09-30T09:47:20.200Z",
+          "session": "porch-conformance-91ed2d23",
+          "createdAt": "2026-09-30T10:31:01.398Z",
+          "updatedAt": "2026-09-30T10:31:01.402Z",
           "inside": {
-            "pid": 41493,
+            "pid": 67507,
             "status": "idle",
             "delivery": {
               "via": "socket",
-              "address": "/tmp/porch-501/pi-41493.sock"
+              "address": "/tmp/porch-501/pi-67507.sock"
             },
-            "cwd": "/private$WORK/cwd-cbc634b9",
+            "cwd": "/private$WORK/cwd-91ed2d23",
             "data": {
-              "processStartedAt": "2026-09-30T09:47:19.988Z",
-              "sessionFile": "$WORK/sessions/2026-09-30T09-47-20-125Z_porch-conformance-cbc634b9.jsonl",
+              "processStartedAt": "2026-09-30T10:31:01.182Z",
+              "sessionFile": "$WORK/sessions/2026-09-30T10-31-01-330Z_porch-conformance-91ed2d23.jsonl",
               "mode": "rpc",
               "source": "startup",
               "prompt": null,
               "lastError": null
             },
-            "since": "2026-09-30T09:47:20.179Z"
+            "since": "2026-09-30T10:31:01.398Z"
           },
           "self": {
             "status": "needs-input",
             "text": "which branch?",
-            "since": "2026-09-30T09:47:20.200Z"
+            "since": "2026-09-30T10:31:01.401Z"
           }
         }
       },
@@ -48,11 +48,11 @@
             "-o",
             "pid=,etime=",
             "-p",
-            "41493"
+            "67507"
           ],
           "result": {
             "code": 0,
-            "stdout": "41493 00:01\n",
+            "stdout": "67507 00:00\n",
             "stderr": ""
           }
         }
@@ -61,14 +61,15 @@
         {
           "schema": 1,
           "harness": "pi",
-          "session": "porch-conformance-cbc634b9",
+          "session": "porch-conformance-91ed2d23",
+          "attached": true,
           "status": "idle",
-          "since": "2026-09-30T09:47:20.179Z",
+          "since": "2026-09-30T10:31:01.398Z",
           "detail": {
-            "pid": 41493,
-            "cwd": "/private$WORK/cwd-cbc634b9",
+            "pid": 67507,
+            "cwd": "/private$WORK/cwd-91ed2d23",
             "mode": "rpc",
-            "sessionFile": "$WORK/sessions/2026-09-30T09-47-20-125Z_porch-conformance-cbc634b9.jsonl",
+            "sessionFile": "$WORK/sessions/2026-09-30T10-31-01-330Z_porch-conformance-91ed2d23.jsonl",
             "prompt": null,
             "hasInsidePart": true,
             "lastTurnStart": null,
@@ -78,39 +79,39 @@
             "record": {
               "schema": 1,
               "harness": "pi",
-              "session": "porch-conformance-cbc634b9",
-              "createdAt": "2026-09-30T09:47:20.179Z",
-              "updatedAt": "2026-09-30T09:47:20.200Z",
+              "session": "porch-conformance-91ed2d23",
+              "createdAt": "2026-09-30T10:31:01.398Z",
+              "updatedAt": "2026-09-30T10:31:01.402Z",
               "inside": {
-                "pid": 41493,
+                "pid": 67507,
                 "status": "idle",
                 "delivery": {
                   "via": "socket",
-                  "address": "/tmp/porch-501/pi-41493.sock"
+                  "address": "/tmp/porch-501/pi-67507.sock"
                 },
-                "cwd": "/private$WORK/cwd-cbc634b9",
+                "cwd": "/private$WORK/cwd-91ed2d23",
                 "data": {
-                  "processStartedAt": "2026-09-30T09:47:19.988Z",
-                  "sessionFile": "$WORK/sessions/2026-09-30T09-47-20-125Z_porch-conformance-cbc634b9.jsonl",
+                  "processStartedAt": "2026-09-30T10:31:01.182Z",
+                  "sessionFile": "$WORK/sessions/2026-09-30T10-31-01-330Z_porch-conformance-91ed2d23.jsonl",
                   "mode": "rpc",
                   "source": "startup",
                   "prompt": null,
                   "lastError": null
                 },
-                "since": "2026-09-30T09:47:20.179Z"
+                "since": "2026-09-30T10:31:01.398Z"
               },
               "self": {
                 "status": "needs-input",
                 "text": "which branch?",
-                "since": "2026-09-30T09:47:20.200Z"
+                "since": "2026-09-30T10:31:01.401Z"
               }
             },
-            "ps": "41493 00:01"
+            "ps": "67507 00:00"
           },
           "self": {
             "status": "needs-input",
             "text": "which branch?",
-            "since": "2026-09-30T09:47:20.200Z"
+            "since": "2026-09-30T10:31:01.401Z"
           }
         }
       ]

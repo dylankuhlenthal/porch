@@ -76,15 +76,19 @@ export class Porch {
     return found;
   }
 
-  /** Every session every adapter can see. An adapter that fails is reported in `errors`, not thrown. */
-  async list(harness?: string): Promise<ListResult> {
+  /**
+   * The sessions Porch is attached to (`attached: true`), or with `all` every session
+   * every adapter can see, unattached ones included. An adapter that fails is
+   * reported in `errors`, not thrown.
+   */
+  async list(harness?: string, options: { all?: boolean } = {}): Promise<ListResult> {
     const adapters = this.adaptersFor(harness);
     const results = await Promise.allSettled(adapters.map((a) => a.list(this.ctx)));
     const sessions: Observation[] = [];
     const errors: ListResult["errors"] = [];
     results.forEach((r, i) => {
       const adapter = adapters[i]!;
-      if (r.status === "fulfilled") sessions.push(...r.value);
+      if (r.status === "fulfilled") sessions.push(...(options.all ? r.value : r.value.filter((o) => o.attached)));
       else errors.push({ harness: adapter.harness, message: errorMessage(r.reason) });
     });
     // A record file that cannot be read would otherwise just vanish from the

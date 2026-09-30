@@ -147,5 +147,8 @@ export function claudeObservation(
     activity: alive ? jobActivity(job) : null,
   };
   const raw = { listing: row?.raw ?? null, job, record: rec };
-  return observation({ harness: CLAUDE_HARNESS, session, status, since, detail, raw, self: rec?.self ?? null });
+  // Attached: Porch's hooks wrote the record, from the listed process when it runs.
+  // A record from an earlier process (a resume without the hooks) does not count.
+  const attached = inside !== null && !otherProcess;
+  return observation({ harness: CLAUDE_HARNESS, session, attached, status, since, detail, raw, self: rec?.self ?? null });
 }

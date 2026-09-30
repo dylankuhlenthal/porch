@@ -3,33 +3,33 @@
   "harness": "claude",
   "harnessVersion": "2.1.285",
   "case": "launch-interactive",
-  "recordedAt": "2026-09-30T08:44:32.430Z",
+  "recordedAt": "2026-09-30T10:32:08.522Z",
   "snapshots": [
     {
       "label": "started",
-      "at": "2026-09-30T08:44:25.508Z",
+      "at": "2026-09-30T10:32:01.762Z",
       "records": {
-        "claude-1fac5a82-b28b-4a2f-90ff-b479f7176ec0.json": {
+        "claude-9b61d6d8-7f61-4e05-80ee-40304c0c09b4.json": {
           "schema": 1,
           "harness": "claude",
-          "session": "1fac5a82-b28b-4a2f-90ff-b479f7176ec0",
-          "createdAt": "2026-09-30T08:44:25.125Z",
-          "updatedAt": "2026-09-30T08:44:25.125Z",
+          "session": "9b61d6d8-7f61-4e05-80ee-40304c0c09b4",
+          "createdAt": "2026-09-30T10:32:01.006Z",
+          "updatedAt": "2026-09-30T10:32:01.006Z",
           "inside": {
-            "pid": 10891,
+            "pid": 70086,
             "delivery": {
               "via": "socket",
-              "address": "/tmp/cc-socks/10891.sock"
+              "address": "/tmp/cc-socks/70086.sock"
             },
-            "cwd": "$WORK/cwd-dd566a0d",
+            "cwd": "$WORK/cwd-aee8d755",
             "status": "idle",
-            "since": "2026-09-30T08:44:25.123Z",
+            "since": "2026-09-30T10:32:01.004Z",
             "backgroundTasks": null,
             "data": {
               "source": "startup",
-              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-dd566a0d/1fac5a82-b28b-4a2f-90ff-b479f7176ec0.jsonl",
+              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-aee8d755/9b61d6d8-7f61-4e05-80ee-40304c0c09b4.jsonl",
               "shortId": null,
-              "startedAt": "2026-09-30T08:44:25.123Z"
+              "startedAt": "2026-09-30T10:32:01.004Z"
             }
           },
           "self": null
@@ -45,7 +45,7 @@
           ],
           "result": {
             "code": 0,
-            "stdout": "[\n  {\n    \"pid\": 10891,\n    \"cwd\": \"$WORK/cwd-dd566a0d\",\n    \"kind\": \"interactive\",\n    \"startedAt\": 1790757865072,\n    \"sessionId\": \"1fac5a82-b28b-4a2f-90ff-b479f7176ec0\",\n    \"name\": \"cwd-dd566a0d-6d\",\n    \"status\": \"idle\"\n  }\n]\n",
+            "stdout": "[\n  {\n    \"pid\": 70086,\n    \"cwd\": \"$WORK/cwd-aee8d755\",\n    \"kind\": \"interactive\",\n    \"startedAt\": 1790764320954,\n    \"sessionId\": \"9b61d6d8-7f61-4e05-80ee-40304c0c09b4\",\n    \"name\": \"cwd-aee8d755-aa\",\n    \"status\": \"idle\"\n  }\n]\n",
             "stderr": ""
           }
         }
@@ -54,14 +54,15 @@
         {
           "schema": 1,
           "harness": "claude",
-          "session": "1fac5a82-b28b-4a2f-90ff-b479f7176ec0",
+          "session": "9b61d6d8-7f61-4e05-80ee-40304c0c09b4",
+          "attached": true,
           "status": "idle",
-          "since": "2026-09-30T08:44:25.123Z",
+          "since": "2026-09-30T10:32:01.004Z",
           "detail": {
-            "pid": 10891,
+            "pid": 70086,
             "shortId": null,
-            "name": "cwd-dd566a0d-6d",
-            "cwd": "$WORK/cwd-dd566a0d",
+            "name": "cwd-aee8d755-aa",
+            "cwd": "$WORK/cwd-aee8d755",
             "prompt": null,
             "promptNeeds": null,
             "hasInsidePart": true,
@@ -73,36 +74,36 @@
           },
           "raw": {
             "listing": {
-              "pid": 10891,
-              "cwd": "$WORK/cwd-dd566a0d",
+              "pid": 70086,
+              "cwd": "$WORK/cwd-aee8d755",
               "kind": "interactive",
-              "startedAt": 1790757865072,
-              "sessionId": "1fac5a82-b28b-4a2f-90ff-b479f7176ec0",
-              "name": "cwd-dd566a0d-6d",
+              "startedAt": 1790764320954,
+              "sessionId": "9b61d6d8-7f61-4e05-80ee-40304c0c09b4",
+              "name": "cwd-aee8d755-aa",
               "status": "idle"
             },
             "job": null,
             "record": {
               "schema": 1,
               "harness": "claude",
-              "session": "1fac5a82-b28b-4a2f-90ff-b479f7176ec0",
-              "createdAt": "2026-09-30T08:44:25.125Z",
-              "updatedAt": "2026-09-30T08:44:25.125Z",
+              "session": "9b61d6d8-7f61-4e05-80ee-40304c0c09b4",
+              "createdAt": "2026-09-30T10:32:01.006Z",
+              "updatedAt": "2026-09-30T10:32:01.006Z",
               "inside": {
-                "pid": 10891,
+                "pid": 70086,
                 "delivery": {
                   "via": "socket",
-                  "address": "/tmp/cc-socks/10891.sock"
+                  "address": "/tmp/cc-socks/70086.sock"
                 },
-                "cwd": "$WORK/cwd-dd566a0d",
+                "cwd": "$WORK/cwd-aee8d755",
                 "status": "idle",
-                "since": "2026-09-30T08:44:25.123Z",
+                "since": "2026-09-30T10:32:01.004Z",
                 "backgroundTasks": null,
                 "data": {
                   "source": "startup",
-                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-dd566a0d/1fac5a82-b28b-4a2f-90ff-b479f7176ec0.jsonl",
+                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-aee8d755/9b61d6d8-7f61-4e05-80ee-40304c0c09b4.jsonl",
                   "shortId": null,
-                  "startedAt": "2026-09-30T08:44:25.123Z"
+                  "startedAt": "2026-09-30T10:32:01.004Z"
                 }
               },
               "self": null
@@ -114,32 +115,32 @@
     },
     {
       "label": "after a turn",
-      "at": "2026-09-30T08:44:29.195Z",
+      "at": "2026-09-30T10:32:05.252Z",
       "records": {
-        "claude-1fac5a82-b28b-4a2f-90ff-b479f7176ec0.json": {
+        "claude-9b61d6d8-7f61-4e05-80ee-40304c0c09b4.json": {
           "schema": 1,
           "harness": "claude",
-          "session": "1fac5a82-b28b-4a2f-90ff-b479f7176ec0",
-          "createdAt": "2026-09-30T08:44:25.125Z",
-          "updatedAt": "2026-09-30T08:44:28.931Z",
+          "session": "9b61d6d8-7f61-4e05-80ee-40304c0c09b4",
+          "createdAt": "2026-09-30T10:32:01.006Z",
+          "updatedAt": "2026-09-30T10:32:05.041Z",
           "inside": {
-            "pid": 10891,
+            "pid": 70086,
             "delivery": {
               "via": "socket",
-              "address": "/tmp/cc-socks/10891.sock"
+              "address": "/tmp/cc-socks/70086.sock"
             },
-            "cwd": "$WORK/cwd-dd566a0d",
+            "cwd": "$WORK/cwd-aee8d755",
             "status": "idle",
-            "since": "2026-09-30T08:44:28.931Z",
+            "since": "2026-09-30T10:32:05.042Z",
             "backgroundTasks": 0,
             "data": {
               "source": "startup",
-              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-dd566a0d/1fac5a82-b28b-4a2f-90ff-b479f7176ec0.jsonl",
+              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-aee8d755/9b61d6d8-7f61-4e05-80ee-40304c0c09b4.jsonl",
               "shortId": null,
-              "startedAt": "2026-09-30T08:44:25.123Z"
+              "startedAt": "2026-09-30T10:32:01.004Z"
             },
-            "lastTurnStart": "2026-09-30T08:44:26.029Z",
-            "lastTurnEnd": "2026-09-30T08:44:28.929Z"
+            "lastTurnStart": "2026-09-30T10:32:02.508Z",
+            "lastTurnEnd": "2026-09-30T10:32:05.040Z"
           },
           "self": null
         }
@@ -154,7 +155,20 @@
           ],
           "result": {
             "code": 0,
-            "stdout": "[\n  {\n    \"pid\": 10891,\n    \"cwd\": \"$WORK/cwd-dd566a0d\",\n    \"kind\": \"interactive\",\n    \"startedAt\": 1790757865072,\n    \"sessionId\": \"1fac5a82-b28b-4a2f-90ff-b479f7176ec0\",\n    \"name\": \"cwd-dd566a0d-6d\",\n    \"status\": \"idle\"\n  }\n]\n",
+            "stdout": "[\n  {\n    \"pid\": 70086,\n    \"cwd\": \"$WORK/cwd-aee8d755\",\n    \"kind\": \"interactive\",\n    \"startedAt\": 1790764320954,\n    \"sessionId\": \"9b61d6d8-7f61-4e05-80ee-40304c0c09b4\",\n    \"name\": \"cwd-aee8d755-aa\",\n    \"status\": \"idle\"\n  }\n]\n",
+            "stderr": ""
+          }
+        },
+        {
+          "op": "run",
+          "cmd": "claude",
+          "args": [
+            "agents",
+            "--json"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "[\n  {\n    \"pid\": 70086,\n    \"cwd\": \"$WORK/cwd-aee8d755\",\n    \"kind\": \"interactive\",\n    \"startedAt\": 1790764320954,\n    \"sessionId\": \"9b61d6d8-7f61-4e05-80ee-40304c0c09b4\",\n    \"name\": \"cwd-aee8d755-aa\",\n    \"status\": \"idle\"\n  }\n]\n",
             "stderr": ""
           }
         }
@@ -163,58 +177,59 @@
         {
           "schema": 1,
           "harness": "claude",
-          "session": "1fac5a82-b28b-4a2f-90ff-b479f7176ec0",
+          "session": "9b61d6d8-7f61-4e05-80ee-40304c0c09b4",
+          "attached": true,
           "status": "idle",
-          "since": "2026-09-30T08:44:28.931Z",
+          "since": "2026-09-30T10:32:05.042Z",
           "detail": {
-            "pid": 10891,
+            "pid": 70086,
             "shortId": null,
-            "name": "cwd-dd566a0d-6d",
-            "cwd": "$WORK/cwd-dd566a0d",
+            "name": "cwd-aee8d755-aa",
+            "cwd": "$WORK/cwd-aee8d755",
             "prompt": null,
             "promptNeeds": null,
             "hasInsidePart": true,
             "statusSource": "hooks",
-            "lastTurnStart": "2026-09-30T08:44:26.029Z",
-            "lastTurnEnd": "2026-09-30T08:44:28.929Z",
+            "lastTurnStart": "2026-09-30T10:32:02.508Z",
+            "lastTurnEnd": "2026-09-30T10:32:05.040Z",
             "backgroundTasks": 0,
             "activity": null
           },
           "raw": {
             "listing": {
-              "pid": 10891,
-              "cwd": "$WORK/cwd-dd566a0d",
+              "pid": 70086,
+              "cwd": "$WORK/cwd-aee8d755",
               "kind": "interactive",
-              "startedAt": 1790757865072,
-              "sessionId": "1fac5a82-b28b-4a2f-90ff-b479f7176ec0",
-              "name": "cwd-dd566a0d-6d",
+              "startedAt": 1790764320954,
+              "sessionId": "9b61d6d8-7f61-4e05-80ee-40304c0c09b4",
+              "name": "cwd-aee8d755-aa",
               "status": "idle"
             },
             "job": null,
             "record": {
               "schema": 1,
               "harness": "claude",
-              "session": "1fac5a82-b28b-4a2f-90ff-b479f7176ec0",
-              "createdAt": "2026-09-30T08:44:25.125Z",
-              "updatedAt": "2026-09-30T08:44:28.931Z",
+              "session": "9b61d6d8-7f61-4e05-80ee-40304c0c09b4",
+              "createdAt": "2026-09-30T10:32:01.006Z",
+              "updatedAt": "2026-09-30T10:32:05.041Z",
               "inside": {
-                "pid": 10891,
+                "pid": 70086,
                 "delivery": {
                   "via": "socket",
-                  "address": "/tmp/cc-socks/10891.sock"
+                  "address": "/tmp/cc-socks/70086.sock"
                 },
-                "cwd": "$WORK/cwd-dd566a0d",
+                "cwd": "$WORK/cwd-aee8d755",
                 "status": "idle",
-                "since": "2026-09-30T08:44:28.931Z",
+                "since": "2026-09-30T10:32:05.042Z",
                 "backgroundTasks": 0,
                 "data": {
                   "source": "startup",
-                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-dd566a0d/1fac5a82-b28b-4a2f-90ff-b479f7176ec0.jsonl",
+                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-aee8d755/9b61d6d8-7f61-4e05-80ee-40304c0c09b4.jsonl",
                   "shortId": null,
-                  "startedAt": "2026-09-30T08:44:25.123Z"
+                  "startedAt": "2026-09-30T10:32:01.004Z"
                 },
-                "lastTurnStart": "2026-09-30T08:44:26.029Z",
-                "lastTurnEnd": "2026-09-30T08:44:28.929Z"
+                "lastTurnStart": "2026-09-30T10:32:02.508Z",
+                "lastTurnEnd": "2026-09-30T10:32:05.040Z"
               },
               "self": null
             }

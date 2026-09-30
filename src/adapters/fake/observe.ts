@@ -18,7 +18,7 @@ export function fakeObservation(session: string, row: FakeSession | undefined, r
   };
   const raw = { listing: row ?? null, record: rec };
   const self = rec?.self ?? null;
-  const base = { harness: FAKE_HARNESS, session, detail, raw, self };
+  const base = { harness: FAKE_HARNESS, session, attached: inside !== null, detail, raw, self };
   if (!row || !row.alive) return observation({ ...base, status: "gone", since: row?.goneSince ?? null });
   if (row.prompt) return observation({ ...base, status: "waiting-on-prompt", since: row.promptSince ?? null });
   if (inside?.status) return observation({ ...base, status: inside.status, since: inside.since ?? null });

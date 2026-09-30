@@ -35,6 +35,12 @@ export interface Observation {
   schema: SchemaVersion;
   harness: string;
   session: string;
+  /**
+   * Porch's inside part runs in the session (for Claude Code, a hook record written by
+   * the listed process; for Pi, the extension). `porch list` and `porch watch` show
+   * only attached sessions unless `--all` is given (TRV-1148).
+   */
+  attached: boolean;
   status: SessionStatus;
   /** ISO 8601 time the session entered `status`, or null when Porch cannot tell. */
   since: string | null;

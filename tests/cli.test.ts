@@ -15,7 +15,18 @@ describe("porch CLI (in process)", () => {
     const list = await cli(["list"], env);
     expect(list.code).toBe(EXIT.ok);
     v.list!(list.json);
-    expect(list.json.sessions[0]).toMatchObject({ harness: "fake", session: "s1", status: "busy" });
+    expect(list.json.sessions[0]).toMatchObject({ harness: "fake", session: "s1", attached: true, status: "busy" });
+
+    // A session without the inside part: only list --all shows it; observe finds it by name.
+    await cli(["fake", "start", "bare", "--no-inside"], env);
+    expect((await cli(["list"], env)).json.sessions.map((o: { session: string }) => o.session)).toEqual(["s1"]);
+    const all = await cli(["list", "--all"], env);
+    v.list!(all.json);
+    expect(all.json.sessions.map((o: { session: string; attached: boolean }) => [o.session, o.attached])).toEqual([
+      ["bare", false],
+      ["s1", true],
+    ]);
+    expect((await cli(["observe", "bare"], env)).json).toMatchObject({ session: "bare", attached: false });
 
     const observe = await cli(["observe", "s1"], env);
     v.observation!(observe.json);
@@ -83,6 +94,7 @@ describe("porch CLI (in process)", () => {
     [[], EXIT.usage, "usage"],
     [["list", "--bogus"], EXIT.usage, "usage"],
     [["list", "extra"], EXIT.usage, "usage"],
+    [["list", "--all=yes"], EXIT.usage, "usage"],
     [["list", "--harness", "nope"], EXIT.usage, "usage"],
     [["observe"], EXIT.usage, "usage"],
     [["deliver", "s1", "hi"], EXIT.usage, "usage"],

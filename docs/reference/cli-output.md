@@ -22,9 +22,9 @@ What tools that call `porch` as a subprocess can rely on. `porch --help` lists t
 
 | Command | Output | Schema |
 | --- | --- | --- |
-| `porch list` | `{ schema, sessions: [observation...], errors: [{ harness, message }] }` | `schemas/list.schema.json` |
+| `porch list [--all]` | `{ schema, sessions: [observation...], errors: [{ harness, message }] }` | `schemas/list.schema.json` |
 | `porch observe <session>` | an observation | `schemas/observation.schema.json` |
-| `porch watch` | one observation per line | `schemas/observation.schema.json` |
+| `porch watch [--all]` | one observation per line | `schemas/observation.schema.json` |
 | `porch deliver ...` | `{ schema, harness, session, result, statusAtSend, via, guessed, reason }` | `schemas/deliver.schema.json` |
 | `porch current` | `{ schema, harness, session }`, both null outside a session | `schemas/current.schema.json` |
 | `porch status set ...` | `{ schema, harness, session, self }` | `schemas/status-set.schema.json` |
@@ -36,7 +36,9 @@ What tools that call `porch` as a subprocess can rely on. `porch --help` lists t
 | `porch fake ...` (test harness) | the session's observation; `porch fake deliveries` prints `{ schema, deliveries }` | `schemas/observation.schema.json`, `schemas/fake-deliveries.schema.json` |
 | any failure | `{ schema, error: { code, message } }` | `schemas/error.schema.json` |
 
-An observation is `{ schema, harness, session, status, since, detail, raw, self }`. `detail` is adapter-specific and documented in each adapter's doc; `raw` is the harness output for debugging and may change with the harness. Consumers should not depend on `raw`.
+An observation is `{ schema, harness, session, attached, status, since, detail, raw, self }`.
+
+`attached` is true when Porch's inside part runs in the session: for Claude Code, a record written by Porch's hooks from the process Claude Code lists; for Pi, a record written by Porch's extension. `porch list` and `porch watch` print only attached sessions; with `--all` they also print unattached ones, which only a harness with an outside listing can see (Claude Code). `porch observe`, `porch deliver` and `porch watch --session` take an unattached session when it is named. This default was changed on 2026-09-30 without a `schema` bump: `attached` is an added field, and nothing outside Dylan's own use depended on the old default (decision 0012, list and watch show attached sessions). `detail` is adapter-specific and documented in each adapter's doc; `raw` is the harness output for debugging and may change with the harness. Consumers should not depend on `raw`.
 
 `errors` in `porch list` means one adapter could not list its sessions (for example the harness command failed), or a session record could not be read (`harness` is the record's harness, or `porch` if the records folder itself could not be read). Those sessions are missing or incomplete in `sessions`; they are not gone.
 

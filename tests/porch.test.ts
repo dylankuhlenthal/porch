@@ -55,7 +55,7 @@ describe("Porch.list and unreadable records", () => {
 
 describe("Porch.observe", () => {
   it("is not-found when no adapter knows the session, and ambiguous when two do", async () => {
-    const obs = (h: string) => async (_: unknown, s: string) => observation({ harness: h, session: s, status: "idle" });
+    const obs = (h: string) => async (_: unknown, s: string) => observation({ harness: h, session: s, attached: true, status: "idle" });
     const porch = new Porch({ env: scratchEnv(), adapters: [stubAdapter("aa", { observe: obs("aa") }), stubAdapter("bb", { observe: obs("bb") })] });
     await expectPorchError(porch.observe("x"), "ambiguous-session");
     expect((await porch.observe("x", "bb")).harness).toBe("bb");
@@ -106,7 +106,7 @@ describe("Porch.deliver", () => {
 
   it("turns an adapter that throws into a failed result with the reason", async () => {
     const adapter = stubAdapter("aa", {
-      observe: async (_c, s) => observation({ harness: "aa", session: s, status: "idle" }),
+      observe: async (_c, s) => observation({ harness: "aa", session: s, attached: true, status: "idle" }),
       deliver: async () => Promise.reject(new Error("ECONNREFUSED")),
     });
     const porch = new Porch({ env: scratchEnv(), adapters: [adapter] });

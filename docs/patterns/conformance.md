@@ -14,12 +14,12 @@ Every adapter is held to the same cases, run against real sessions of its harnes
 
 | Case | What it checks |
 | --- | --- |
-| `which-session-am-i` | `current` inside a session returns that session; outside any session, null |
+| `which-session-am-i` | `current` inside a session returns that session; outside any session, null; the default `list` shows the session, with `attached: true` |
 | `deliver-while-idle` | `delivered` with `statusAtSend: idle`, and the session receives the message |
 | `deliver-while-busy` | `delivered` with `statusAtSend: busy`; received if the adapter says it queues while busy |
 | `held-at-prompt` | the session shows `waiting-on-prompt`; deliver says `delivered` with that status, and the session still shows it afterwards |
 | `killed-session` | a killed session shows `gone`, and deliver says `not-running` |
-| `without-inside-part` | a session without the inside part is listed, not as `gone`, and can still be delivered to |
+| `without-inside-part` | a session without the inside part is absent from the default `list`, shown by `list --all` with `attached: false` and not as `gone`, found by `observe` when named, and can still be delivered to |
 | `watch-delivers-each-change` | watch reports idle, busy, idle, then waiting-on-prompt (when the adapter sees prompts and the driver can hold at one), then gone, in that order |
 | `self-reported-state` | `status set` inside the session writes that session's `self` |
 | `launch-background` | a background session started through `porch launch`, with the caller's own settings holding a marker: it shows idle with a record from the inside part, the caller's settings took effect too (the marker ran), and a delivered message reaches it. Skipped when the adapter cannot launch |

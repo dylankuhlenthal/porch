@@ -20,6 +20,7 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 - **Harness**: the program a session runs in (Claude Code, Pi). **Adapter**: Porch's code for one harness.
 - **Inside part**: the adapter's code that runs within the session (Claude Code hooks, a Pi extension) and writes the session record. **Outside listing**: the harness's own list of sessions, read from outside (`claude agents --json`).
 - **Session record**: `<PORCH_HOME>/sessions/<harness>-<session>.json`. Its `inside` part is written only by the inside part; its `self` part only by `porch status set`.
+- **Attached**: Porch's inside part runs in the session (`attached` on every observation). `porch list` and `porch watch` show only attached sessions unless given `--all`; `observe`, `deliver` and `watch --session` take unattached ones by name (decision 0012). Adapters return every session they see, marked; the core does the hiding.
 - **Status**: what Porch observed (`starting`, `busy`, `idle`, `waiting-on-prompt`, `gone`, `unknown`). **Self-reported state**: what the session said with `porch status set` (`working`, `needs-input`, `blocked`, `done`, `failed`). They are shown side by side, never combined.
 - **Harness driver**: what an adapter supplies so the conformance suite can put real sessions into each state. **Fixture**: what a harness returned during a conformance run, replayed by the per-PR tests.
 

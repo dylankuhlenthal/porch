@@ -54,7 +54,7 @@ export function piObservation(session: string, rec: SessionRecord, table: Proces
     lastTurnEnd: inside?.lastTurnEnd ?? null,
   };
   const raw = { record: rec, ps: pid === null || table === null ? null : (table.output.split("\n").find((l) => new RegExp(`^\\s*${pid}\\s`).test(l)) ?? null) };
-  const base = { harness: PI_HARNESS, session, detail, raw, self: rec.self };
+  const base = { harness: PI_HARNESS, session, attached: inside !== null, detail, raw, self: rec.self };
   if (running === null) return observation({ ...base, status: "unknown" });
   if (!running) return observation({ ...base, status: "gone" });
   if (prompt !== null) return observation({ ...base, status: "waiting-on-prompt", since: prompt.since });

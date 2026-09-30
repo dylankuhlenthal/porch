@@ -25,7 +25,7 @@ Every method gets an `AdapterContext`. **Read the environment only from `ctx.env
 Delivery is the one exception: sending a message in `deliver` does not go through `ctx.io`, and neither does the file access that is part of sending. In the current adapters, that means the Claude adapter writing to the session's socket and, just before, checking with `fs.lstat` that the path is a socket owned by this user (`checkSocketOwner` in `src/unix-socket.ts`), the Pi adapter doing the same check and then writing to the socket its extension recorded and reading the reply (`sendToPiSocket` in `src/adapters/pi/protocol.ts`), and the fake adapter's `deliver` reading and rewriting its state file under a lock to record the delivery (`updateState` in `src/adapters/fake/state.ts`, which the `porch fake` commands also use).
 
 - `detect`: whether the harness is installed, and its version. It may be slow; nothing on the `list` path may depend on it.
-- `list`: every session the adapter can see, as observations. It must be fast (consumers call `porch list` every few seconds) and must not throw just because the harness is not installed: return an empty list.
+- `list`: every session the adapter can see, as observations, attached or not. The core leaves out the unattached ones unless the caller passes `--all` (decision 0012, list and watch show attached sessions), so an adapter never filters on `attached` itself. It must be fast (consumers call `porch list` every few seconds) and must not throw just because the harness is not installed: return an empty list.
 - `observe(session)`: one observation, or null when the adapter does not know the session (including ids the record store would refuse).
 - `current`: the session this process runs in, from the harness's own environment variable (for example `CLAUDE_CODE_SESSION_ID`, `PI_SESSION_ID`), or null.
 - `deliver(session, text)`: `text` already carries the `[from <label>]` prefix. See the rules below.
@@ -45,6 +45,7 @@ Use the `observation()` and `deliverResult()` helpers from `src/adapter.ts`; the
 - `since` is when the session entered its status, or null when you cannot tell.
 - `detail` is small and stable, and documented in the adapter's doc: watch compares it, so a value that changes every poll (a counter, a timestamp of the last poll) would report a change every time. Put volatile or bulky data in `raw`, which watch ignores; `raw` holds what the harness returned, as it returned it.
 - `self` is the record's `self` part, as it is. Never mix it into `status`.
+- `attached` (required by `observation()`) is whether the adapter's inside part runs in this session, worked out from what the inside part wrote: a record with an `inside` part, and where the harness can show it, written by the process that runs now. A record holding only a `self` part does not count. Say in the adapter's doc what attached means for its harness.
 
 ### Delivering
 

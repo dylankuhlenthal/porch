@@ -19,6 +19,11 @@
  * line. An adapter whose listing fails keeps its last-reported sessions (no
  * false `gone`) and the error goes to `onError`.
  *
+ * Without `all`, only sessions Porch is attached to are reported (a session already
+ * reported keeps being followed if it stops counting as attached, so it is not
+ * reported gone while it still runs). With `session`, the named session is followed
+ * whether attached or not, as `observe` does for a named session.
+ *
  * With `session`, the id may be any id the adapter's `observe` accepts (a Claude
  * short id too): it is looked up in each look's listing through the adapter's
  * `sessionIdIn`, and the watch follows the full id found.
@@ -35,8 +40,13 @@ export interface WatchOptions {
   ctx: AdapterContext;
   /** Only this harness (the caller has already narrowed `adapters`; kept for the record). */
   harness?: string;
-  /** Only this session: its full id, or any id the adapter's `observe` accepts (a Claude short id). */
+  /**
+   * Only this session: its full id, or any id the adapter's `observe` accepts (a Claude
+   * short id). Followed whether it is attached or not, as `observe` does for a named session.
+   */
   session?: string;
+  /** Also report sessions Porch is not attached to (`attached: false`). Default: attached sessions only. */
+  all?: boolean;
   onObservation(observation: Observation): void;
   onError?(harness: string, error: unknown): void;
   signal: AbortSignal;
@@ -52,7 +62,15 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
   const debounceMs = options.debounceMs ?? 25;
   const last = new Map<
     string,
-    { adapter: string; key: string; harness: string; session: string; status: Observation["status"]; self: Observation["self"] }
+    {
+      adapter: string;
+      key: string;
+      harness: string;
+      session: string;
+      attached: boolean;
+      status: Observation["status"];
+      self: Observation["self"];
+    }
   >();
   const watchers: FSWatcher[] = [];
   const timers: NodeJS.Timeout[] = [];
@@ -98,6 +116,11 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
       if (options.session !== undefined) {
         const id = sessionIdFor(adapter, current);
         current = id === null ? [] : current.filter((o) => o.session === id);
+      } else if (!options.all) {
+        // Attached sessions only, plus any already reported: a session that stops
+        // counting as attached (a Claude session resumed without the hooks) is still
+        // running, so it is followed until it leaves the listing rather than reported gone.
+        current = current.filter((o) => o.attached || last.has(`${o.harness}\u0000${o.session}`));
       }
       const seen = new Set<string>();
       for (const obs of current) {
@@ -106,7 +129,15 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
         const key = comparisonKey(obs);
         if (last.get(id)?.key !== key) {
           // Keep only what the gone report below needs, not `raw`.
-          last.set(id, { adapter: adapter.harness, key, harness: obs.harness, session: obs.session, status: obs.status, self: obs.self });
+          last.set(id, {
+            adapter: adapter.harness,
+            key,
+            harness: obs.harness,
+            session: obs.session,
+            attached: obs.attached,
+            status: obs.status,
+            self: obs.self,
+          });
           emit(obs);
         }
       }
@@ -119,7 +150,7 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
         // cleaned up) is forgotten without a second, less informative gone line.
         last.delete(id);
         if (prev.status === "gone") continue;
-        emit(observation({ harness: prev.harness, session: prev.session, status: "gone", self: prev.self }));
+        emit(observation({ harness: prev.harness, session: prev.session, attached: prev.attached, status: "gone", self: prev.self }));
       }
     }
   };

@@ -81,7 +81,7 @@ describe("fake adapter: status", () => {
     writeFileSync(file, JSON.stringify({ sessions: { x: { alive: true } } }));
     const porch = new Porch({ env: { ...env, PORCH_FAKE_STATE: file }, adapters: [createFakeAdapter()] });
     expect(fakeStatePath(porch.ctx.env)).toBe(file);
-    expect((await porch.list()).sessions.map((s) => s.session)).toEqual(["x"]);
+    expect((await porch.list(undefined, { all: true })).sessions.map((s) => s.session)).toEqual(["x"]);
   });
 
   it("detects the fake harness only when its state file exists", async () => {
