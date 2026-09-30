@@ -104,7 +104,7 @@ function helpText(adapters: Adapter[]): string {
     "  0 ok, 1 internal error, 2 usage, 3 session not found, 4 message not delivered,",
     "  5 not inside a session, 6 more than one session matches.",
     "porch launch prints nothing of its own once the harness has started: the output and",
-    "  exit code are the harness's. Example: alias claude='porch launch claude'.",
+    "  exit code are the harness's. Examples: alias claude='porch launch claude', alias pi='porch launch pi'.",
     "Records folder: $PORCH_HOME/sessions (default ~/.porch/sessions).",
     "",
   ].join("\n");
