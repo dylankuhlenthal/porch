@@ -5,17 +5,21 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { Adapter } from "../src/adapter.js";
+import type { Adapter, AdapterContext } from "../src/adapter.js";
 import { deliverResult } from "../src/adapter.js";
 import { createFakeAdapter } from "../src/adapters/fake/index.js";
+import { fakeStatePath, updateState } from "../src/adapters/fake/state.js";
 import { CASES } from "../src/conformance/cases.js";
 import { CONFORMANCE_EXIT, conformanceCommand } from "../src/conformance/command.js";
 import type { HarnessDriver } from "../src/conformance/driver.js";
 import { createFakeDriver } from "../src/conformance/drivers/fake.js";
 import { DRIVERS } from "../src/conformance/drivers/index.js";
 import { FIXTURES_DIR, reportPath } from "../src/conformance/paths.js";
-import { replayFixture, type Fixture } from "../src/conformance/recorder.js";
+import { newFixture, RecordingIO, replayFixture, takeSnapshot, type Fixture } from "../src/conformance/recorder.js";
 import { runConformance } from "../src/conformance/runner.js";
+import { porchHome, sessionsDir } from "../src/home.js";
+import { realIO } from "../src/io.js";
+import { RecordStore, type SessionRecord } from "../src/records.js";
 import { REPO, scratchEnv, schemaValidators } from "./helpers.js";
 
 const v = schemaValidators();
@@ -237,6 +241,37 @@ describe("replay of committed fixtures", () => {
     const mismatches = await replayFixture(stripped, createFakeAdapter(), replayScratch());
     expect(mismatches.length).toBe(fixture.snapshots.length);
     expect(mismatches[0]!.actual).toEqual({ error: expect.stringMatching(/no recorded result/) });
+  });
+});
+
+describe("snapshots", () => {
+  it("record the records the adapter listed from, even when a record changes mid-snapshot, so the fixture replays", async () => {
+    const workDir = mkdtempSync(path.join(os.tmpdir(), "porch-snapshot-test-"));
+    const env = scratchEnv({ PORCH_HOME: path.join(workDir, "porch-home") });
+    const live = new RecordStore(sessionsDir(env));
+    await updateState(fakeStatePath(env), (state) => {
+      state.sessions.s1 = { alive: true, pid: 4242 };
+    });
+    await live.updateInside("fake", "s1", { status: "idle" });
+    const real = createFakeAdapter();
+    // The session's inside part writes between the recorder's copy of the records and the adapter's read.
+    const adapter = withAdapter({
+      list: async (ctx) => {
+        await live.updateInside("fake", "s1", { status: "busy" });
+        return real.list(ctx);
+      },
+    });
+    const io = new RecordingIO(realIO);
+    const ctx: AdapterContext = { env, home: porchHome(env), records: live, io, now: () => new Date() };
+
+    const snap = await takeSnapshot("mid-change", adapter, ctx, io, workDir);
+
+    expect((await live.read("fake", "s1"))?.inside?.status).toBe("busy");
+    expect((snap.records["fake-s1.json"] as SessionRecord).inside?.status).toBe("idle");
+    expect(snap.observations.map((o) => [o.session, o.status])).toEqual([["s1", "idle"]]);
+    const fixture = newFixture("fake", "fake-1", "mid-change", [snap]);
+    v.fixture!(fixture);
+    expect(await replayFixture(fixture, createFakeAdapter(), replayScratch())).toEqual([]);
   });
 });
 
