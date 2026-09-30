@@ -19,7 +19,6 @@
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 
@@ -33,6 +32,7 @@ import { defaultSocketDirs, guessedSocketPaths, sendToSocket, SocketMissingError
 import { porchCliPath } from "../../cli/path.js";
 import type { Env } from "../../home.js";
 import type { DriverContext, DriverSession, HarnessDriver, LaunchEnd } from "../driver.js";
+import { loadPty } from "./pty.js";
 
 export interface ClaudeDriverOptions {
   /** Cheapest model that can run a Bash command. */
@@ -90,27 +90,6 @@ async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<
   } finally {
     clearTimeout(timer);
   }
-}
-
-/**
- * node-pty, loaded only when an interactive case runs: it is a dev dependency, so the
- * published package does not need it. Its macOS prebuilds (1.1.0) ship spawn-helper
- * without the execute bit, which makes every spawn fail with "posix_spawnp failed",
- * so it is set here if missing.
- */
-async function loadPty(): Promise<typeof import("node-pty")> {
-  let pty: typeof import("node-pty");
-  try {
-    pty = await import("node-pty");
-  } catch (err) {
-    throw new Error(`the interactive launch case needs node-pty (a dev dependency; run npm ci): ${String(err)}`);
-  }
-  const require = createRequire(import.meta.url);
-  const dir = path.join(path.dirname(require.resolve("node-pty/package.json")), "prebuilds", `${process.platform}-${process.arch}`);
-  const helper = path.join(dir, "spawn-helper");
-  const mode = await fs.stat(helper).then((st) => st.mode, () => null);
-  if (mode !== null && (mode & 0o111) === 0) await fs.chmod(helper, mode | 0o755);
-  return pty;
 }
 
 /**

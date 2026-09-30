@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/pi-extension.schema.json",
+  "title": "porch extension pi output (schema 1)",
+  "description": "What a caller passes to Pi to attach Porch's extension to one session: the arguments, and the environment the extension reads its records folder from.",
+  "type": "object",
+  "required": ["schema", "harness", "extension", "porchHome", "args", "env"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "harness": { "const": "pi" },
+    "extension": { "type": "string", "description": "Absolute path of Porch's built Pi extension." },
+    "porchHome": { "type": ["string", "null"], "description": "The --porch-home given, as an absolute path, or null." },
+    "args": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Pi arguments that load the extension for one session: [\"-e\", <extension>]."
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Variables to set in Pi's environment: PORCH_HOME when --porch-home was given, otherwise empty."
+    }
+  }
+}

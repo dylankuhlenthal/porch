@@ -13,7 +13,7 @@ What tools that call `porch` as a subprocess can rely on. `porch --help` lists t
 
 `porch launch <harness> [harness arguments...]` should look exactly like running the harness directly, so it is the third exception:
 
-- **Before the harness starts**, a failure is Porch's usual error document on stdout with its usual exit code: a usage error (exit 2) for an unknown harness, a harness whose adapter cannot launch, an unknown Porch option before the harness name, or harness arguments the adapter refuses (for Claude Code, a `--settings` file it cannot read or parse); an `internal` error (exit 1) when the harness program cannot be started at all (for example it is not installed).
+- **Before the harness starts**, a failure is Porch's usual error document on stdout with its usual exit code: a usage error (exit 2) for an unknown harness, a harness whose adapter cannot launch, an unknown Porch option before the harness name, or harness arguments the adapter refuses (for Claude Code, a `--settings` file it cannot read or parse; Pi refuses none); an `internal` error (exit 1) when the harness program cannot be started at all (for example it is not installed).
 - **Once the harness has started**, Porch prints nothing of its own on stdout: the harness owns stdout, stderr and the terminal. Porch exits with the harness's exit code, or, when a signal killed the harness, dies of the same signal (a shell reports 128 plus the signal's number). So after start, exit code 2 is the harness's, not a Porch usage error, and a caller cannot tell Porch's exit codes from the harness's by the number alone. Background launches (`porch launch claude --bg ...`) pass the harness's own output through unchanged; there is no JSON mode.
 - **Warnings**, such as that Porch will not see the session (`docs/domains/claude-adapter.md`), are one line each on stderr, starting `porch launch: `, printed before the harness starts.
 - `porch launch --dry-run <harness> ...` starts nothing and prints the launch plan, `{ schema, harness, command, args }` (`schemas/launch-plan.schema.json`), with exit 0, or the same errors as above.
@@ -32,6 +32,7 @@ What tools that call `porch` as a subprocess can rely on. `porch --help` lists t
 | `porch launch --dry-run <harness> ...` | `{ schema, harness, command, args }`: what `porch launch` would run | `schemas/launch-plan.schema.json` |
 | `porch --version` | `{ schema, version }` | `schemas/version.schema.json` |
 | `porch hooks claude [--porch-home <dir>]` | `{ schema, harness, node, cli, porchHome, settings }`; `settings` is Claude Code `--settings` JSON with Porch's hooks | `schemas/claude-hooks.schema.json` |
+| `porch extension pi [--porch-home <dir>]` | `{ schema, harness, extension, porchHome, args, env }`; `args` is what to pass to `pi` (`-e <extension>`), `env` what to set in its environment | `schemas/pi-extension.schema.json` |
 | `porch fake ...` (test harness) | the session's observation; `porch fake deliveries` prints `{ schema, deliveries }` | `schemas/observation.schema.json`, `schemas/fake-deliveries.schema.json` |
 | any failure | `{ schema, error: { code, message } }` | `schemas/error.schema.json` |
 

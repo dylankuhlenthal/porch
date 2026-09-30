@@ -10,7 +10,7 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 
 ## Layout & filing
 
-- `src/`: the package. `src/cli/` is the `porch` command, `src/porch.ts` the library, `src/adapter.ts` the adapter contract, `src/records.ts` the session records, `src/watch.ts` watch, `src/launch.ts` running a launch plan, `src/adapters/<harness>/` one folder per adapter, `src/conformance/` the conformance suite.
+- `src/`: the package. `src/cli/` is the `porch` command, `src/porch.ts` the library, `src/adapter.ts` the adapter contract, `src/records.ts` the session records, `src/watch.ts` watch, `src/launch.ts` running a launch plan, `src/unix-socket.ts` the socket check adapters run before delivering, `src/adapters/<harness>/` one folder per adapter, `src/conformance/` the conformance suite.
 - `schemas/`: JSON Schema for every output and the record format. Shipped in the package.
 - `tests/`: per-PR tests (`*.test.ts`). `conformance/`: the recorded fixtures and reports from conformance runs, committed.
 - `docs/`: filed by lifetime, following the documentation standard in `docs/patterns/documentation.md`: `architecture.md` is the overview; `domains/` says how parts work; `patterns/` sets out the approved way to do things; `operations/` holds runbooks; `reference/` holds contracts; `decisions/` holds append-only decision records (`NNNN-slug.md`, never edited after merge). Plans and specs stay in Linear, never in the repo. Every doc names the files it describes. Change the docs in the same PR as the code.
@@ -27,7 +27,7 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 
 - `npm ci` installs and builds. `node dist/cli/main.js --help` runs the built command. Script descriptions are the `//` entries in `package.json`.
 - To try the CLI by hand, always set a scratch `PORCH_HOME` (`export PORCH_HOME=$(mktemp -d)`), then use the fake harness: `porch fake start s1`, `porch fake set s1 busy`, `porch list`.
-- Never run `npm publish` or create an npm token: publishing waits until the Pi adapter passes the shared tests (decision 0005, publishing to npm waits for the second harness).
+- Never run `npm publish`, create an npm token or make the repo public: both wait for TRV-1146, after sous chef and shape-gui run on Porch (decision 0010, going public and npm publishing wait for the first consumers).
 
 ## Testing
 
@@ -35,8 +35,9 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 - `npm run lint -- <files>`: lint the files you touched.
 - `npm run conformance -- --harness <h> [--record]`: the conformance suite against a real harness on this machine. Read `docs/patterns/conformance.md` first.
 - No test may write to the real `~/.porch`, `~/.claude`, `~/.claude.json` or `~/.sous-chef`. `tests/setup.ts` points `HOME` and `PORCH_HOME` at scratch folders; tests that write files also use `scratchEnv()` from `tests/helpers.ts`.
-- Per-PR tests never run the real `claude`: `tests/setup.ts` and `scratchEnv()` point `PORCH_CLAUDE_BIN` at a command that does not exist, and `tests/setup.ts` removes `CLAUDE_*` variables so a test run inside a Claude Code session does not see that session. Claude adapter tests give it a `HarnessIO` with canned output.
+- Per-PR tests never run the real `claude` or `pi`: `tests/setup.ts` and `scratchEnv()` point `PORCH_CLAUDE_BIN` and `PORCH_PI_BIN` at commands that do not exist, and `tests/setup.ts` removes `CLAUDE_*` and `PI_*` variables so a test run inside a Claude Code or Pi session does not see that session. Adapter tests give the adapter a `HarnessIO` with canned output (for Pi, canned `ps`).
 - `npm run conformance -- --harness claude` starts real Claude Code sessions (cheap model, trivial prompts) and must run from a checkout inside a folder Claude Code trusts. Read the Conformance section of `docs/domains/claude-adapter.md` first.
+- `npm run conformance -- --harness pi` starts real Pi sessions (cheap OpenAI model, about seven turns, a few cents) and needs Node 22.19 or later first on `PATH` for Pi (`nvm use 22.19`); Porch's own build and tests run on Node 22.14. It never installs anything into `~/.pi`. Read the Conformance section of `docs/domains/pi-adapter.md` first.
 
 ## Conventions & patterns
 
@@ -51,3 +52,5 @@ TypeScript (Node 22, ES modules, no runtime dependencies), published as `@dylank
 
 - Records and the fake harness file are replaced by rename on every write, which breaks a file watch on the file itself. `src/watch.ts` watches the folder and filters by name.
 - Claude Code behaviour that has caught us out (folder trust for `claude --bg`, the keychain login found by `USER`, spare processes carrying an earlier launch's environment, how delivered messages arrive and can be refused, `claude agents --json` quirks, `Stop` not firing on an interrupt) is recorded in `docs/domains/claude-adapter.md`, under "What it relies on from Claude Code", "Conformance" and "Known limits". Read it before changing the Claude adapter or its conformance driver.
+- Pi behaviour that has caught us out (a subcommand is read only as the first argument, so `pi -e <file> list` runs a paid turn with `list` as the prompt; `agent_settled`, not `agent_end`, is the idle signal; no outside listing, so a session without the extension is invisible) is recorded in `docs/domains/pi-adapter.md`, under "What it relies on from Pi" and "Known limits". Read it before changing the Pi adapter or its driver.
+- `realIO.run` (`src/io.ts`) puts Node's own error text in `stderr` whenever a command exits non-zero, so an adapter must not read "empty stderr" as the harness saying nothing (the Pi adapter's `ps` check once read every killed session as `unknown` because of this).

@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "harness": "pi",
+  "harnessVersion": "0.87.1",
+  "porchVersion": "0.1.0",
+  "platform": "darwin-arm64 node v22.19.0",
+  "ranAt": "2026-09-30T09:47:27.272Z",
+  "passed": true,
+  "results": [
+    {
+      "name": "which-session-am-i",
+      "title": "which session am I",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 269
+    },
+    {
+      "name": "deliver-while-idle",
+      "title": "deliver while idle",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 3966
+    },
+    {
+      "name": "deliver-while-busy",
+      "title": "deliver while busy",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 24195
+    },
+    {
+      "name": "held-at-prompt",
+      "title": "held at a prompt or dialog",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 430
+    },
+    {
+      "name": "killed-session",
+      "title": "a killed session",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 270
+    },
+    {
+      "name": "without-inside-part",
+      "title": "a session without the inside part",
+      "result": "skip",
+      "reason": "the driver cannot start a session without the inside part",
+      "durationMs": 1
+    },
+    {
+      "name": "watch-delivers-each-change",
+      "title": "watch delivers each change",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 23085
+    },
+    {
+      "name": "self-reported-state",
+      "title": "self-reported state",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 269
+    },
+    {
+      "name": "launch-background",
+      "title": "a background session started through porch launch",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 2971
+    },
+    {
+      "name": "launch-interactive",
+      "title": "an interactive session started through porch launch",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 4088
+    },
+    {
+      "name": "unknown-session",
+      "title": "a session that does not exist",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 1
+    }
+  ]
+}

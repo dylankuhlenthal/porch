@@ -3,7 +3,7 @@
 # repository only, never on pull requests, because it needs the API key secret.
 # A harness whose required variables (see src/conformance/drivers/index.ts) are not
 # set, or that cannot run real turns (Claude Code: not logged in and no
-# ANTHROPIC_API_KEY), is skipped with a notice, not failed. Each run uploads its report and
+# ANTHROPIC_API_KEY; Pi: no OPENAI_API_KEY), is skipped with a notice, not failed. Each run uploads its report and
 # fixtures; a person commits them in a PR. See docs/operations/ci.md.
 name: conformance
 
@@ -59,6 +59,7 @@ jobs:
     env:
       # Empty when the secret is not set; the conformance command then exits 3 (skipped).
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       HARNESS: ${{ matrix.harness }}
     steps:
       - uses: actions/checkout@v4
@@ -88,13 +89,18 @@ jobs:
             cfg.projects[dir] = { ...(cfg.projects[dir] || {}), hasTrustDialogAccepted: true };
             fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
           '
+      - name: install the latest Pi
+        if: matrix.harness == 'pi'
+        run: |
+          npm install -g @earendil-works/pi-coding-agent@latest
+          pi --version
       - name: run the suite
         run: |
           set +e
           npm run conformance -- --harness "$HARNESS" --record
           code=$?
           if [ "$code" -eq 3 ]; then
-            echo "::notice::conformance for $HARNESS skipped: a variable the harness requires is not set, or the harness cannot run real turns here (Claude Code: not logged in and ANTHROPIC_API_KEY empty); the step output above gives the reason"
+            echo "::notice::conformance for $HARNESS skipped: a variable the harness requires is not set, or the harness cannot run real turns here (Claude Code: not logged in and ANTHROPIC_API_KEY empty; Pi: OPENAI_API_KEY empty); the step output above gives the reason"
             exit 0
           fi
           exit "$code"
