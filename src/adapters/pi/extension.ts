@@ -85,25 +85,24 @@ export interface ExtensionOptions {
   exitEvents?: Pick<NodeJS.EventEmitter, "on">;
 }
 
-const EXIT_HANDLERS = Symbol.for("porch.pi.exitHandlers");
+const EXIT_HANDLERS = Symbol.for("porch.pi.exitHandler");
 
 /**
- * Run `handler` when `events` (the process) exits. Pi loads the extension again on
- * every /reload, so one listener per emitter runs every handler added to it, rather
- * than a new listener each time (Node warns past ten).
+ * Run `handler` when `events` (the process) exits, in place of the handler an earlier
+ * load of the extension set. Pi loads the extension again on every /reload, and only
+ * the newest load has sessions to end; one listener per emitter runs the current
+ * handler, rather than a new listener, and a kept old instance, each time.
  */
 function onExit(events: Pick<NodeJS.EventEmitter, "on">, handler: (code: number) => void): void {
-  const holder = events as { [EXIT_HANDLERS]?: ((code: number) => void)[] };
-  let handlers = holder[EXIT_HANDLERS];
-  if (handlers === undefined) {
-    const list: ((code: number) => void)[] = [];
-    handlers = list;
-    holder[EXIT_HANDLERS] = list;
-    events.on("exit", (code: number) => {
-      for (const h of list) h(code);
-    });
+  const holder = events as { [EXIT_HANDLERS]?: { current: (code: number) => void } };
+  const slot = holder[EXIT_HANDLERS];
+  if (slot !== undefined) {
+    slot.current = handler;
+    return;
   }
-  handlers.push(handler);
+  const fresh = { current: handler };
+  holder[EXIT_HANDLERS] = fresh;
+  events.on("exit", (code: number) => fresh.current(code));
 }
 
 /** How long a client of the socket may take to send its request line. */
@@ -325,8 +324,14 @@ export default function porchPiExtension(pi: PiExtensionAPI, options: ExtensionO
         // Marked before the socket is closed, so it is already queued if Pi exits early.
         const end = { session: l.session, reason: event.reason ?? null, at: now().toISOString() };
         ending = end;
-        void update(l.session, { status: "ended", endedAt: end.at, endReason: end.reason }).then(() => {
-          if (ending === end) ending = null;
+        // Cleared only once written: after a failed write the exit fallback tries again.
+        void enqueue(async () => {
+          try {
+            await records.updateInsideIfExists(PI_HARNESS, end.session, { status: "ended", endedAt: end.at, endReason: end.reason });
+            if (ending === end) ending = null;
+          } catch (err) {
+            await records.updateInsideIfExists(PI_HARNESS, end.session, { data: { lastError: errorMessage(err) } }).catch(() => undefined);
+          }
         });
       }
       await closeSocket(l);
@@ -337,10 +342,17 @@ export default function porchPiExtension(pi: PiExtensionAPI, options: ExtensionO
   // The exit fallback (see the top of this file). Synchronous: nothing asynchronous
   // runs once the process is exiting.
   onExit(options.exitEvents ?? process, (code: number) => {
+    // Both can apply: after /new, the old session's mark may still be unwritten while
+    // the new session is live.
     try {
       if (ending !== null) {
         records.updateInsideIfExistsSync(PI_HARNESS, ending.session, { status: "ended", endedAt: ending.at, endReason: ending.reason });
-      } else if (live !== null && CLEAN_EXIT_CODES.includes(code)) {
+      }
+    } catch {
+      // never disturb the session, even as it exits
+    }
+    try {
+      if (live !== null && CLEAN_EXIT_CODES.includes(code)) {
         records.updateInsideIfExistsSync(PI_HARNESS, live.session, {
           status: "ended",
           endedAt: now().toISOString(),

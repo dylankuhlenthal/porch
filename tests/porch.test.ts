@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
@@ -215,6 +215,19 @@ describe("ended and gone sessions: hidden by default, records pruned 24 hours af
     clock.t = T0 + 96 * HOUR;
     await porch.list();
     expect(await porch.ctx.records.read("fake", "dead")).toBeNull();
+  });
+
+  it("removes an ended record without a readable endedAt (edited by hand) by when its status changed", async () => {
+    const { porch, clock } = porchAt();
+    await fake.startSession(porch.ctx, "done");
+    await fake.endSession(porch.ctx, "done");
+    const file = porch.ctx.records.recordPath("fake", "done");
+    const rec = JSON.parse(readFileSync(file, "utf8"));
+    rec.inside.endedAt = "not a time";
+    writeFileSync(file, JSON.stringify(rec));
+    clock.t = T0 + 24 * HOUR;
+    await porch.list();
+    expect(await porch.ctx.records.read("fake", "done")).toBeNull();
   });
 
   it("never prunes a session whose status is unknown, or one that is running again", async () => {

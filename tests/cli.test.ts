@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { EXIT } from "../src/cli/exit-codes.js";
+import { SCHEMA_VERSION } from "../src/types.js";
 import { bin, cli, scratchEnv, schemaValidators } from "./helpers.js";
 import { stubAdapter } from "./stub-adapter.js";
 
@@ -12,6 +13,7 @@ describe("porch CLI (in process)", () => {
     expect((await cli(["fake", "start", "s1", "--pid", "5"], env)).code).toBe(0);
     await cli(["fake", "set", "s1", "busy"], env);
 
+    expect((await cli(["--help"], env)).stdout).toContain(`"schema": ${SCHEMA_VERSION}`);
     const list = await cli(["list"], env);
     expect(list.code).toBe(EXIT.ok);
     v.list!(list.json);

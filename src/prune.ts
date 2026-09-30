@@ -29,9 +29,14 @@ function olderThan(iso: string | null | undefined, ms: number, now: Date): boole
   return !Number.isNaN(t) && now.getTime() - t >= ms;
 }
 
-/** The ended record is due for removal. */
+/**
+ * The ended record is due for removal. Its end time is `endedAt`, or, for a record
+ * without a readable one (edited by hand), when its status last changed, or its last write.
+ */
 export function endedRecordExpired(rec: SessionRecord, now: Date, ttlMs = STOPPED_RECORD_TTL_MS): boolean {
-  return rec.inside?.status === "ended" && olderThan(rec.inside.endedAt, ttlMs, now);
+  if (rec.inside?.status !== "ended") return false;
+  const at = [rec.inside.endedAt, rec.inside.since, rec.updatedAt].find((t) => typeof t === "string" && !Number.isNaN(Date.parse(t)));
+  return olderThan(at, ttlMs, now);
 }
 
 /** The record of a session seen gone is due for removal. */

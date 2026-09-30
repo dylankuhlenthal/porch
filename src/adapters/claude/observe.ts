@@ -8,7 +8,8 @@
  * Status, in order:
  * 1. the record's inside part says ended (the  -> ended (statusSource "hooks", with endReason)
  *    SessionEnd hook ran), unless a later
- *    process of the session is listed
+ *    process of the session is listed, or a
+ *    process is listed and the record has no pid
  * 2. no listing row with a pid                 -> gone (a record left behind does not revive it)
  * 3. the listing says "waiting"                -> waiting-on-prompt
  * 4. the record's inside part says busy, was   -> idle (statusSource "listing", detail.recordStatus "busy")
@@ -107,13 +108,18 @@ export function claudeObservation(
   const waiting = alive && row.status === "waiting";
   const recordPid = inside?.pid ?? null;
   const otherProcess = alive && recordPid !== null && recordPid !== row.pid;
+  // An ended record whose pid is not known cannot say whether the listed process is
+  // the one that ended or a later one (a resume without the hooks): the running
+  // listing row wins, and the record is treated like one from another process.
+  const endedUnknownPid = alive && inside?.status === "ended" && recordPid === null;
+  const recordOutdated = otherProcess || endedUnknownPid;
   let status: SessionStatus;
   let since: string | null = null;
   let statusSource: "hooks" | "listing" | null = null;
   // The record's status, when it was written by the listed process but the listing's was used instead.
   let recordStatus: SessionStatus | null = null;
   let endReason: string | null = null;
-  if (inside?.status === "ended" && !otherProcess) {
+  if (inside?.status === "ended" && !recordOutdated) {
     status = "ended";
     since = inside.endedAt ?? inside.since ?? null;
     endReason = inside.endReason ?? null;
@@ -122,11 +128,11 @@ export function claudeObservation(
     status = "gone";
   } else if (waiting) {
     status = "waiting-on-prompt";
-  } else if (inside?.status === "busy" && !otherProcess && row.status === "idle") {
+  } else if (inside?.status === "busy" && !recordOutdated && row.status === "idle") {
     status = "idle";
     statusSource = "listing";
     recordStatus = inside.status;
-  } else if (inside?.status && !otherProcess) {
+  } else if (inside?.status && !recordOutdated) {
     status = inside.status;
     since = inside.since ?? null;
     statusSource = "hooks";
@@ -162,6 +168,6 @@ export function claudeObservation(
   const raw = { listing: row?.raw ?? null, job, record: rec };
   // Attached: Porch's hooks wrote the record, from the listed process when it runs.
   // A record from an earlier process (a resume without the hooks) does not count.
-  const attached = inside !== null && !otherProcess;
+  const attached = inside !== null && !recordOutdated;
   return observation({ harness: CLAUDE_HARNESS, session, attached, status, since, endReason, detail, raw, self: rec?.self ?? null });
 }

@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -394,6 +394,51 @@ describe("pi extension (the inside part)", () => {
     const rec = await porch.ctx.records.read(PI_HARNESS, "sess-1");
     v.record!(rec);
     expect(rec!.inside).toMatchObject({ status: "ended", endedAt: NOW.toISOString(), endReason: null, data: { exitCode: 129 } });
+  });
+
+  it("on exit, finishes the old session's end and ends the new live one too, after /new", async () => {
+    const env = scratchEnv();
+    const socketDir = path.join(mkdtempSync(path.join(os.tmpdir(), "pp-")), path.basename(piSocketDir()));
+    let session = "old";
+    const pi = fakePi("old", undefined);
+    const exitEvents = new EventEmitter();
+    const ctxSession = { get: () => session };
+    porchPiExtension(
+      {
+        on: (event, handler) =>
+          pi.api.on(event, (e, ctx) =>
+            handler(e, { ...(ctx as object), sessionManager: { getSessionId: ctxSession.get, getSessionFile: () => undefined } } as never),
+          ),
+        sendUserMessage: pi.api.sendUserMessage,
+      },
+      { env: env as NodeJS.ProcessEnv, pid: 4244, processStartedAt: T0.toISOString(), socketDir, now: () => NOW, exitEvents },
+    );
+    const porch = porchWith(env, psIO({ 4244: T0 }).io);
+    await pi.emit("session_start", { reason: "startup" });
+    await porch.ctx.records.updateInside(PI_HARNESS, "new", { pid: 4244, status: "idle" });
+    // An unfinished write holds the old record's lock, so the old session's end has not landed when Pi exits.
+    const lock = `${porch.ctx.records.recordPath(PI_HARNESS, "old")}.lock`;
+    writeFileSync(lock, `${process.pid}:unfinished`);
+    const shutdown = pi.emit("session_shutdown", { reason: "new" });
+    session = "new";
+    const start = pi.emit("session_start", { reason: "new" });
+    exitEvents.emit("exit", 0);
+    expect((await porch.ctx.records.read(PI_HARNESS, "old"))!.inside).toMatchObject({ status: "ended", endReason: "new" });
+    expect((await porch.ctx.records.read(PI_HARNESS, "new"))!.inside).toMatchObject({ status: "ended", endReason: null, data: { exitCode: 0 } });
+    rmSync(lock, { force: true });
+    await shutdown;
+    await start;
+    await pi.emit("session_shutdown", { reason: "quit" });
+  });
+
+  it("keeps one exit listener however often the extension is loaded, and only the newest load's handler runs", async () => {
+    const exitEvents = new EventEmitter();
+    const env = scratchEnv();
+    const socketDir = path.join(mkdtempSync(path.join(os.tmpdir(), "pp-")), path.basename(piSocketDir()));
+    for (let i = 0; i < 12; i++) {
+      porchPiExtension(fakePi(`s${i}`, undefined).api, { env: env as NodeJS.ProcessEnv, pid: 4245, processStartedAt: T0.toISOString(), socketDir, now: () => NOW, exitEvents });
+    }
+    expect(exitEvents.listenerCount("exit")).toBe(1);
   });
 
   it("leaves the record as it is when Pi exits with a crash's code, so the session shows as gone", async () => {

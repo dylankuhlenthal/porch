@@ -219,6 +219,17 @@ describe("Claude Code adapter: status", () => {
     expect((await porch.deliver(SID, "hi", { from: "x" })).result).toBe("not-running");
   });
 
+  it("lets a running listing row win over an ended record whose pid is not known", async () => {
+    const porch = porchWith(stubIO([row({ pid: 5555, status: "busy" })]));
+    await hook({ ...porch.ctx, env: { ...porch.ctx.env, CLAUDE_PID: undefined, CLAUDE_CODE_MESSAGING_SOCKET: undefined } }, "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "SessionEnd", { reason: "other" });
+    expect((await porch.ctx.records.read("claude", SID))!.inside!.pid).toBeNull();
+    expect(await porch.observe(SID)).toMatchObject({ attached: false, status: "busy", endReason: null });
+    // Not listed any more: the ended record answers.
+    const gone = porchWith(stubIO([]), porch.ctx.env);
+    expect(await gone.observe(SID)).toMatchObject({ status: "ended", endReason: "other" });
+  });
+
   it("does not use an ended record once a later process of the session is listed (a resume without the hooks)", async () => {
     const porch = porchWith(stubIO([row({ pid: 5555, status: "busy" })]));
     await hook({ ...porch.ctx, env: { ...porch.ctx.env, CLAUDE_PID: "36322" } }, "SessionStart", { source: "startup" });

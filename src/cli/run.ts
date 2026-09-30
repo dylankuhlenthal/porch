@@ -108,7 +108,7 @@ function helpText(adapters: Adapter[]): string {
     "A session that stops shows as ended (it ended cleanly; endReason says why, when the",
     "  harness says) or gone (it did not). list and watch leave both out unless --all; watch",
     "  reports the end of a session it was showing. Their records are removed 24 hours later.",
-    "All output is JSON on stdout with \"schema\": 1. Errors are JSON too. Exit codes:",
+    `All output is JSON on stdout with "schema": ${SCHEMA_VERSION}. Errors are JSON too. Exit codes:`,
     "  0 ok, 1 internal error, 2 usage, 3 session not found, 4 message not delivered,",
     "  5 not inside a session, 6 more than one session matches.",
     "porch launch prints nothing of its own once the harness has started: the output and",
