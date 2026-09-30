@@ -94,6 +94,11 @@ export const CASES: ConformanceCase[] = [
       check(inside.session === s.id && inside.harness === c.adapter.harness, `current() inside the session returned ${JSON.stringify(inside)}, expected ${s.id}`);
       const outside = await c.adapter.current(c.porch.ctx);
       check(outside === null, `current() outside any session returned ${JSON.stringify(outside)}, expected null`);
+      // A session with the inside part is attached, so the default list shows it.
+      const listed = await waitFor(`session ${s.id} in the default list`, c.driver.timeouts.changeMs, async () =>
+        (await c.porch.list()).sessions.find((o) => o.session === s.id),
+      );
+      check(listed.attached === true, `the default list showed the session with the inside part as not attached`);
       await c.snapshot("started");
     },
   },
@@ -172,10 +177,17 @@ export const CASES: ConformanceCase[] = [
     async run(c) {
       requireSupport(c.driver.supports.withoutInside, "the driver cannot start a session without the inside part");
       const s = await c.driver.startWithoutInside();
-      const obs = await waitFor(`session ${s.id} to be listed`, c.driver.timeouts.changeMs, async () =>
-        (await c.porch.list()).sessions.find((o) => o.session === s.id),
+      // Only `list --all` shows it: the default list is the sessions Porch is attached to.
+      const obs = await waitFor(`session ${s.id} to be listed by list --all`, c.driver.timeouts.changeMs, async () =>
+        (await c.porch.list(undefined, { all: true })).sessions.find((o) => o.session === s.id),
       );
+      check(obs.attached === false, `list --all showed the session without the inside part as attached`);
       check(obs.status !== "gone", `a running session without the inside part showed as gone`);
+      const plain = (await c.porch.list()).sessions.find((o) => o.session === s.id);
+      check(plain === undefined, `the default list showed a session without the inside part (${JSON.stringify(plain?.status)})`);
+      // Named explicitly, it is still observed and delivered to.
+      const observed = await c.porch.observe(s.id);
+      check(observed.attached === false && observed.status !== "gone", `observe showed ${observed.status}, attached ${observed.attached}`);
       await c.snapshot("listed");
       const text = uniqueText("no-inside");
       const r = await c.porch.deliver(s.id, text, { from: c.from });

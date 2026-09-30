@@ -4,7 +4,7 @@
   "harnessVersion": "fake-1",
   "porchVersion": "0.1.0",
   "platform": "darwin-arm64 node v22.14.0",
-  "ranAt": "2026-09-30T08:42:23.728Z",
+  "ranAt": "2026-09-30T10:29:54.946Z",
   "passed": true,
   "results": [
     {
@@ -12,14 +12,14 @@
       "title": "which session am I",
       "result": "pass",
       "reason": null,
-      "durationMs": 8
+      "durationMs": 9
     },
     {
       "name": "deliver-while-idle",
       "title": "deliver while idle",
       "result": "pass",
       "reason": null,
-      "durationMs": 6
+      "durationMs": 7
     },
     {
       "name": "deliver-while-busy",
@@ -33,14 +33,14 @@
       "title": "held at a prompt or dialog",
       "result": "pass",
       "reason": null,
-      "durationMs": 7
+      "durationMs": 6
     },
     {
       "name": "killed-session",
       "title": "a killed session",
       "result": "pass",
       "reason": null,
-      "durationMs": 6
+      "durationMs": 5
     },
     {
       "name": "without-inside-part",
@@ -54,35 +54,35 @@
       "title": "watch delivers each change",
       "result": "pass",
       "reason": null,
-      "durationMs": 733
+      "durationMs": 769
     },
     {
       "name": "self-reported-state",
       "title": "self-reported state",
       "result": "pass",
       "reason": null,
-      "durationMs": 9
+      "durationMs": 28
     },
     {
       "name": "launch-background",
       "title": "a background session started through porch launch",
       "result": "pass",
       "reason": null,
-      "durationMs": 114
+      "durationMs": 263
     },
     {
       "name": "launch-interactive",
       "title": "an interactive session started through porch launch",
       "result": "pass",
       "reason": null,
-      "durationMs": 2245
+      "durationMs": 2272
     },
     {
       "name": "unknown-session",
       "title": "a session that does not exist",
       "result": "pass",
       "reason": null,
-      "durationMs": 2
+      "durationMs": 3
     }
   ]
 }

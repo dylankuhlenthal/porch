@@ -113,7 +113,11 @@ export interface Adapter {
   /** Is the harness installed here? May be slow (runs the harness); `list` must not depend on it. */
   detect(ctx: AdapterContext): Promise<DetectResult>;
 
-  /** Every session this adapter can see. Must be fast: consumers call `porch list` every few seconds. */
+  /**
+   * Every session this adapter can see, attached or not, each with `attached` set.
+   * The core leaves out the unattached ones unless the caller asks for them
+   * (`porch list --all`). Must be fast: consumers call `porch list` every few seconds.
+   */
   list(ctx: AdapterContext): Promise<Observation[]>;
 
   /** One session, or null when this adapter does not know it. */
@@ -158,6 +162,8 @@ export interface Adapter {
 export function observation(fields: {
   harness: string;
   session: string;
+  /** Whether Porch's inside part runs in the session. Required: every adapter must decide it. */
+  attached: boolean;
   status: SessionStatus;
   since?: string | null;
   detail?: Record<string, unknown> | null;
@@ -168,6 +174,7 @@ export function observation(fields: {
     schema: SCHEMA_VERSION,
     harness: fields.harness,
     session: fields.session,
+    attached: fields.attached,
     status: fields.status,
     since: fields.since ?? null,
     detail: fields.detail ?? null,

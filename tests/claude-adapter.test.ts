@@ -99,8 +99,9 @@ describe("Claude Code adapter: status", () => {
     await hook(porch.ctx, "UserPromptSubmit", { prompt: "hi" });
     const obs = await porch.observe(SID);
     v.observation!(obs);
-    expect(obs).toMatchObject({ harness: "claude", session: SID, status: "busy", since: "2026-09-29T16:00:00.000Z" });
+    expect(obs).toMatchObject({ harness: "claude", session: SID, attached: true, status: "busy", since: "2026-09-29T16:00:00.000Z" });
     expect(obs.detail).toMatchObject({ pid: 4242, shortId: SHORT, statusSource: "hooks", hasInsidePart: true, lastTurnStart: "2026-09-29T16:00:00.000Z" });
+    expect((await porch.list()).sessions.map((o) => o.session)).toEqual([SID]);
     expect(obs.detail).not.toHaveProperty("recordStatus");
   });
 
@@ -145,13 +146,16 @@ describe("Claude Code adapter: status", () => {
     await porch.ctx.records.setSelf("claude", SID, { status: "working", text: null, since: "2026-09-29T15:00:00.000Z" });
     const obs = await porch.observe(SID);
     v.observation!(obs);
-    expect(obs).toMatchObject({ status: "idle", since: null, self: { status: "working" } });
+    // The record is from another process, so the listed one is not attached: only list --all shows it.
+    expect(obs).toMatchObject({ attached: false, status: "idle", since: null, self: { status: "working" } });
+    expect((await porch.list()).sessions).toEqual([]);
+    expect((await porch.list(undefined, { all: true })).sessions.map((o) => o.session)).toEqual([SID]);
     expect(obs.detail).toMatchObject({ pid: 4242, recordPid: 111, statusSource: "listing", hasInsidePart: true, lastTurnStart: "2026-09-29T16:00:00.000Z" });
     expect(obs.detail).not.toHaveProperty("recordStatus");
     // Same pid: the record's status is used, and there is no recordPid.
     const same = porchWith(stubIO([row({ status: "busy", pid: 111 })]), env);
     const obs2 = await same.observe(SID);
-    expect(obs2).toMatchObject({ status: "busy" });
+    expect(obs2).toMatchObject({ attached: true, status: "busy" });
     expect(obs2.detail).toMatchObject({ statusSource: "hooks" });
     expect(obs2.detail).not.toHaveProperty("recordPid");
   });
@@ -183,16 +187,27 @@ describe("Claude Code adapter: status", () => {
   it("shows a record whose session is not in the listing at all as gone", async () => {
     const porch = porchWith(stubIO([]));
     await hook(porch.ctx, "SessionStart", { source: "startup" });
+    // Still attached: the hooks wrote its record. A left-behind record keeps showing by default.
     const list = await porch.list();
-    expect(list.sessions.map((o) => [o.session, o.status])).toEqual([[SID, "gone"]]);
+    expect(list.sessions.map((o) => [o.session, o.attached, o.status])).toEqual([[SID, true, "gone"]]);
   });
 
-  it("gives a session without Porch's hooks the listing's own busy or idle, marked as such", async () => {
+  it("gives a session without Porch's hooks the listing's own busy or idle, marked as such, shown only by list --all", async () => {
     const porch = porchWith(stubIO([row({ status: "busy" }), row({ id: "06bb8fe1", sessionId: OTHER, status: "starting?" })]));
-    const [a, b] = (await porch.list()).sessions;
-    expect(a).toMatchObject({ session: OTHER, status: "unknown" });
-    expect(b).toMatchObject({ session: SID, status: "busy", since: null });
+    const [a, b] = (await porch.list(undefined, { all: true })).sessions;
+    expect(a).toMatchObject({ session: OTHER, attached: false, status: "unknown" });
+    expect(b).toMatchObject({ session: SID, attached: false, status: "busy", since: null });
     expect(b!.detail).toMatchObject({ hasInsidePart: false, statusSource: "listing" });
+    expect((await porch.list()).sessions).toEqual([]);
+    // Named explicitly, an unattached session is still observed.
+    expect(await porch.observe(SID)).toMatchObject({ session: SID, attached: false, status: "busy" });
+  });
+
+  it("a record holding only a self part (porch status set) does not make a session attached", async () => {
+    const porch = porchWith(stubIO([row({ status: "idle" })]));
+    await porch.ctx.records.setSelf("claude", SID, { status: "working", text: null, since: "2026-09-29T15:00:00.000Z" });
+    expect(await porch.observe(SID)).toMatchObject({ attached: false, status: "idle", self: { status: "working" } });
+    expect((await porch.list()).sessions).toEqual([]);
   });
 
   it("finds a session by its short id and reports it under the full id", async () => {
@@ -282,7 +297,7 @@ describe("Claude Code adapter: status", () => {
   it("can be limited to sessions under one folder (for conformance runs)", async () => {
     const io = stubIO([row({ cwd: "/work/a/b" }), row({ id: "06bb8fe1", sessionId: OTHER, cwd: "/work/ab" })]);
     const porch = porchWith(io, scratchEnv(), { onlyUnder: () => "/work/a" });
-    expect((await porch.list()).sessions.map((o) => o.session)).toEqual([SID]);
+    expect((await porch.list(undefined, { all: true })).sessions.map((o) => o.session)).toEqual([SID]);
     expect(isUnder("/work/a", "/work/a")).toBe(true);
     expect(isUnder("/work/ab", "/work/a")).toBe(false);
     expect(isUnder(null, "/work/a")).toBe(false);

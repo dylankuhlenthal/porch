@@ -15,7 +15,7 @@ import { stubAdapter } from "./stub-adapter.js";
 
 const v = schemaValidators();
 
-function startWatch(porch: Porch, options: { session?: string } = {}) {
+function startWatch(porch: Porch, options: { session?: string; all?: boolean } = {}) {
   const seen: Observation[] = [];
   const errors: unknown[] = [];
   const controller = new AbortController();
@@ -61,7 +61,7 @@ describe("watch", () => {
   });
 
   it("reports a session that disappears from its adapter's listing once, as gone", async () => {
-    let sessions = [observation({ harness: "aa", session: "x", status: "busy" })];
+    let sessions = [observation({ harness: "aa", session: "x", attached: true, status: "busy" })];
     const adapter = stubAdapter("aa", { list: async () => sessions, capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 } });
     const porch = new Porch({ env: scratchEnv(), adapters: [adapter] });
     const w = startWatch(porch);
@@ -70,7 +70,7 @@ describe("watch", () => {
     await waitFor(() => w.statuses().includes("x:gone"));
     await new Promise((r) => setTimeout(r, 100));
     // It is forgotten once reported, so coming back is reported as new.
-    sessions = [observation({ harness: "aa", session: "x", status: "idle" })];
+    sessions = [observation({ harness: "aa", session: "x", attached: true, status: "idle" })];
     await waitFor(() => w.statuses().includes("x:idle"));
     await w.stop();
     expect(w.statuses()).toEqual(["x:busy", "x:gone", "x:idle"]);
@@ -81,7 +81,7 @@ describe("watch", () => {
 
   it("does not print a second gone when a session already reported gone leaves the listing", async () => {
     // For example a crashed session (gone, record left behind) whose record is later cleaned up.
-    let sessions = [observation({ harness: "aa", session: "x", status: "gone", since: "2026-01-01T00:00:00.000Z" })];
+    let sessions = [observation({ harness: "aa", session: "x", attached: true, status: "gone", since: "2026-01-01T00:00:00.000Z" })];
     let looks = 0;
     const adapter = stubAdapter("aa", {
       list: async () => (looks++, sessions),
@@ -100,7 +100,7 @@ describe("watch", () => {
   it("does not report sessions as gone when their adapter's listing fails, and reports the error", async () => {
     let fail = false;
     const adapter = stubAdapter("aa", {
-      list: async () => (fail ? Promise.reject(new Error("listing broke")) : [observation({ harness: "aa", session: "x", status: "idle" })]),
+      list: async () => (fail ? Promise.reject(new Error("listing broke")) : [observation({ harness: "aa", session: "x", attached: true, status: "idle" })]),
       capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
     });
     const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }));
@@ -114,16 +114,65 @@ describe("watch", () => {
   it("ignores changes only in raw", async () => {
     let n = 0;
     const adapter = stubAdapter("aa", {
-      list: async () => [observation({ harness: "aa", session: "x", status: "idle", raw: { n: n++ } })],
+      list: async () => [observation({ harness: "aa", session: "x", attached: true, status: "idle", raw: { n: n++ } })],
       capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
     });
     const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }));
     await waitFor(() => n > 5);
     await w.stop();
     expect(w.statuses()).toEqual(["x:idle"]);
-    expect(comparisonKey(observation({ harness: "a", session: "b", status: "idle", detail: { y: 1, x: 2 } }))).toBe(
-      comparisonKey(observation({ harness: "a", session: "b", status: "idle", detail: { x: 2, y: 1 } })),
+    expect(comparisonKey(observation({ harness: "a", session: "b", attached: true, status: "idle", detail: { y: 1, x: 2 } }))).toBe(
+      comparisonKey(observation({ harness: "a", session: "b", attached: true, status: "idle", detail: { x: 2, y: 1 } })),
     );
+  });
+
+  it("reports only attached sessions by default, and unattached ones too with --all", async () => {
+    const list = async () => [
+      observation({ harness: "aa", session: "in", attached: true, status: "idle" }),
+      observation({ harness: "aa", session: "out", attached: false, status: "busy" }),
+    ];
+    const adapter = stubAdapter("aa", { list, capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 } });
+    const plain = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }));
+    const all = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }), { all: true });
+    await waitFor(() => all.statuses().length === 2 && plain.statuses().length === 1);
+    await new Promise((r) => setTimeout(r, 100));
+    await plain.stop();
+    await all.stop();
+    expect(plain.statuses()).toEqual(["in:idle"]);
+    expect(all.statuses()).toEqual(["in:idle", "out:busy"]);
+    expect(all.seen[1]).toMatchObject({ attached: false });
+  });
+
+  it("with --session, follows a named session that is not attached, as observe does", async () => {
+    let status: Observation["status"] = "idle";
+    const adapter = stubAdapter("aa", {
+      list: async () => [observation({ harness: "aa", session: "out", attached: false, status })],
+      capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
+    });
+    const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }), { session: "out" });
+    await waitFor(() => w.statuses().includes("out:idle"));
+    status = "busy";
+    await waitFor(() => w.statuses().includes("out:busy"));
+    await w.stop();
+    expect(w.statuses()).toEqual(["out:idle", "out:busy"]);
+  });
+
+  it("keeps following a reported session that stops counting as attached, instead of reporting it gone", async () => {
+    // A Claude session resumed without the hooks: still running, but its record is from the old process.
+    let attached = true;
+    let status: Observation["status"] = "idle";
+    const adapter = stubAdapter("aa", {
+      list: async () => [observation({ harness: "aa", session: "x", attached, status })],
+      capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
+    });
+    const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }));
+    await waitFor(() => w.statuses().includes("x:idle"));
+    attached = false;
+    await waitFor(() => w.seen.some((o) => o.attached === false));
+    status = "busy";
+    await waitFor(() => w.statuses().includes("x:busy"));
+    await w.stop();
+    expect(w.statuses()).toEqual(["x:idle", "x:idle", "x:busy"]);
   });
 
   it("watches one session only with --session", async () => {
@@ -142,7 +191,7 @@ describe("watch", () => {
     let status: Observation["status"] = "idle";
     let observed = 0;
     const adapter = stubAdapter("aa", {
-      list: async () => [observation({ harness: "aa", session: full, status }), observation({ harness: "aa", session: "other", status: "busy" })],
+      list: async () => [observation({ harness: "aa", session: full, attached: true, status }), observation({ harness: "aa", session: "other", attached: true, status: "busy" })],
       sessionIdIn: (id, obs) => (id === "5b0e750e" ? (obs.find((o) => o.session === full)?.session ?? null) : null),
       observe: async () => (observed++, null),
       capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
@@ -160,7 +209,7 @@ describe("watch", () => {
     let looks = 0;
     let observed = 0;
     const adapter = stubAdapter("aa", {
-      list: async () => (looks++, [observation({ harness: "aa", session: "other", status: "busy" })]),
+      list: async () => (looks++, [observation({ harness: "aa", session: "other", attached: true, status: "busy" })]),
       sessionIdIn: () => {
         throw new Error("lookup broke");
       },

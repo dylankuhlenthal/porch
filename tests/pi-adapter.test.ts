@@ -111,7 +111,16 @@ describe("pi adapter: status", () => {
       ["s-b", "busy", "2026-09-30T10:00:30.000Z"],
     ]);
     expect(sessions[0]!.detail).toMatchObject({ pid: 100, mode: "tui", hasInsidePart: true, prompt: null });
+    expect(sessions.every((o) => o.attached)).toBe(true);
     for (const o of sessions) v.observation!(o);
+  });
+
+  it("does not count a record holding only a self part (no extension) as attached", async () => {
+    const porch = porchWith(scratchEnv(), psIO({}).io);
+    await porch.ctx.records.setSelf("pi", "s-self", { status: "working", text: null, since: started });
+    expect((await porch.list()).sessions).toEqual([]);
+    expect((await porch.list(undefined, { all: true })).sessions).toMatchObject([{ session: "s-self", attached: false, status: "unknown" }]);
+    expect(await porch.observe("s-self")).toMatchObject({ attached: false });
   });
 
   it("shows gone when the process is not running, or its pid now belongs to a process that started later", async () => {

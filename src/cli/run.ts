@@ -42,9 +42,11 @@ export interface CliOptions {
 }
 
 const CORE_USAGE = [
-  "porch list [--harness <h>]                          every session Porch can see",
-  "porch observe <session> [--harness <h>]             one session's state",
-  "porch watch [--session <id>] [--harness <h>]        one JSON line per change, until stopped",
+  "porch list [--all] [--harness <h>]                  the sessions Porch is attached to",
+  "                                                    (--all: also sessions without Porch's inside part)",
+  "porch observe <session> [--harness <h>]             one session's state, attached or not",
+  "porch watch [--all] [--session <id>] [--harness <h>]",
+  "                                                    one JSON line per change, until stopped",
   "porch deliver <session> --from <label> [--harness <h>] (<text...> | -)",
   "                                                    send a message (- reads it from stdin)",
   "porch current                                       the session this command runs in",
@@ -100,6 +102,9 @@ function helpText(adapters: Adapter[]): string {
     ...CORE_USAGE.map((l) => `  ${l}`),
     ...(extra.length > 0 ? ["", "Harness commands:", ...extra.map((l) => `  ${l}`)] : []),
     "",
+    "Attached sessions are ones with Porch's inside part (started with porch launch, or given",
+    "  Porch's hooks or extension). observe, deliver and watch --session also work on an",
+    "  unattached session when it is named. Every session in the output says \"attached\".",
     "All output is JSON on stdout with \"schema\": 1. Errors are JSON too. Exit codes:",
     "  0 ok, 1 internal error, 2 usage, 3 session not found, 4 message not delivered,",
     "  5 not inside a session, 6 more than one session matches.",
@@ -156,9 +161,9 @@ export async function runCli(argv: string[], io: CliIO, options: CliOptions = {}
         out({ schema: SCHEMA_VERSION, version: version() });
         return EXIT.ok;
       case "list": {
-        const { values, positionals } = parse(args, { harness: { type: "string" } });
-        noPositionals(positionals, "porch list [--harness <h>]");
-        out(await porch.list(values.harness as string | undefined));
+        const { values, positionals } = parse(args, { harness: { type: "string" }, all: { type: "boolean" } });
+        noPositionals(positionals, "porch list [--all] [--harness <h>]");
+        out(await porch.list(values.harness as string | undefined, { all: values.all === true }));
         return EXIT.ok;
       }
       case "observe": {
@@ -198,12 +203,17 @@ export async function runCli(argv: string[], io: CliIO, options: CliOptions = {}
         return EXIT.ok;
       }
       case "watch": {
-        const { values, positionals } = parse(args, { session: { type: "string" }, harness: { type: "string" } });
-        noPositionals(positionals, "porch watch [--session <id>] [--harness <h>]");
+        const { values, positionals } = parse(args, {
+          session: { type: "string" },
+          harness: { type: "string" },
+          all: { type: "boolean" },
+        });
+        noPositionals(positionals, "porch watch [--all] [--session <id>] [--harness <h>]");
         const signal = io.signal ?? new AbortController().signal;
         await porch.watch({
           harness: values.harness as string | undefined,
           session: values.session as string | undefined,
+          all: values.all === true,
           signal,
           onObservation: (obs) => out(obs),
           onError: (harness, err) =>

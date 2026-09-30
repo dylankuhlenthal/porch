@@ -4,12 +4,16 @@
   "title": "Porch observation (schema 1)",
   "description": "Output of porch observe, each element of porch list's sessions, and each line of porch watch.",
   "type": "object",
-  "required": ["schema", "harness", "session", "status", "since", "detail", "raw", "self"],
+  "required": ["schema", "harness", "session", "attached", "status", "since", "detail", "raw", "self"],
   "additionalProperties": false,
   "properties": {
     "schema": { "const": 1 },
     "harness": { "type": "string", "pattern": "^[a-z][a-z0-9]{0,31}$" },
     "session": { "type": "string", "minLength": 1 },
+    "attached": {
+      "description": "Porch's inside part runs in the session (Claude Code: a hook record written by the listed process; Pi: the extension). porch list and porch watch show only attached sessions unless --all is given.",
+      "type": "boolean"
+    },
     "status": { "$ref": "#/$defs/sessionStatus" },
     "since": { "type": ["string", "null"], "format": "date-time" },
     "detail": { "type": ["object", "null"] },

@@ -4,7 +4,7 @@
   "harnessVersion": "0.87.1",
   "porchVersion": "0.1.0",
   "platform": "darwin-arm64 node v22.19.0",
-  "ranAt": "2026-09-30T09:47:27.272Z",
+  "ranAt": "2026-09-30T10:31:07.124Z",
   "passed": true,
   "results": [
     {
@@ -12,35 +12,35 @@
       "title": "which session am I",
       "result": "pass",
       "reason": null,
-      "durationMs": 269
+      "durationMs": 273
     },
     {
       "name": "deliver-while-idle",
       "title": "deliver while idle",
       "result": "pass",
       "reason": null,
-      "durationMs": 3966
+      "durationMs": 2106
     },
     {
       "name": "deliver-while-busy",
       "title": "deliver while busy",
       "result": "pass",
       "reason": null,
-      "durationMs": 24195
+      "durationMs": 24659
     },
     {
       "name": "held-at-prompt",
       "title": "held at a prompt or dialog",
       "result": "pass",
       "reason": null,
-      "durationMs": 430
+      "durationMs": 452
     },
     {
       "name": "killed-session",
       "title": "a killed session",
       "result": "pass",
       "reason": null,
-      "durationMs": 270
+      "durationMs": 269
     },
     {
       "name": "without-inside-part",
@@ -54,28 +54,28 @@
       "title": "watch delivers each change",
       "result": "pass",
       "reason": null,
-      "durationMs": 23085
+      "durationMs": 24138
     },
     {
       "name": "self-reported-state",
       "title": "self-reported state",
       "result": "pass",
       "reason": null,
-      "durationMs": 269
+      "durationMs": 271
     },
     {
       "name": "launch-background",
       "title": "a background session started through porch launch",
       "result": "pass",
       "reason": null,
-      "durationMs": 2971
+      "durationMs": 1618
     },
     {
       "name": "launch-interactive",
       "title": "an interactive session started through porch launch",
       "result": "pass",
       "reason": null,
-      "durationMs": 4088
+      "durationMs": 4090
     },
     {
       "name": "unknown-session",
