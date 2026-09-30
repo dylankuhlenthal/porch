@@ -55,6 +55,8 @@ The record is the only source; `ps` only says whether its process is still runni
 5. The inside part has a status: that status and its `since`.
 6. Otherwise `unknown`.
 
+**Attached.** A session is attached (`attached: true`) when its record has an inside part, that is when Porch's extension wrote it; a record holding only a `self` part is not attached and shows in `porch list` only with `--all`. Pi has no outside listing, so every session Porch can see without `--all` is one the extension recorded, and `--all` adds only such `self`-only records (decision 0012, list and watch show attached sessions).
+
 `detail`:
 
 | Field | Meaning |
@@ -62,7 +64,7 @@ The record is the only source; `ps` only says whether its process is still runni
 | `pid` | Pi's process, from the record |
 | `cwd`, `mode`, `sessionFile` | from the record |
 | `prompt` | while a dialog is open: `{ kind, title }` |
-| `hasInsidePart` | the record has an inside part |
+| `hasInsidePart` | the record has an inside part (the same as `attached`) |
 | `lastTurnStart`, `lastTurnEnd` | from the record (see the events table) |
 
 `raw` is `{ record, ps }`: the record, and the `ps` line for the session's pid as printed (it holds the elapsed time, so it changes on every look; watch ignores `raw`).
@@ -117,7 +119,7 @@ The socket is `<tmp>/porch-<uid>/pi-<pid>.sock`, where `<tmp>` is Pi's temporary
 
 Requirements: Pi installed and logged in to the model's provider (`pi auth check --model openai/gpt-4.1-mini` says ready; otherwise the run is skipped, exit 3), or `OPENAI_API_KEY` set. Real turns cost a little (about half a US cent each with this model; a full run makes about seven).
 
-Last recorded run: Pi 0.87.1 on darwin-arm64 with Node 22.19, 2026-09-30: ten cases passed, and `without-inside-part` was skipped because Pi has no outside listing (`conformance/reports/pi.json`, fixtures in `conformance/fixtures/pi/`).
+Last recorded run: Pi 0.87.1 on darwin-arm64 with Node 22.19, 2026-09-30: ten cases passed, and `without-inside-part` was skipped because Pi has no outside listing (`conformance/reports/pi.json`, fixtures in `conformance/fixtures/pi/`). All fixtures were re-recorded then for TRV-1148 (the `attached` field); `held-at-prompt` was recorded again on its own the same day, because in its first recording the delivered message started a turn between the moment the snapshot copied the session record (idle) and the moment the adapter read it (busy), so that fixture could not replay.
 
 ## Known limits
 

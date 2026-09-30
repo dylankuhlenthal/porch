@@ -17,9 +17,10 @@ Node 22 or later. Installing builds the package, so `node_modules/.bin/porch` is
 ## Use
 
 ```sh
-porch list                                   # every session Porch can see
-porch observe <session>                      # one session's state
-porch watch                                  # one JSON line per change, until stopped
+porch list                                   # the sessions Porch is attached to
+porch list --all                             # also Claude Code sessions started without Porch
+porch observe <session>                      # one session's state, attached or not
+porch watch                                  # one JSON line per change, until stopped (--all as for list)
 porch deliver <session> --from "sous chef" "please look at the PR"
 porch current                                # the session this command runs in
 porch status set needs-input "which branch?" # run inside a session: say what you need
@@ -33,7 +34,7 @@ For Claude Code, give sessions Porch's hooks so it sees busy and idle as they ha
 alias claude='porch launch claude'
 ```
 
-A tool that builds its own settings can instead use `porch hooks claude`, which prints JSON whose `settings` field is what to pass with `claude --settings`. Both are described in [docs/domains/claude-adapter.md](docs/domains/claude-adapter.md). Sessions without the hooks can still be listed and woken, with a coarser status.
+A tool that builds its own settings can instead use `porch hooks claude`, which prints JSON whose `settings` field is what to pass with `claude --settings`. Both are described in [docs/domains/claude-adapter.md](docs/domains/claude-adapter.md). `porch list` and `porch watch` show only sessions Porch is attached to: ones with its hooks (or, for Pi, its extension). A Claude Code session without the hooks shows only with `--all`, marked `"attached": false`, with a coarser status taken from Claude Code's own listing; it can still be observed and woken by naming it.
 
 For Pi, Porch's inside part is a Pi extension, loaded for one session with `pi -e`. Start Pi with `porch launch pi` (or `alias pi='porch launch pi'`), or pass the arguments `porch extension pi` prints. Porch installs nothing into Pi's own folders. Pi has no list of its sessions that Porch could read, so a Pi session started without the extension is invisible to Porch. See [docs/domains/pi-adapter.md](docs/domains/pi-adapter.md).
 

@@ -31,6 +31,8 @@ In order (`fakeObservation` in `observe.ts`):
 3. The record's inside part has a status: that status and its `since`.
 4. Otherwise (a session without the inside part): `unknown`.
 
+A session is attached (`attached: true`) when its record has an inside part, so a session started with `porch fake start <s> --no-inside` shows in `porch list` only with `--all`.
+
 `detail` has `pid`, `prompt`, `hasInsidePart`, `lastTurnStart`, `lastTurnEnd` and `backgroundTasks`. `raw` has the harness file row and the record.
 
 ## Launching: `porch launch fake` and `porch fake run`
