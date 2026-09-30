@@ -281,6 +281,30 @@ describe("watch", () => {
     lines().forEach((o) => v.observation!(o));
   });
 
+  it("runs as `porch watch --all`, printing sessions without the inside part too, which plain `porch watch` leaves out", async () => {
+    const env = scratchEnv();
+    await bin(["fake", "start", "in1"], env);
+    await bin(["fake", "start", "bare1", "--no-inside"], env);
+    const run = async (args: string[]) => {
+      const child = spawn(process.execPath, [BIN, "watch", ...args], { env: env as NodeJS.ProcessEnv });
+      let out = "";
+      child.stdout.on("data", (d) => (out += d));
+      const lines = () => out.split("\n").filter(Boolean).map((l) => JSON.parse(l) as Observation);
+      const exit = new Promise<number | null>((resolve) => child.on("close", resolve));
+      await waitFor(() => lines().some((o) => o.session === "in1"));
+      // Give an unattached session time to show up if it were going to.
+      await new Promise((r) => setTimeout(r, 300));
+      child.kill("SIGTERM");
+      expect(await exit).toBe(0);
+      return lines().map((o) => [o.session, o.attached]);
+    };
+    expect(await run([])).toEqual([["in1", true]]);
+    expect((await run(["--all"])).sort()).toEqual([
+      ["bare1", false],
+      ["in1", true],
+    ]);
+  });
+
   it("exits 0 when the reader closes its stdout", async () => {
     const env = scratchEnv();
     await bin(["fake", "start", "p1"], env);
