@@ -42,6 +42,12 @@ export interface HarnessDriver {
     /** The driver can start a session without the adapter's inside part. */
     withoutInside: boolean;
   };
+  /**
+   * The `endReason` the harness gives, and the adapter reports, when a session ends
+   * the way `stop` ends it and the way `exitInteractive` ends it (null: the harness
+   * gives no reason). The `ended-cleanly` and `launch-interactive` cases check them.
+   */
+  readonly endReasons: { stop: string | null; exitInteractive: string | null };
   readonly timeouts: {
     /** How long a state change (start, busy, idle, gone) may take to show. */
     changeMs: number;
@@ -71,7 +77,7 @@ export interface HarnessDriver {
   envInside(session: DriverSession): Env;
   /** Every message the session has received from outside so far, as text. */
   received(session: DriverSession): Promise<string[]>;
-  /** End the session cleanly. */
+  /** End the session cleanly, the way a tool stops a session (its end hook or shutdown handler runs). */
   stop(session: DriverSession): Promise<void>;
 
   // Launch cases: used only when the adapter can launch (`capabilities.launch`).

@@ -151,6 +151,9 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
       }
       const { id, row, rec } = found;
       const obs = await observeOne(ctx, id, row, rec);
+      if (obs.status === "ended") {
+        return deliverResult({ harness: CLAUDE_HARNESS, session: id, result: "not-running", reason: "the session has ended" });
+      }
       if (obs.status === "gone" || row === null || row.pid === null) {
         return deliverResult({
           harness: CLAUDE_HARNESS,

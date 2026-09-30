@@ -19,9 +19,9 @@ Node 22 or later. Installing builds the package, so `node_modules/.bin/porch` is
 ## Use
 
 ```sh
-porch list                                   # the sessions Porch is attached to
-porch list --all                             # also Claude Code sessions started without Porch
-porch observe <session>                      # one session's state, attached or not
+porch list                                   # the running sessions Porch is attached to
+porch list --all                             # also ones that ended or died, and Claude Code sessions started without Porch
+porch observe <session>                      # one session's state, attached or not, running or not
 porch watch                                  # one JSON line per change, until stopped (--all as for list)
 porch deliver <session> --from "sous chef" "please look at the PR"
 porch current                                # the session this command runs in
@@ -40,7 +40,9 @@ A tool that builds its own settings can instead use `porch hooks claude`, which 
 
 For Pi, Porch's inside part is a Pi extension, loaded for one session with `pi -e`. Start Pi with `porch launch pi` (or `alias pi='porch launch pi'`), or pass the arguments `porch extension pi` prints. Porch installs nothing into Pi's own folders. Pi has no list of its sessions that Porch could read, so a Pi session started without the extension is invisible to Porch. See [docs/domains/pi-adapter.md](docs/domains/pi-adapter.md).
 
-`porch --help` lists every command, including the harness commands. All output is JSON with `"schema": 1`; errors are JSON too, with documented exit codes. Session records live in `~/.porch/sessions/` (set `PORCH_HOME` to move them).
+A session that stops shows as `ended` when it ended cleanly (with `endReason`, why, where the harness says) and `gone` when it did not (a crash, `kill -9`). `porch list` and `porch watch` leave both out unless given `--all`, though `watch` reports the end of a session it was showing; `porch observe` still answers for them. Their records are removed 24 hours later.
+
+`porch --help` lists every command, including the harness commands. All output is JSON with `"schema": 2`; errors are JSON too, with documented exit codes. Session records live in `~/.porch/sessions/` (set `PORCH_HOME` to move them).
 
 ## Docs
 

@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/launch-plan.schema.json",
-  "title": "Porch launch --dry-run output (schema 1)",
+  "title": "Porch launch --dry-run output (schema 2)",
   "description": "What porch launch would run: the harness program and every argument, including what the adapter added to attach Porch's inside part.",
   "type": "object",
   "required": ["schema", "harness", "command", "args"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "harness": { "type": "string" },
     "command": { "type": "string", "minLength": 1 },
     "args": { "type": "array", "items": { "type": "string" } }

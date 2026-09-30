@@ -53,7 +53,11 @@ export function createPiAdapter(options: PiAdapterOptions = {}): Adapter {
   };
 
   const observeAll = async (ctx: AdapterContext, recs: SessionRecord[]): Promise<Observation[]> => {
-    const pids = recs.map((r) => r.inside?.pid).filter((p): p is number => typeof p === "number");
+    // An ended session needs no `ps`: the record already says it is not running.
+    const pids = recs
+      .filter((r) => r.inside?.status !== "ended")
+      .map((r) => r.inside?.pid)
+      .filter((p): p is number => typeof p === "number");
     const table = await readProcesses(ctx, pids);
     return recs.map((r) => piObservation(r.session, r, table));
   };
@@ -96,12 +100,17 @@ export function createPiAdapter(options: PiAdapterOptions = {}): Adapter {
 
     async deliver(ctx, session, text): Promise<DeliverResult> {
       const obs = await adapter.observe(ctx, session);
-      if (obs === null || obs.status === "gone") {
+      if (obs === null || obs.status === "gone" || obs.status === "ended") {
         return deliverResult({
           harness: PI_HARNESS,
           session,
           result: "not-running",
-          reason: obs === null ? "Porch has no record of this Pi session" : "the session's Pi process is not running",
+          reason:
+            obs === null
+              ? "Porch has no record of this Pi session"
+              : obs.status === "ended"
+                ? "the session has ended"
+                : "the session's Pi process is not running",
         });
       }
       const rec = (obs.raw as { record: SessionRecord }).record;

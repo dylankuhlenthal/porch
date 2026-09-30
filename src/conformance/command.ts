@@ -23,6 +23,7 @@ import { Porch } from "../porch.js";
 import type { DriverEntry } from "./drivers/index.js";
 import { fixturePath, reportPath } from "./paths.js";
 import { runConformance } from "./runner.js";
+import { SCHEMA_VERSION } from "../types.js";
 
 export const CONFORMANCE_EXIT = { passed: 0, failed: 1, usage: 2, skipped: 3 } as const;
 
@@ -58,7 +59,7 @@ export async function conformanceCommand(argv: string[], io: ConformanceCommandI
   }
   const missing = entry.requiredEnv.filter((k) => !io.env[k]);
   if (missing.length > 0) {
-    io.stdout(JSON.stringify({ schema: 1, harness, skipped: `not set: ${missing.join(", ")}` }) + "\n");
+    io.stdout(JSON.stringify({ schema: SCHEMA_VERSION, harness, skipped: `not set: ${missing.join(", ")}` }) + "\n");
     return CONFORMANCE_EXIT.skipped;
   }
   const adapter = entry.adapter();
@@ -82,7 +83,7 @@ export async function conformanceCommand(argv: string[], io: ConformanceCommandI
   // a failure (exit 2), never a skip.
   const unavailable = await entry.unavailableReason?.(baseEnv).catch((err: unknown) => errorMessage(err));
   if (unavailable) {
-    io.stdout(JSON.stringify({ schema: 1, harness, skipped: unavailable }) + "\n");
+    io.stdout(JSON.stringify({ schema: SCHEMA_VERSION, harness, skipped: unavailable }) + "\n");
     return CONFORMANCE_EXIT.skipped;
   }
   let report;

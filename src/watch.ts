@@ -19,10 +19,18 @@
  * line. An adapter whose listing fails keeps its last-reported sessions (no
  * false `gone`) and the error goes to `onError`.
  *
- * Without `all`, only sessions Porch is attached to are reported (a session already
- * reported keeps being followed if it stops counting as attached, so it is not
- * reported gone while it still runs). With `session`, the named session is followed
- * whether attached or not, as `observe` does for a named session.
+ * Without `all`, only running sessions Porch is attached to are reported (a session
+ * already reported keeps being followed if it stops counting as attached, so it is not
+ * reported gone while it still runs). A session it has reported that then ends or
+ * goes is reported once as `ended` or `gone` and then forgotten; one that is already
+ * ended or gone when first seen is not reported. With `all`, every session is, and
+ * one that leaves the listing after it was reported as ended or gone (its record
+ * pruned) is forgotten without another line. With `session`, the named session is
+ * followed whether attached or not, running or not, as `observe` does for a named
+ * session.
+ *
+ * Each look also prunes the records it read: ended and gone sessions' records are
+ * removed 24 hours after they stopped (src/prune.ts).
  *
  * With `session`, the id may be any id the adapter's `observe` accepts (a Claude
  * short id too): it is looked up in each look's listing through the adapter's
@@ -33,7 +41,8 @@ import path from "node:path";
 
 import { observation, type Adapter, type AdapterContext } from "./adapter.js";
 import { isHelperFile } from "./fsutil.js";
-import type { Observation } from "./types.js";
+import { pruneStopped } from "./prune.js";
+import { notRunning, shownByDefault, type Observation } from "./types.js";
 
 export interface WatchOptions {
   adapters: Adapter[];
@@ -45,7 +54,10 @@ export interface WatchOptions {
    * short id). Followed whether it is attached or not, as `observe` does for a named session.
    */
   session?: string;
-  /** Also report sessions Porch is not attached to (`attached: false`). Default: attached sessions only. */
+  /**
+   * Also report sessions Porch is not attached to (`attached: false`), and ended and
+   * gone ones. Default: running attached sessions, plus the end of each one reported.
+   */
   all?: boolean;
   onObservation(observation: Observation): void;
   onError?(harness: string, error: unknown): void;
@@ -113,14 +125,17 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
         options.onError?.(adapter.harness, err);
         continue;
       }
+      await pruneStopped(ctx.records, current, ctx.now());
+      const followEnds = options.session === undefined && !options.all;
       if (options.session !== undefined) {
         const id = sessionIdFor(adapter, current);
         current = id === null ? [] : current.filter((o) => o.session === id);
       } else if (!options.all) {
-        // Attached sessions only, plus any already reported: a session that stops
-        // counting as attached (a Claude session resumed without the hooks) is still
-        // running, so it is followed until it leaves the listing rather than reported gone.
-        current = current.filter((o) => o.attached || last.has(`${o.harness}\u0000${o.session}`));
+        // Running attached sessions only, plus any already reported: a session that
+        // stops counting as attached (a Claude session resumed without the hooks) is
+        // still running, so it is followed until it leaves the listing rather than
+        // reported gone, and one that ends or goes is reported once more, below.
+        current = current.filter((o) => shownByDefault(o) || last.has(`${o.harness}\u0000${o.session}`));
       }
       const seen = new Set<string>();
       for (const obs of current) {
@@ -140,16 +155,19 @@ export async function watchSessions(options: WatchOptions): Promise<void> {
           });
           emit(obs);
         }
+        // By default an ended or gone session is reported once, then forgotten: the
+        // next look leaves it out, as it would a session first seen already stopped.
+        if (followEnds && notRunning(obs.status)) last.delete(id);
       }
       for (const [id, prev] of last) {
         if (prev.adapter !== adapter.harness || seen.has(id)) continue;
         // The session left its adapter's listing: report it once as gone, then
         // forget it, so a long-running watch does not keep every session ever seen.
         // When it went and what its detail was are not known, so both are null.
-        // A session already reported as gone (a crash that left its record, later
-        // cleaned up) is forgotten without a second, less informative gone line.
+        // A session already reported as ended or gone (its record later pruned) is
+        // forgotten without a second, less informative gone line.
         last.delete(id);
-        if (prev.status === "gone") continue;
+        if (notRunning(prev.status)) continue;
         emit(observation({ harness: prev.harness, session: prev.session, attached: prev.attached, status: "gone", self: prev.self }));
       }
     }

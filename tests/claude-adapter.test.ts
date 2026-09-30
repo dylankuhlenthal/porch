@@ -184,12 +184,59 @@ describe("Claude Code adapter: status", () => {
     expect(obs.raw).toMatchObject({ job: null });
   });
 
-  it("shows a record whose session is not in the listing at all as gone", async () => {
+  it("shows a record whose session is not in the listing at all as gone, only with list --all", async () => {
     const porch = porchWith(stubIO([]));
     await hook(porch.ctx, "SessionStart", { source: "startup" });
-    // Still attached: the hooks wrote its record. A left-behind record keeps showing by default.
-    const list = await porch.list();
-    expect(list.sessions.map((o) => [o.session, o.attached, o.status])).toEqual([[SID, true, "gone"]]);
+    // Still attached (the hooks wrote its record), but not running: hidden by default.
+    expect((await porch.list()).sessions).toEqual([]);
+    const all = await porch.list(undefined, { all: true });
+    expect(all.sessions.map((o) => [o.session, o.attached, o.status, o.endReason])).toEqual([[SID, true, "gone", null]]);
+    expect(await porch.observe(SID)).toMatchObject({ status: "gone" });
+  });
+
+  it("shows a session whose SessionEnd hook ran as ended, with the hook's reason and when", async () => {
+    const porch = porchWith(stubIO([]));
+    await hook({ ...porch.ctx, env: { ...porch.ctx.env, CLAUDE_JOB_DIR: `/h/.claude/jobs/${SHORT}` } }, "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "SessionEnd", { reason: "prompt_input_exit" });
+    const obs = await porch.observe(SID);
+    v.observation!(obs);
+    expect(obs).toMatchObject({ attached: true, status: "ended", since: "2026-09-29T16:00:00.000Z", endReason: "prompt_input_exit" });
+    expect(obs.detail).toMatchObject({ pid: null, statusSource: "hooks", shortId: SHORT });
+    // The short id still finds it, from the record.
+    expect((await porch.observe(SHORT)).status).toBe("ended");
+    expect((await porch.list()).sessions).toEqual([]);
+    expect((await porch.list(undefined, { all: true })).sessions.map((o) => o.status)).toEqual(["ended"]);
+    expect(await porch.deliver(SID, "hi", { from: "x" })).toMatchObject({ result: "not-running", reason: "the session has ended" });
+  });
+
+  it("shows ended while the ended session's process is still listed (SessionEnd runs before it exits)", async () => {
+    const porch = porchWith(stubIO([row({ pid: 36322, status: "busy" })]));
+    await hook({ ...porch.ctx, env: { ...porch.ctx.env, CLAUDE_PID: "36322" } }, "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "SessionEnd", { reason: "other" });
+    const obs = await porch.observe(SID);
+    expect(obs).toMatchObject({ status: "ended", endReason: "other" });
+    expect(obs.detail).toMatchObject({ pid: null, activity: null });
+    expect((await porch.deliver(SID, "hi", { from: "x" })).result).toBe("not-running");
+  });
+
+  it("lets a running listing row win over an ended record whose pid is not known", async () => {
+    const porch = porchWith(stubIO([row({ pid: 5555, status: "busy" })]));
+    await hook({ ...porch.ctx, env: { ...porch.ctx.env, CLAUDE_PID: undefined, CLAUDE_CODE_MESSAGING_SOCKET: undefined } }, "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "SessionEnd", { reason: "other" });
+    expect((await porch.ctx.records.read("claude", SID))!.inside!.pid).toBeNull();
+    expect(await porch.observe(SID)).toMatchObject({ attached: false, status: "busy", endReason: null });
+    // Not listed any more: the ended record answers.
+    const gone = porchWith(stubIO([]), porch.ctx.env);
+    expect(await gone.observe(SID)).toMatchObject({ status: "ended", endReason: "other" });
+  });
+
+  it("does not use an ended record once a later process of the session is listed (a resume without the hooks)", async () => {
+    const porch = porchWith(stubIO([row({ pid: 5555, status: "busy" })]));
+    await hook({ ...porch.ctx, env: { ...porch.ctx.env, CLAUDE_PID: "36322" } }, "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "SessionEnd", { reason: "other" });
+    const obs = await porch.observe(SID);
+    expect(obs).toMatchObject({ attached: false, status: "busy", endReason: null });
+    expect(obs.detail).toMatchObject({ recordPid: 36322, statusSource: "listing" });
   });
 
   it("gives a session without Porch's hooks the listing's own busy or idle, marked as such, shown only by list --all", async () => {
@@ -529,31 +576,55 @@ describe("Claude Code hooks (the inside part)", () => {
     expect((await readRecord(env))!.inside!.data).toMatchObject({ source: "compact", startedAt: "2026-09-29T16:00:00.000Z" });
   });
 
-  it("keeps the status through a compaction, and SessionEnd removes the record", async () => {
+  it("keeps the status through a compaction, and SessionEnd marks the record ended with the hook's reason", async () => {
     const env = hookEnv();
+    const now = () => new Date("2026-09-29T17:00:00Z");
     const run = (event: string, input: Record<string, unknown> = {}) =>
-      cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+      cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }), now });
     await run("SessionStart", { source: "startup" });
     await run("UserPromptSubmit");
     await run("SessionStart", { source: "compact" });
     expect((await readRecord(env))!.inside!.status).toBe("busy");
-    await run("SessionEnd", { reason: "other" });
-    expect(await readRecord(env)).toBeNull();
+    const r = await run("SessionEnd", { reason: "prompt_input_exit" });
+    expect([r.code, r.stdout, r.stderr]).toEqual([0, "", ""]);
+    const rec = await readRecord(env);
+    v.record!(rec);
+    expect(rec!.inside).toMatchObject({ status: "ended", since: "2026-09-29T17:00:00.000Z", endedAt: "2026-09-29T17:00:00.000Z", endReason: "prompt_input_exit", pid: 36322 });
   });
 
-  it("does not bring back a record after SessionEnd: only SessionStart creates one", async () => {
+  it("records a null end reason when SessionEnd gives none, never a guess", async () => {
     const env = hookEnv();
     const run = (event: string, input: Record<string, unknown> = {}) =>
       cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
     await run("SessionStart", { source: "startup" });
-    await run("SessionEnd", { reason: "other" });
-    for (const event of ["UserPromptSubmit", "Stop", "StopFailure", "PermissionRequest"]) {
+    await run("SessionEnd");
+    expect((await readRecord(env))!.inside).toMatchObject({ status: "ended", endReason: null });
+  });
+
+  it("does not bring back a record, or revive an ended one, after SessionEnd: only SessionStart does", async () => {
+    const env = hookEnv();
+    const run = (event: string, input: Record<string, unknown> = {}) =>
+      cli(["hooks", "claude", "on", event], env, { stdin: JSON.stringify({ session_id: SID, ...input }) });
+    // No record at all (the session started without Porch's hooks): nothing is created.
+    for (const event of ["UserPromptSubmit", "Stop", "StopFailure", "PermissionRequest", "SessionEnd"]) {
       const r = await run(event, { tool_name: "Bash" });
       expect([event, r.code, r.stdout, r.stderr]).toEqual([event, 0, "", ""]);
       expect(await readRecord(env)).toBeNull();
     }
+    await run("SessionStart", { source: "startup" });
+    await run("SessionEnd", { reason: "other" });
+    const ended = await readRecord(env);
+    for (const event of ["UserPromptSubmit", "Stop", "StopFailure", "PermissionRequest", "SessionEnd"]) {
+      const r = await run(event, { tool_name: "Bash", reason: "clear" });
+      expect([event, r.code, r.stdout, r.stderr]).toEqual([event, 0, "", ""]);
+      expect(await readRecord(env)).toEqual(ended);
+    }
+    // A resume (the same session id) starts it again, and how it ended last time goes.
     await run("SessionStart", { source: "resume" });
-    expect((await readRecord(env))!.inside!.status).toBe("idle");
+    const inside = (await readRecord(env))!.inside!;
+    expect(inside.status).toBe("idle");
+    expect(inside).not.toHaveProperty("endedAt");
+    expect(inside).not.toHaveProperty("endReason");
   });
 
   it("a late hook still updates a record that holds only a self part", async () => {

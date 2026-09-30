@@ -48,6 +48,16 @@ describe("fake adapter: status", () => {
     expect((await adapter.observe(ctx, "s1"))?.status).toBe("gone");
   });
 
+  it("reports a session that ended cleanly as ended, with the reason given, and a late status change leaves it ended", async () => {
+    const { ctx, adapter } = setup();
+    await fake.startSession(ctx, "s1");
+    await fake.endSession(ctx, "s1", { reason: "quit" });
+    expect(await adapter.observe(ctx, "s1")).toMatchObject({ status: "ended", endReason: "quit", attached: true });
+    await fake.setInsideStatus(ctx, "s1", "idle");
+    expect((await adapter.observe(ctx, "s1"))?.status).toBe("ended");
+    expect((await adapter.deliver(ctx, "s1", "hi")).result).toBe("not-running");
+  });
+
   it("reports a record with no listing row at all as gone", async () => {
     const { ctx, adapter } = setup();
     await ctx.records.updateInside("fake", "orphan", { status: "busy" });
@@ -105,7 +115,7 @@ describe("fake adapter: deliver", () => {
     await fake.startSession(ctx, "s1", { status: "busy" });
     const r = await adapter.deliver(ctx, "s1", "[from t] hi");
     expect(r).toEqual({
-      schema: 1,
+      schema: 2,
       harness: "fake",
       session: "s1",
       result: "delivered",

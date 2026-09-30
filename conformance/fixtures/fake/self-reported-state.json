@@ -1,33 +1,33 @@
 {
-  "schema": 1,
+  "schema": 2,
   "harness": "fake",
   "harnessVersion": "fake-1",
   "case": "self-reported-state",
-  "recordedAt": "2026-09-30T10:29:52.405Z",
+  "recordedAt": "2026-09-30T12:10:24.912Z",
   "snapshots": [
     {
       "label": "self reported",
-      "at": "2026-09-30T10:29:52.405Z",
+      "at": "2026-09-30T12:10:24.912Z",
       "records": {
-        "fake-conf-1814133c.json": {
-          "schema": 1,
+        "fake-conf-c56f1346.json": {
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-1814133c",
-          "createdAt": "2026-09-30T10:29:52.384Z",
-          "updatedAt": "2026-09-30T10:29:52.402Z",
+          "session": "conf-c56f1346",
+          "createdAt": "2026-09-30T12:10:24.910Z",
+          "updatedAt": "2026-09-30T12:10:24.911Z",
           "inside": {
-            "pid": 63957,
+            "pid": 46851,
             "status": "idle",
             "delivery": {
               "via": "fake",
-              "address": "fake:conf-1814133c"
+              "address": "fake:conf-c56f1346"
             },
-            "since": "2026-09-30T10:29:52.394Z"
+            "since": "2026-09-30T12:10:24.910Z"
           },
           "self": {
             "status": "needs-input",
             "text": "which branch?",
-            "since": "2026-09-30T10:29:52.402Z"
+            "since": "2026-09-30T12:10:24.911Z"
           }
         }
       },
@@ -35,19 +35,20 @@
         {
           "op": "readFile",
           "path": "$PORCH_HOME/fake-harness.json",
-          "result": "{\n  \"sessions\": {\n    \"conf-1814133c\": {\n      \"alive\": true,\n      \"pid\": 63957,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+          "result": "{\n  \"sessions\": {\n    \"conf-c56f1346\": {\n      \"alive\": true,\n      \"pid\": 46851,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
         }
       ],
       "observations": [
         {
-          "schema": 1,
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-1814133c",
+          "session": "conf-c56f1346",
           "attached": true,
           "status": "idle",
-          "since": "2026-09-30T10:29:52.394Z",
+          "since": "2026-09-30T12:10:24.910Z",
+          "endReason": null,
           "detail": {
-            "pid": 63957,
+            "pid": 46851,
             "prompt": null,
             "hasInsidePart": true,
             "lastTurnStart": null,
@@ -57,7 +58,7 @@
           "raw": {
             "listing": {
               "alive": true,
-              "pid": 63957,
+              "pid": 46851,
               "prompt": null,
               "promptSince": null,
               "goneSince": null,
@@ -65,31 +66,31 @@
               "exitCode": null
             },
             "record": {
-              "schema": 1,
+              "schema": 2,
               "harness": "fake",
-              "session": "conf-1814133c",
-              "createdAt": "2026-09-30T10:29:52.384Z",
-              "updatedAt": "2026-09-30T10:29:52.402Z",
+              "session": "conf-c56f1346",
+              "createdAt": "2026-09-30T12:10:24.910Z",
+              "updatedAt": "2026-09-30T12:10:24.911Z",
               "inside": {
-                "pid": 63957,
+                "pid": 46851,
                 "status": "idle",
                 "delivery": {
                   "via": "fake",
-                  "address": "fake:conf-1814133c"
+                  "address": "fake:conf-c56f1346"
                 },
-                "since": "2026-09-30T10:29:52.394Z"
+                "since": "2026-09-30T12:10:24.910Z"
               },
               "self": {
                 "status": "needs-input",
                 "text": "which branch?",
-                "since": "2026-09-30T10:29:52.402Z"
+                "since": "2026-09-30T12:10:24.911Z"
               }
             }
           },
           "self": {
             "status": "needs-input",
             "text": "which branch?",
-            "since": "2026-09-30T10:29:52.402Z"
+            "since": "2026-09-30T12:10:24.911Z"
           }
         }
       ]

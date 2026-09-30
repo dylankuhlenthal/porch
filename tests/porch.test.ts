@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
@@ -8,7 +8,7 @@ import * as fake from "../src/adapters/fake/ops.js";
 import { PorchError } from "../src/errors.js";
 import { porchHome, sessionsDir } from "../src/home.js";
 import { formatMessage, Porch } from "../src/porch.js";
-import { scratchEnv } from "./helpers.js";
+import { scratchEnv, waitFor } from "./helpers.js";
 import { stubAdapter } from "./stub-adapter.js";
 
 async function expectPorchError(p: Promise<unknown>, code: string) {
@@ -117,9 +117,9 @@ describe("Porch.deliver", () => {
 describe("Porch.current and statusSet", () => {
   it("asks every adapter, returns nulls outside a session, and refuses to pick between two claims", async () => {
     const env = scratchEnv();
-    expect(await new Porch({ env, adapters: [stubAdapter("aa")] }).current()).toEqual({ schema: 1, harness: null, session: null });
+    expect(await new Porch({ env, adapters: [stubAdapter("aa")] }).current()).toEqual({ schema: 2, harness: null, session: null });
     const one = new Porch({ env, adapters: [stubAdapter("aa"), stubAdapter("bb", { current: async () => "s2" })] });
-    expect(await one.current()).toEqual({ schema: 1, harness: "bb", session: "s2" });
+    expect(await one.current()).toEqual({ schema: 2, harness: "bb", session: "s2" });
     const two = new Porch({ env, adapters: [stubAdapter("aa", { current: async () => "s1" }), stubAdapter("bb", { current: async () => "s2" })] });
     await expectPorchError(two.current(), "ambiguous-session");
   });
@@ -131,7 +131,7 @@ describe("Porch.current and statusSet", () => {
     await fake.startSession(porch.ctx, "s1", { status: "busy" });
     const result = await porch.statusSet("needs-input", "which branch?");
     expect(result).toEqual({
-      schema: 1,
+      schema: 2,
       harness: "fake",
       session: "s1",
       self: { status: "needs-input", text: "which branch?", since: "2026-02-03T04:05:06.000Z" },
@@ -156,5 +156,110 @@ describe("Porch.current and statusSet", () => {
   it("refuses a session id from the environment that could escape the records folder", async () => {
     const porch = new Porch({ env: scratchEnv({ PORCH_FAKE_SESSION_ID: "../../x" }), adapters: [createFakeAdapter()] });
     await expectPorchError(porch.statusSet("done", null), "usage");
+  });
+});
+
+describe("ended and gone sessions: hidden by default, records pruned 24 hours after they stopped", () => {
+  const T0 = Date.parse("2026-09-30T10:00:00.000Z");
+  const HOUR = 60 * 60 * 1000;
+
+  function porchAt(env = scratchEnv()) {
+    const clock = { t: T0 };
+    const porch = new Porch({ env, adapters: [createFakeAdapter()], now: () => new Date(clock.t) });
+    return { porch, clock };
+  }
+
+  it("list leaves out ended and gone sessions unless --all, and observe and deliver still take them by name", async () => {
+    const { porch } = porchAt();
+    await fake.startSession(porch.ctx, "run");
+    await fake.startSession(porch.ctx, "done");
+    await fake.startSession(porch.ctx, "dead");
+    await fake.endSession(porch.ctx, "done", { reason: "quit" });
+    await fake.killSession(porch.ctx, "dead");
+    expect((await porch.list()).sessions.map((o) => o.session)).toEqual(["run"]);
+    const all = await porch.list(undefined, { all: true });
+    expect(all.sessions.map((o) => [o.session, o.status, o.endReason])).toEqual([
+      ["dead", "gone", null],
+      ["done", "ended", "quit"],
+      ["run", "idle", null],
+    ]);
+    expect(await porch.observe("done")).toMatchObject({ status: "ended", since: new Date(T0).toISOString(), endReason: "quit" });
+    expect((await porch.deliver("done", "hi", { from: "t" })).result).toBe("not-running");
+    expect((await porch.deliver("dead", "hi", { from: "t" })).result).toBe("not-running");
+  });
+
+  it("removes an ended session's record 24 hours after it ended, when list reads the records", async () => {
+    const { porch, clock } = porchAt();
+    await fake.startSession(porch.ctx, "done");
+    await fake.endSession(porch.ctx, "done");
+    clock.t = T0 + 24 * HOUR - 1;
+    await porch.list();
+    expect(await porch.ctx.records.read("fake", "done")).not.toBeNull();
+    clock.t = T0 + 24 * HOUR;
+    // The look that prunes still reports what it read.
+    expect((await porch.list(undefined, { all: true })).sessions.map((o) => o.status)).toEqual(["ended"]);
+    expect(await porch.ctx.records.read("fake", "done")).toBeNull();
+  });
+
+  it("notes when a session is first seen gone and removes its record 24 hours after that, not after its last write", async () => {
+    const { porch, clock } = porchAt();
+    await fake.startSession(porch.ctx, "dead");
+    // Idle for days, then killed: the last write was long ago.
+    clock.t = T0 + 72 * HOUR;
+    await fake.killSession(porch.ctx, "dead");
+    await porch.list();
+    expect((await porch.ctx.records.read("fake", "dead"))!.goneSeenAt).toBe(new Date(T0 + 72 * HOUR).toISOString());
+    clock.t = T0 + 95 * HOUR;
+    await porch.list();
+    expect((await porch.ctx.records.read("fake", "dead"))!.goneSeenAt).toBe(new Date(T0 + 72 * HOUR).toISOString());
+    clock.t = T0 + 96 * HOUR;
+    await porch.list();
+    expect(await porch.ctx.records.read("fake", "dead")).toBeNull();
+  });
+
+  it("removes an ended record without a readable endedAt (edited by hand) by when its status changed", async () => {
+    const { porch, clock } = porchAt();
+    await fake.startSession(porch.ctx, "done");
+    await fake.endSession(porch.ctx, "done");
+    const file = porch.ctx.records.recordPath("fake", "done");
+    const rec = JSON.parse(readFileSync(file, "utf8"));
+    rec.inside.endedAt = "not a time";
+    writeFileSync(file, JSON.stringify(rec));
+    clock.t = T0 + 24 * HOUR;
+    await porch.list();
+    expect(await porch.ctx.records.read("fake", "done")).toBeNull();
+  });
+
+  it("never prunes a session whose status is unknown, or one that is running again", async () => {
+    const { porch, clock } = porchAt();
+    // unknown: the harness has it, but the record has no inside status.
+    await fake.startSession(porch.ctx, "bare", { inside: false });
+    await porch.ctx.records.setSelf("fake", "bare", { status: "working", text: null, since: new Date(T0).toISOString() });
+    await fake.startSession(porch.ctx, "back");
+    await fake.killSession(porch.ctx, "back");
+    await porch.list();
+    // It comes back (a resume with the same id) before the 24 hours are up.
+    clock.t = T0 + HOUR;
+    await fake.startSession(porch.ctx, "back");
+    clock.t = T0 + 48 * HOUR;
+    await porch.list();
+    expect(await porch.ctx.records.read("fake", "bare")).not.toBeNull();
+    expect((await porch.ctx.records.read("fake", "back"))!.inside!.status).toBe("idle");
+  });
+
+  it("watch prunes too", async () => {
+    const env = scratchEnv();
+    const { porch, clock } = porchAt(env);
+    await fake.startSession(porch.ctx, "done");
+    await fake.endSession(porch.ctx, "done");
+    clock.t = T0 + 25 * HOUR;
+    const controller = new AbortController();
+    const seen: string[] = [];
+    const watching = porch.watch({ all: true, signal: controller.signal, onObservation: (o) => seen.push(`${o.session}:${o.status}`) });
+    await waitFor(async () => (await porch.ctx.records.read("fake", "done")) === null);
+    controller.abort();
+    await watching;
+    // Reported as ended by the look that pruned it.
+    expect(seen[0]).toBe("done:ended");
   });
 });

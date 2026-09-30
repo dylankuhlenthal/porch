@@ -13,7 +13,8 @@ Register the adapter in `builtinAdapters()` (`src/adapters/index.ts`) and its dr
 
 ## The inside part
 
-- Write the record only through `RecordStore` (`src/records.ts`): `updateInside(harness, session, patch)` on each event and `remove(harness, session)` when the session ends cleanly. If an event can arrive after the session's end removed the record (Claude Code hooks can), use `updateInsideIfExists` for every event but the session's start, so the late event does not bring back a record nobody will remove. Never write the file yourself, and never touch the `self` part: `porch status set` owns it (decision 0004, Porch writes self-reported state).
+- Write the record only through `RecordStore` (`src/records.ts`): `updateInside(harness, session, patch)` for the session's start, and `updateInsideIfExists` for every other event, so an event that arrives after the session ended (Claude Code hooks can) neither brings back a record nor turns an ended session back into a running one. Never write the file yourself, and never touch the `self` part: `porch status set` owns it (decision 0004, Porch writes self-reported state).
+- When the session ends cleanly, do not remove the record: set `status: "ended"`, `endedAt` (now) and `endReason`, the reason exactly as the harness gives it, or null when it gives none (never a guess) (decision 0013, ended sessions keep their records for a day). `porch list` and `porch watch` remove it 24 hours later. Find out by running it which ways of closing a session skip the harness's end hook, cover each one you can (the Pi extension also marks the session ended on a clean process exit), and list the rest in the adapter's doc: a session closed that way shows as `gone`.
 - Use the shared fields where they fit: `pid`, `status` (`starting`, `busy` or `idle`; `since` is filled in when status changes), `delivery` (`{ via, address }`), `cwd`, `lastTurnStart`, `lastTurnEnd`, `backgroundTasks`. Put anything else in `data`.
 - If the inside part is a set of commands the harness runs (hooks), add them as adapter commands (below), so they run as `porch ...` and get a `CommandContext` whose `adapter.records` is the record store for the right `PORCH_HOME`.
 - Anything the inside part installs is printed or installed only when a person or tool asks (`porch hooks claude`, `porch extension pi`, `porch launch`). Porch changes no harness settings by itself, except in what a launch plan passes to the one session it starts (below).
@@ -39,7 +40,8 @@ Use the `observation()` and `deliverResult()` helpers from `src/adapter.ts`; the
 
 ### Working out status
 
-- Combine the record with the outside listing where the harness has one. The listing decides whether the session is alive: a record without a live session is `gone`, however recently it was written.
+- A record whose inside part says `ended` is `ended`, with `since` its `endedAt` and `endReason` from the record (`observation()` takes `endReason`), even while the harness still shows its process: a process can go on after its session ends (Claude Code's `/clear`, Pi's `/new`) or take a moment to exit. The exception is a later process of the same session that the harness shows running (a Claude Code session resumed without Porch's hooks): that one is running.
+- Otherwise combine the record with the outside listing where the harness has one. The listing decides whether the session is alive: a record without a live session is `gone`, however recently it was written. Say `gone` only once you have confirmed the process is not running, because `porch list` and `porch watch` remove a gone session's record a day after they first see it gone.
 - Use `waiting-on-prompt` only when the harness says the session is held by something only a person can answer.
 - When you cannot tell, say `unknown`. Never turn a missing signal into `idle`.
 - `since` is when the session entered its status, or null when you cannot tell.
@@ -49,7 +51,7 @@ Use the `observation()` and `deliverResult()` helpers from `src/adapter.ts`; the
 
 ### Delivering
 
-- Report only what you can know: `delivered` with `statusAtSend` (the status at the moment of sending), `not-running` when the session is gone or unknown to you, or `failed` with a reason. Never claim the message was read, started a turn or was queued. Why: decision 0001 ([each adapter's inside part writes a per-session record](../decisions/0001-inside-part-writes-session-records.md)) settled that delivery results report only what Porch can know, because Claude Code's socket sends nothing back.
+- Report only what you can know: `delivered` with `statusAtSend` (the status at the moment of sending), `not-running` when the session is ended, gone or unknown to you, or `failed` with a reason. Never claim the message was read, started a turn or was queued. Why: decision 0001 ([each adapter's inside part writes a per-session record](../decisions/0001-inside-part-writes-session-records.md)) settled that delivery results report only what Porch can know, because Claude Code's socket sends nothing back.
 - Set `via` to the mechanism used. Set `guessed: true` when the address was worked out rather than recorded by the session's inside part.
 - Open any connection only when the text is ready, and never use credentials meant for the session itself.
 - Porch keeps no copy of the message; do not add one.

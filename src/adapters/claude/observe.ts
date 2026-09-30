@@ -6,19 +6,26 @@
  * job file only in `detail` and `raw`).
  *
  * Status, in order:
- * 1. no listing row with a pid                 -> gone (a record left behind does not revive it)
- * 2. the listing says "waiting"                -> waiting-on-prompt
- * 3. the record's inside part says busy, was   -> idle (statusSource "listing", detail.recordStatus "busy")
+ * 1. the record's inside part says ended (the  -> ended (statusSource "hooks", with endReason)
+ *    SessionEnd hook ran), unless a later
+ *    process of the session is listed, or a
+ *    process is listed and the record has no pid
+ * 2. no listing row with a pid                 -> gone (a record left behind does not revive it)
+ * 3. the listing says "waiting"                -> waiting-on-prompt
+ * 4. the record's inside part says busy, was   -> idle (statusSource "listing", detail.recordStatus "busy")
  *    written by the listed process, and the
  *    listing says "idle"
- * 4. the record's inside part has a status,   -> that status (statusSource "hooks")
+ * 5. the record's inside part has a status,   -> that status (statusSource "hooks")
  *    and was written by the listed process
- * 5. the listing says "busy" or "idle"         -> that status (statusSource "listing": a session without Porch's
+ * 6. the listing says "busy" or "idle"         -> that status (statusSource "listing": a session without Porch's
  *                                                 hooks, a record without an inside status, or a record from an
  *                                                 earlier process of the session, noted as detail.recordPid)
- * 6. otherwise                                 -> unknown
+ * 7. otherwise                                 -> unknown
  *
- * Rule 3 is there because Claude Code does not run the Stop hook when a turn is
+ * Rule 1 comes first because SessionEnd runs while the process is still listed, and
+ * after `/clear` the same process goes on under a new session id.
+ *
+ * Rule 4 is there because Claude Code does not run the Stop hook when a turn is
  * interrupted, so the record says busy until the next prompt. The listing's idle is
  * trusted over the record's busy, but not its busy over the record's idle: the
  * listing's busy has been seen stale long after a turn ended. No grace period after
@@ -101,20 +108,31 @@ export function claudeObservation(
   const waiting = alive && row.status === "waiting";
   const recordPid = inside?.pid ?? null;
   const otherProcess = alive && recordPid !== null && recordPid !== row.pid;
+  // An ended record whose pid is not known cannot say whether the listed process is
+  // the one that ended or a later one (a resume without the hooks): the running
+  // listing row wins, and the record is treated like one from another process.
+  const endedUnknownPid = alive && inside?.status === "ended" && recordPid === null;
+  const recordOutdated = otherProcess || endedUnknownPid;
   let status: SessionStatus;
   let since: string | null = null;
   let statusSource: "hooks" | "listing" | null = null;
   // The record's status, when it was written by the listed process but the listing's was used instead.
   let recordStatus: SessionStatus | null = null;
-  if (!alive) {
+  let endReason: string | null = null;
+  if (inside?.status === "ended" && !recordOutdated) {
+    status = "ended";
+    since = inside.endedAt ?? inside.since ?? null;
+    endReason = inside.endReason ?? null;
+    statusSource = "hooks";
+  } else if (!alive) {
     status = "gone";
   } else if (waiting) {
     status = "waiting-on-prompt";
-  } else if (inside?.status === "busy" && !otherProcess && row.status === "idle") {
+  } else if (inside?.status === "busy" && !recordOutdated && row.status === "idle") {
     status = "idle";
     statusSource = "listing";
     recordStatus = inside.status;
-  } else if (inside?.status && !otherProcess) {
+  } else if (inside?.status && !recordOutdated) {
     status = inside.status;
     since = inside.since ?? null;
     statusSource = "hooks";
@@ -126,7 +144,8 @@ export function claudeObservation(
   }
   const data = inside?.data ?? {};
   const detail = {
-    pid: alive ? row.pid : null,
+    // An ended session's process may still be listed for a moment while it exits.
+    pid: alive && status !== "ended" ? row.pid : null,
     shortId: row?.id ?? (typeof data.shortId === "string" ? data.shortId : null),
     name: row?.name ?? null,
     cwd: row?.cwd ?? inside?.cwd ?? null,
@@ -138,17 +157,17 @@ export function claudeObservation(
     // listed one, so its status was not used. Left out otherwise, so the committed
     // conformance recordings still replay unchanged.
     ...(otherProcess ? { recordPid } : {}),
-    // Only when the listing's idle was used over the record's busy (rule 3). Left out
+    // Only when the listing's idle was used over the record's busy (rule 4). Left out
     // otherwise, for the same reason as recordPid.
     ...(recordStatus !== null ? { recordStatus } : {}),
     lastTurnStart: inside?.lastTurnStart ?? null,
     lastTurnEnd: inside?.lastTurnEnd ?? null,
     backgroundTasks: inside?.backgroundTasks ?? null,
-    activity: alive ? jobActivity(job) : null,
+    activity: alive && status !== "ended" ? jobActivity(job) : null,
   };
   const raw = { listing: row?.raw ?? null, job, record: rec };
   // Attached: Porch's hooks wrote the record, from the listed process when it runs.
   // A record from an earlier process (a resume without the hooks) does not count.
-  const attached = inside !== null && !otherProcess;
-  return observation({ harness: CLAUDE_HARNESS, session, attached, status, since, detail, raw, self: rec?.self ?? null });
+  const attached = inside !== null && !recordOutdated;
+  return observation({ harness: CLAUDE_HARNESS, session, attached, status, since, endReason, detail, raw, self: rec?.self ?? null });
 }

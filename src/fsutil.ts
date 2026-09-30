@@ -1,6 +1,6 @@
 /** Small file helpers shared by the record store and the fake adapter's state file. */
 import { randomBytes } from "node:crypto";
-import { promises as fs } from "node:fs";
+import { closeSync, openSync, promises as fs, readFileSync, renameSync, statSync, unlinkSync, writeFileSync, writeSync } from "node:fs";
 import path from "node:path";
 
 export class LockTimeoutError extends Error {}
@@ -75,6 +75,81 @@ export async function withLock<T>(file: string, fn: () => Promise<T>, options: L
   }
 }
 
+/**
+ * `withLock` for code that must finish synchronously: a process that is exiting
+ * (Node's `exit` event), where nothing asynchronous runs again. A lock this same
+ * process holds belongs to an asynchronous write that will now never finish, so it is
+ * taken over. A lock another process holds is waited for (a busy wait) at most
+ * `timeoutMs`, and broken on the same stale-lock rules as `withLock`.
+ */
+export function withLockSync<T>(file: string, fn: () => T, options: LockOptions = {}): T {
+  const lock = `${file}.lock`;
+  const timeoutMs = options.timeoutMs ?? 500;
+  const staleMs = options.staleMs ?? 2000;
+  const hardStaleMs = options.hardStaleMs ?? 30000;
+  const token = `${process.pid}:${randomBytes(8).toString("hex")}`;
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      const fd = openSync(lock, "wx", 0o600);
+      try {
+        writeSync(fd, token);
+      } finally {
+        closeSync(fd);
+      }
+      break;
+    } catch (err) {
+      if (!isExists(err)) throw err;
+    }
+    const held = readSync(lock);
+    if (held !== null && Number(held.split(":")[0]) === process.pid) {
+      // Our own unfinished write: it cannot run again, so the lock is ours to take.
+      writeFileSync(lock, token, { mode: 0o600 });
+      break;
+    }
+    if (held !== null && lockIsStaleSync(lock, held, staleMs, hardStaleMs)) {
+      try {
+        unlinkSync(lock);
+      } catch {
+        // gone already: the next attempt finds out
+      }
+      continue;
+    }
+    if (Date.now() > deadline) throw new LockTimeoutError(`timed out waiting for the lock on ${path.basename(file)}`);
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+  }
+  try {
+    return fn();
+  } finally {
+    if (readSync(lock) === token) {
+      try {
+        unlinkSync(lock);
+      } catch {
+        // nothing left to clean
+      }
+    }
+  }
+}
+
+function readSync(file: string): string | null {
+  try {
+    return readFileSync(file, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function lockIsStaleSync(lock: string, held: string, staleMs: number, hardStaleMs: number): boolean {
+  let age: number;
+  try {
+    age = Date.now() - statSync(lock).mtimeMs;
+  } catch {
+    return false;
+  }
+  if (age <= staleMs) return false;
+  return age > hardStaleMs || !processRunning(Number(held.split(":")[0]));
+}
+
 function processRunning(pid: number): boolean {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
@@ -116,6 +191,22 @@ export async function writeAtomic(file: string, contents: string): Promise<void>
     await fs.rename(tmp, file);
   } catch (err) {
     await fs.unlink(tmp).catch(() => undefined);
+    throw err;
+  }
+}
+
+/** `writeAtomic`, synchronously. */
+export function writeAtomicSync(file: string, contents: string): void {
+  const tmp = `${file}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
+  try {
+    writeFileSync(tmp, contents, { mode: 0o600 });
+    renameSync(tmp, file);
+  } catch (err) {
+    try {
+      unlinkSync(tmp);
+    } catch {
+      // never written
+    }
     throw err;
   }
 }

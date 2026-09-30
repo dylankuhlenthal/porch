@@ -42,9 +42,9 @@ export interface CliOptions {
 }
 
 const CORE_USAGE = [
-  "porch list [--all] [--harness <h>]                  the sessions Porch is attached to",
-  "                                                    (--all: also sessions without Porch's inside part)",
-  "porch observe <session> [--harness <h>]             one session's state, attached or not",
+  "porch list [--all] [--harness <h>]                  the running sessions Porch is attached to",
+  "                                                    (--all: also unattached, ended and gone ones)",
+  "porch observe <session> [--harness <h>]             one session's state, attached or not, running or not",
   "porch watch [--all] [--session <id>] [--harness <h>]",
   "                                                    one JSON line per change, until stopped",
   "porch deliver <session> --from <label> [--harness <h>] (<text...> | -)",
@@ -105,7 +105,10 @@ function helpText(adapters: Adapter[]): string {
     "Attached sessions are ones with Porch's inside part (started with porch launch, or given",
     "  Porch's hooks or extension). observe, deliver and watch --session also work on an",
     "  unattached session when it is named. Every session in the output says \"attached\".",
-    "All output is JSON on stdout with \"schema\": 1. Errors are JSON too. Exit codes:",
+    "A session that stops shows as ended (it ended cleanly; endReason says why, when the",
+    "  harness says) or gone (it did not). list and watch leave both out unless --all; watch",
+    "  reports the end of a session it was showing. Their records are removed 24 hours later.",
+    `All output is JSON on stdout with "schema": ${SCHEMA_VERSION}. Errors are JSON too. Exit codes:`,
     "  0 ok, 1 internal error, 2 usage, 3 session not found, 4 message not delivered,",
     "  5 not inside a session, 6 more than one session matches.",
     "porch launch prints nothing of its own once the harness has started: the output and",

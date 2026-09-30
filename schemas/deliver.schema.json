@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/deliver.schema.json",
-  "title": "Porch deliver output (schema 1)",
+  "title": "Porch deliver output (schema 2)",
   "type": "object",
   "required": ["schema", "harness", "session", "result", "statusAtSend", "via", "guessed", "reason"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "harness": { "type": ["string", "null"] },
     "session": { "type": "string" },
     "result": { "enum": ["delivered", "not-running", "failed"] },

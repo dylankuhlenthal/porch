@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/current.schema.json",
-  "title": "Porch current output (schema 1)",
+  "title": "Porch current output (schema 2)",
   "description": "Both fields are null when the command does not run inside a session Porch can identify.",
   "type": "object",
   "required": ["schema", "harness", "session"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "harness": { "type": ["string", "null"] },
     "session": { "type": ["string", "null"] }
   }

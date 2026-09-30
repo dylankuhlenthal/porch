@@ -79,22 +79,57 @@ describe("watch", () => {
     v.observation!(gone);
   });
 
-  it("does not print a second gone when a session already reported gone leaves the listing", async () => {
-    // For example a crashed session (gone, record left behind) whose record is later cleaned up.
-    let sessions = [observation({ harness: "aa", session: "x", attached: true, status: "gone", since: "2026-01-01T00:00:00.000Z" })];
+  it("does not print a second line when a session already reported ended or gone leaves the listing (its record pruned)", async () => {
+    for (const options of [{}, { all: true }]) {
+      let sessions = [
+        observation({ harness: "aa", session: "x", attached: true, status: "idle" }),
+        observation({ harness: "aa", session: "y", attached: true, status: "idle" }),
+      ];
+      let looks = 0;
+      const adapter = stubAdapter("aa", {
+        list: async () => (looks++, sessions),
+        capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
+      });
+      const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }), options);
+      await waitFor(() => w.statuses().includes("y:idle"));
+      sessions = [
+        observation({ harness: "aa", session: "x", attached: true, status: "gone", since: "2026-01-01T00:00:00.000Z" }),
+        observation({ harness: "aa", session: "y", attached: true, status: "ended", since: "2026-01-01T00:00:00.000Z", endReason: "quit" }),
+      ];
+      await waitFor(() => w.statuses().includes("y:ended"));
+      sessions = [];
+      const after = looks;
+      await waitFor(() => looks > after + 3);
+      await w.stop();
+      expect(w.statuses()).toEqual(["x:idle", "y:idle", "x:gone", "y:ended"]);
+      expect(w.seen[2]!.since).toBe("2026-01-01T00:00:00.000Z");
+      expect(w.seen[3]!.endReason).toBe("quit");
+    }
+  });
+
+  it("by default leaves out sessions already ended or gone when first seen, and reports each followed session's end once", async () => {
+    let sessions = [
+      observation({ harness: "aa", session: "old-end", attached: true, status: "ended", endReason: "quit" }),
+      observation({ harness: "aa", session: "old-gone", attached: true, status: "gone" }),
+      observation({ harness: "aa", session: "live", attached: true, status: "busy" }),
+    ];
     let looks = 0;
-    const adapter = stubAdapter("aa", {
-      list: async () => (looks++, sessions),
-      capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 },
-    });
+    const adapter = stubAdapter("aa", { list: async () => (looks++, sessions), capabilities: { ...stubAdapter("aa").capabilities, pollIntervalMs: 20 } });
     const w = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }));
-    await waitFor(() => w.statuses().includes("x:gone"));
-    sessions = [];
+    await waitFor(() => w.statuses().includes("live:busy"));
+    sessions = [...sessions.slice(0, 2), observation({ harness: "aa", session: "live", attached: true, status: "ended", endReason: "other" })];
+    await waitFor(() => w.statuses().includes("live:ended"));
+    // Still listed as ended (its record is kept for a day): not reported again.
     const after = looks;
     await waitFor(() => looks > after + 3);
     await w.stop();
-    expect(w.statuses()).toEqual(["x:gone"]);
-    expect(w.seen[0]!.since).toBe("2026-01-01T00:00:00.000Z");
+    expect(w.statuses()).toEqual(["live:busy", "live:ended"]);
+    expect(w.seen[1]!.endReason).toBe("other");
+    // With --all, every one of them is reported.
+    const all = startWatch(new Porch({ env: scratchEnv(), adapters: [adapter] }), { all: true });
+    await waitFor(() => all.seen.length === 3);
+    await all.stop();
+    expect(all.statuses().sort()).toEqual(["live:ended", "old-end:ended", "old-gone:gone"]);
   });
 
   it("does not report sessions as gone when their adapter's listing fails, and reports the error", async () => {
@@ -272,12 +307,16 @@ describe("watch", () => {
     await waitFor(() => lines().some((o) => o.status === "idle"));
     await bin(["fake", "set", "w1", "busy"], env);
     await waitFor(() => lines().some((o) => o.status === "busy"));
-    await bin(["fake", "end", "w1"], env);
-    await waitFor(() => lines().some((o) => o.status === "gone"));
+    await bin(["fake", "end", "w1", "--reason", "quit"], env);
+    await waitFor(() => lines().some((o) => o.status === "ended"));
     const exit = new Promise<number | null>((resolve) => child.on("close", resolve));
     child.kill("SIGTERM");
     expect(await exit).toBe(0);
-    expect(lines().map((o) => o.status)).toEqual(["idle", "busy", "gone"]);
+    expect(lines().map((o) => [o.status, o.endReason])).toEqual([
+      ["idle", null],
+      ["busy", null],
+      ["ended", "quit"],
+    ]);
     lines().forEach((o) => v.observation!(o));
   });
 

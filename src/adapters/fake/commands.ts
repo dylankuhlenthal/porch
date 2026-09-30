@@ -140,18 +140,23 @@ export const fakeCommands: AdapterCommand[] = [
   }),
   command(
     "end",
-    "the session ends cleanly and its record is removed (a launched one exits with --exit-code, default 0)",
-    "porch fake end <session> [--exit-code <n>]",
+    "the session ends cleanly: its record says ended, with --reason (a launched one exits with --exit-code, default 0)",
+    "porch fake end <session> [--reason <text>] [--exit-code <n>]",
     async (args, ctx) => {
-      const usage = "porch fake end <session> [--exit-code <n>]";
-      const { values, positionals } = parseArgs({ args, allowPositionals: true, options: { "exit-code": { type: "string" } } });
+      const usage = "porch fake end <session> [--reason <text>] [--exit-code <n>]";
+      const { values, positionals } = parseArgs({
+        args,
+        allowPositionals: true,
+        options: { "exit-code": { type: "string" }, reason: { type: "string" } },
+      });
       const session = one(positionals, usage);
       let exitCode: number | undefined;
       if (values["exit-code"] !== undefined) {
         exitCode = Number(values["exit-code"]);
         if (!/^\d+$/.test(values["exit-code"]) || exitCode > 255) throw new PorchError("usage", "--exit-code must be a whole number from 0 to 255");
       }
-      await endSession(ctx.adapter, session, { exitCode });
+      if (values.reason !== undefined && values.reason.trim() === "") throw new PorchError("usage", "--reason must not be empty");
+      await endSession(ctx.adapter, session, { exitCode, reason: values.reason ?? null });
       return printObservation(ctx, session);
     },
   ),

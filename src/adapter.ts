@@ -166,6 +166,8 @@ export function observation(fields: {
   attached: boolean;
   status: SessionStatus;
   since?: string | null;
+  /** Only for `ended`: why, as the harness said. Ignored (null) for every other status. */
+  endReason?: string | null;
   detail?: Record<string, unknown> | null;
   raw?: Record<string, unknown> | null;
   self?: SelfReport | null;
@@ -177,6 +179,7 @@ export function observation(fields: {
     attached: fields.attached,
     status: fields.status,
     since: fields.since ?? null,
+    endReason: fields.status === "ended" ? (fields.endReason ?? null) : null,
     detail: fields.detail ?? null,
     raw: fields.raw ?? null,
     self: fields.self ?? null,

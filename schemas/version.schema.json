@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/version.schema.json",
-  "title": "Porch --version output (schema 1)",
+  "title": "Porch --version output (schema 2)",
   "type": "object",
   "required": ["schema", "version"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "version": { "type": "string" }
   }
 }

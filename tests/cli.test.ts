@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { EXIT } from "../src/cli/exit-codes.js";
+import { SCHEMA_VERSION } from "../src/types.js";
 import { bin, cli, scratchEnv, schemaValidators } from "./helpers.js";
 import { stubAdapter } from "./stub-adapter.js";
 
@@ -12,6 +13,7 @@ describe("porch CLI (in process)", () => {
     expect((await cli(["fake", "start", "s1", "--pid", "5"], env)).code).toBe(0);
     await cli(["fake", "set", "s1", "busy"], env);
 
+    expect((await cli(["--help"], env)).stdout).toContain(`"schema": ${SCHEMA_VERSION}`);
     const list = await cli(["list"], env);
     expect(list.code).toBe(EXIT.ok);
     v.list!(list.json);
@@ -27,6 +29,21 @@ describe("porch CLI (in process)", () => {
       ["s1", true],
     ]);
     expect((await cli(["observe", "bare"], env)).json).toMatchObject({ session: "bare", attached: false });
+
+    // A session that ended: only list --all shows it; observe finds it by name, with how it ended.
+    await cli(["fake", "start", "done"], env);
+    const end = await cli(["fake", "end", "done", "--reason", "quit"], env);
+    v.observation!(end.json);
+    expect(end.json).toMatchObject({ status: "ended", endReason: "quit" });
+    expect((await cli(["list"], env)).json.sessions.map((o: { session: string }) => o.session)).toEqual(["s1"]);
+    const withEnded = await cli(["list", "--all"], env);
+    v.list!(withEnded.json);
+    expect(withEnded.json.sessions.map((o: { session: string; status: string }) => [o.session, o.status])).toEqual([
+      ["bare", "unknown"],
+      ["done", "ended"],
+      ["s1", "busy"],
+    ]);
+    expect((await cli(["observe", "done"], env)).json).toMatchObject({ status: "ended", endReason: "quit" });
 
     const observe = await cli(["observe", "s1"], env);
     v.observation!(observe.json);
@@ -48,7 +65,7 @@ describe("porch CLI (in process)", () => {
 
     const current = await cli(["current"], setEnv);
     v.current!(current.json);
-    expect(current.json).toEqual({ schema: 1, harness: "fake", session: "s1" });
+    expect(current.json).toEqual({ schema: 2, harness: "fake", session: "s1" });
     v.current!((await cli(["current"], env)).json);
 
     const adapters = await cli(["adapters"], env);
@@ -109,6 +126,7 @@ describe("porch CLI (in process)", () => {
     [["fake", "start", "s1", "--bogus"], EXIT.usage, "usage"],
     [["fake", "set", "s1", "busy", "--last-turn-end", "yesterday"], EXIT.usage, "usage"],
     [["fake", "set", "s1", "busy", "--background-tasks", "-1"], EXIT.usage, "usage"],
+    [["fake", "end", "s1", "--reason", " "], EXIT.usage, "usage"],
   ])("porch %j fails as JSON with exit %i (%s)", async (argv, code, errorCode) => {
     const r = await cli(argv as string[], scratchEnv());
     expect(r.code).toBe(code);

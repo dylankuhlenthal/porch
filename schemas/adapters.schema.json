@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/adapters.schema.json",
-  "title": "Porch adapters output (schema 1)",
+  "title": "Porch adapters output (schema 2)",
   "type": "object",
   "required": ["schema", "adapters"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "adapters": {
       "type": "array",
       "items": {

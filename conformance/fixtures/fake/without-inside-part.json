@@ -1,31 +1,32 @@
 {
-  "schema": 1,
+  "schema": 2,
   "harness": "fake",
   "harnessVersion": "fake-1",
   "case": "without-inside-part",
-  "recordedAt": "2026-09-30T10:29:51.610Z",
+  "recordedAt": "2026-09-30T12:10:24.184Z",
   "snapshots": [
     {
       "label": "listed",
-      "at": "2026-09-30T10:29:51.609Z",
+      "at": "2026-09-30T12:10:24.183Z",
       "records": {},
       "io": [
         {
           "op": "readFile",
           "path": "$PORCH_HOME/fake-harness.json",
-          "result": "{\n  \"sessions\": {\n    \"conf-46ea2227\": {\n      \"alive\": true,\n      \"pid\": 63957,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+          "result": "{\n  \"sessions\": {\n    \"conf-c2be1911\": {\n      \"alive\": true,\n      \"pid\": 46851,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
         }
       ],
       "observations": [
         {
-          "schema": 1,
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-46ea2227",
+          "session": "conf-c2be1911",
           "attached": false,
           "status": "unknown",
           "since": null,
+          "endReason": null,
           "detail": {
-            "pid": 63957,
+            "pid": 46851,
             "prompt": null,
             "hasInsidePart": false,
             "lastTurnStart": null,
@@ -35,7 +36,7 @@
           "raw": {
             "listing": {
               "alive": true,
-              "pid": 63957,
+              "pid": 46851,
               "prompt": null,
               "promptSince": null,
               "goneSince": null,
