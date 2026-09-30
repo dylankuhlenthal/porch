@@ -70,7 +70,8 @@ export function parseLaunchArgs(args: string[]): { porchHome: string | null; dry
     if (arg === "--dry-run") dryRun = true;
     else if (arg === "--porch-home" || arg.startsWith("--porch-home=")) {
       const value = arg === "--porch-home" ? args[++i] : arg.slice("--porch-home=".length);
-      if (value === undefined || value.trim() === "") throw new PorchError("usage", "--porch-home needs a folder");
+      // A flag-shaped value is another option the caller forgot the folder before, not a folder.
+      if (value === undefined || value.trim() === "" || value.startsWith("-")) throw new PorchError("usage", "--porch-home needs a folder");
       porchHome = value;
     } else if (arg.startsWith("-")) throw new PorchError("usage", `unknown option '${arg}' before the harness name; usage: ${LAUNCH_USAGE}`);
     else break;

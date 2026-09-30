@@ -56,7 +56,7 @@ describe("porch launch: options", () => {
 
   it("refuses a missing harness, an unknown option before it, and an empty --porch-home", async () => {
     const env = scratchEnv();
-    for (const argv of [["launch"], ["launch", "--bogus", "fake"], ["launch", "--porch-home"], ["launch", "--porch-home=", "fake"], ["launch", "--dry-run"]]) {
+    for (const argv of [["launch"], ["launch", "--bogus", "fake"], ["launch", "--porch-home"], ["launch", "--porch-home=", "fake"], ["launch", "--porch-home", "--dry-run", "fake"], ["launch", "--dry-run"]]) {
       const r = await cli(argv, env);
       expect(r.code, argv.join(" ")).toBe(EXIT.usage);
       v.error!(r.json);
@@ -185,5 +185,15 @@ describe("porch launch: running the harness (fake)", () => {
   it("in process (the library path), returns 128 plus the signal's number for a harness killed by a signal", async () => {
     expect(signalExitCode("SIGKILL")).toBe(137);
     expect(signalExitCode("SIGTERM")).toBe(143);
+  });
+});
+
+describe("runLaunchPlan", () => {
+  it("passes on a SIGTERM that arrives right after the harness was started, before its spawn event", async () => {
+    const { runLaunchPlan } = await import("../src/launch.js");
+    const running = runLaunchPlan({ command: process.execPath, args: ["-e", "setTimeout(() => {}, 10000)"] }, { PATH: process.env.PATH });
+    // Node creates the child process synchronously in spawn(), so it can be signalled at once.
+    process.emit("SIGTERM", "SIGTERM");
+    expect(await running).toEqual({ code: null, signal: "SIGTERM" });
   });
 });
