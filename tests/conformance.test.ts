@@ -86,7 +86,7 @@ describe("conformance suite against the fake adapter", () => {
     expect(text).toContain("key=$REDACTED");
   });
 
-  it("covers every case named in decision 15, plus self-reported state and a made-up session", () => {
+  it("covers every case named in decision 15, plus self-reported state, the launch cases and a made-up session", () => {
     expect(CASES.map((c) => c.name)).toEqual([
       "which-session-am-i",
       "deliver-while-idle",
@@ -96,6 +96,8 @@ describe("conformance suite against the fake adapter", () => {
       "without-inside-part",
       "watch-delivers-each-change",
       "self-reported-state",
+      "launch-background",
+      "launch-interactive",
       "unknown-session",
     ]);
   });

@@ -23,9 +23,16 @@ porch watch                                  # one JSON line per change, until s
 porch deliver <session> --from "sous chef" "please look at the PR"
 porch current                                # the session this command runs in
 porch status set needs-input "which branch?" # run inside a session: say what you need
+porch launch claude [claude arguments...]    # start a harness with Porch attached
 ```
 
-For Claude Code, give sessions Porch's hooks so it sees busy and idle as they happen and learns each session's socket: `porch hooks claude` prints JSON whose `settings` field is what to pass with `claude --settings` (see [docs/domains/claude-adapter.md](docs/domains/claude-adapter.md)). Sessions without the hooks can still be listed and woken, with a coarser status.
+For Claude Code, give sessions Porch's hooks so it sees busy and idle as they happen and learns each session's socket. The simplest way is to start them with `porch launch claude`, which runs `claude` with your arguments and Porch's hooks merged into its settings. To have every session you start attached:
+
+```sh
+alias claude='porch launch claude'
+```
+
+A tool that builds its own settings can instead use `porch hooks claude`, which prints JSON whose `settings` field is what to pass with `claude --settings`. Both are described in [docs/domains/claude-adapter.md](docs/domains/claude-adapter.md). Sessions without the hooks can still be listed and woken, with a coarser status.
 
 `porch --help` lists every command, including the harness commands. All output is JSON with `"schema": 1`; errors are JSON too, with documented exit codes. Session records live in `~/.porch/sessions/` (set `PORCH_HOME` to move them).
 

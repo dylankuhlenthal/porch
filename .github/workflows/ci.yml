@@ -1,4 +1,4 @@
-# Unit and contract tests on every PR (and on pushes to the long-lived branches).
+# Unit and contract tests on every PR (and on pushes to main).
 # The job name "unit and contract tests" is the check a branch rule requires; see
 # docs/operations/ci.md before renaming it.
 name: ci
@@ -6,7 +6,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main, "dyl/TRV-1133-porch"]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

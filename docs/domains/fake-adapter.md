@@ -2,7 +2,7 @@
 
 A harness that runs nothing, for tests: Porch's own, and those of tools built on Porch (sous chef's, for example), which can drive it entirely through the CLI. It behaves like a harness with both an inside part and an outside listing, so it exercises every path in the core.
 
-Code: `src/adapters/fake/` (`index.ts` the adapter, `observe.ts` how status is worked out, `state.ts` the harness file, `ops.ts` what can happen to a session, `commands.ts` the `porch fake` commands). Conformance driver: `src/conformance/drivers/fake.ts`.
+Code: `src/adapters/fake/` (`index.ts` the adapter, `observe.ts` how status is worked out, `state.ts` the harness file, `ops.ts` what can happen to a session, `commands.ts` the `porch fake` commands, `run.ts` a fake session as a process). Conformance driver: `src/conformance/drivers/fake.ts`.
 
 ## The fake harness file
 
@@ -15,11 +15,12 @@ Code: `src/adapters/fake/` (`index.ts` the adapter, `observe.ts` how status is w
 - `porch fake start <session> [--no-inside]`: a session starts. Without `--no-inside` its record is written, as a harness with Porch's inside part would.
 - `porch fake set <session> starting|busy|idle`: the inside part reports a status (going busy sets `lastTurnStart`; busy to idle sets `lastTurnEnd`). `--last-turn-start`, `--last-turn-end` and `--background-tasks` set those fields directly, for example to model a record that still says busy although its last turn ended long ago.
 - `porch fake prompt <session> <text>` and `--clear`: a permission prompt or dialog opens or closes. Only the harness file shows it, as with Claude Code.
-- `porch fake kill <session>`: the session dies and leaves its record behind. `porch fake end <session>`: it ends cleanly and its record is removed.
+- `porch fake kill <session>`: the session dies and leaves its record behind. `porch fake end <session> [--exit-code <n>]`: it ends cleanly and its record is removed; a launched session's process exits with `<n>` (default 0).
+- `porch fake run <session> [--no-inside]`: a fake session as a real process, which is what `porch launch fake` starts (below). It runs until the session ends.
 - `porch fake fail-deliver <session> <reason>` and `--clear`: deliver fails with that reason.
 - `porch fake deliveries [<session>]`: every message delivered, in order.
 
-Each prints the session's observation afterwards (`schemas/observation.schema.json`), or the deliveries list (`schemas/fake-deliveries.schema.json`).
+Each prints the session's observation afterwards (except `run`, which prints nothing) (`schemas/observation.schema.json`), or the deliveries list (`schemas/fake-deliveries.schema.json`).
 
 ## How status is worked out
 
@@ -32,11 +33,21 @@ In order (`fakeObservation` in `observe.ts`):
 
 `detail` has `pid`, `prompt`, `hasInsidePart`, `lastTurnStart`, `lastTurnEnd` and `backgroundTasks`. `raw` has the harness file row and the record.
 
+## Launching: `porch launch fake` and `porch fake run`
+
+`porch launch fake <session> [--no-inside]` runs `porch fake run <session> [--no-inside]` with this same Porch (the node running it and its `dist/cli/main.js`), so the per-PR tests can check how `porch launch` handles a harness process without a real harness. The records folder reaches it through `PORCH_HOME` in its environment, which `porch launch --porch-home` sets. `porch fake run` (`runFakeSession` in `run.ts`), run as its own process:
+
+- registers the session with the fake harness, with its own pid, and writes its record unless `--no-inside`;
+- reads the fake harness file every 50 ms and follows it: each message delivered to the session is a turn (busy for half a second, then idle, when it has a record); `porch fake end` makes it exit with the `--exit-code` given there; `porch fake kill` makes it die of SIGKILL, like a crash;
+- ignores SIGINT and SIGQUIT, like an interactive harness where one Ctrl+C does not end it; on SIGTERM or SIGHUP it ends cleanly (its record is removed) and dies of that signal.
+
+The harness file row's `exitCode` holds the code from `porch fake end` (null while running and after a kill).
+
 ## Other behaviour
 
 - `current`: the `PORCH_FAKE_SESSION_ID` environment variable.
 - `deliver`: `not-running` for a session that is gone or that the fake harness does not know (a running session whose status is `unknown`, because it has no inside part, is delivered to); `failed` when told to fail; otherwise the message is appended to `deliveries` with the status at the moment of sending. `via` is the recorded address (`fake`), or `fake-listing` with `guessed: true` for a session without the inside part.
-- Capabilities: queues while busy, sees prompts, has an outside listing and an inside part. Watch polls every 2 seconds as a backstop and also watches the harness file.
+- Capabilities: queues while busy, sees prompts, has an outside listing and an inside part, can launch. Watch polls every 2 seconds as a backstop and also watches the harness file.
 
 ## What it relies on from the harness
 

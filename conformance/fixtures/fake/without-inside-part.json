@@ -3,28 +3,28 @@
   "harness": "fake",
   "harnessVersion": "fake-1",
   "case": "without-inside-part",
-  "recordedAt": "2026-09-29T16:28:38.178Z",
+  "recordedAt": "2026-09-30T08:42:20.624Z",
   "snapshots": [
     {
       "label": "listed",
-      "at": "2026-09-29T16:28:38.177Z",
+      "at": "2026-09-30T08:42:20.623Z",
       "records": {},
       "io": [
         {
           "op": "readFile",
           "path": "$PORCH_HOME/fake-harness.json",
-          "result": "{\n  \"sessions\": {\n    \"conf-d0f54660\": {\n      \"alive\": true,\n      \"pid\": 58503,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+          "result": "{\n  \"sessions\": {\n    \"conf-ac5bd7fd\": {\n      \"alive\": true,\n      \"pid\": 7325,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
         }
       ],
       "observations": [
         {
           "schema": 1,
           "harness": "fake",
-          "session": "conf-d0f54660",
+          "session": "conf-ac5bd7fd",
           "status": "unknown",
           "since": null,
           "detail": {
-            "pid": 58503,
+            "pid": 7325,
             "prompt": null,
             "hasInsidePart": false,
             "lastTurnStart": null,
@@ -34,11 +34,12 @@
           "raw": {
             "listing": {
               "alive": true,
-              "pid": 58503,
+              "pid": 7325,
               "prompt": null,
               "promptSince": null,
               "goneSince": null,
-              "failDeliver": null
+              "failDeliver": null,
+              "exitCode": null
             },
             "record": null
           },

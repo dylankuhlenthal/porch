@@ -76,6 +76,9 @@ async function waitForReceived(c: CaseContext, s: DriverSession, text: string): 
   );
 }
 
+/** How long to wait after one Ctrl+C before checking nothing ended. */
+const INTERRUPT_SETTLE_MS = 1500;
+
 function requireSupport(ok: boolean, why: string): void {
   if (!ok) throw new ConformanceSkip(why);
 }
@@ -229,6 +232,68 @@ export const CASES: ConformanceCase[] = [
       const obs = await observeRaw(c, s.id);
       check(obs?.self?.status === "needs-input" && obs.self.text === "which branch?", `observe showed self ${JSON.stringify(obs?.self)}`);
       await c.snapshot("self reported");
+    },
+  },
+  {
+    name: "launch-background",
+    title: "a background session started through porch launch",
+    async run(c) {
+      requireSupport(c.adapter.capabilities.launch, "the adapter cannot launch (capabilities.launch is false)");
+      const s = await c.driver.launchBackground();
+      const obs = await waitForStatus(c, s.id, ["idle"]);
+      check(obs.harness === c.adapter.harness, `the launched session was reported by ${obs.harness}`);
+      const rec = await c.porch.ctx.records.read(c.adapter.harness, s.id);
+      check(rec?.inside != null, "the launched session has no record from the inside part");
+      const applied = await c.driver.callerSettingsApplied(s);
+      check(applied !== false, "the caller's own settings passed to porch launch did not take effect alongside Porch's inside part");
+      await c.snapshot("launched");
+      const text = uniqueText("launched");
+      const r = await c.porch.deliver(s.id, text, { from: c.from });
+      check(r.result === "delivered", `deliver returned ${r.result}: ${r.reason}`);
+      await waitForReceived(c, s, text);
+      await c.snapshot("after delivery");
+    },
+  },
+  {
+    name: "launch-interactive",
+    title: "an interactive session started through porch launch",
+    async run(c) {
+      requireSupport(c.adapter.capabilities.launch, "the adapter cannot launch (capabilities.launch is false)");
+      const seen: Observation[] = [];
+      const controller = new AbortController();
+      const watching = c.porch.watch({ signal: controller.signal, onObservation: (o) => seen.push(o) });
+      try {
+        const s = await c.driver.launchInteractive();
+        await waitForStatus(c, s.id, ["idle"]);
+        const rec = await c.porch.ctx.records.read(c.adapter.harness, s.id);
+        check(rec?.inside != null, "the launched session has no record from the inside part");
+        await c.snapshot("started");
+        // A delivered message starts a turn: idle, busy, idle.
+        const text = uniqueText("interactive");
+        const r = await c.porch.deliver(s.id, `${text}. Reply with just OK.`, { from: c.from });
+        check(r.result === "delivered" && r.statusAtSend === "idle", `deliver returned ${r.result} (${r.statusAtSend}): ${r.reason}`);
+        const statuses = () => collapse(seen.filter((o) => o.session === s.id).map((o) => o.status));
+        await waitFor("watch to report idle, busy, idle after the delivery", c.driver.timeouts.changeMs, async () =>
+          isSubsequence(["idle", "busy", "idle"], statuses()),
+        );
+        await waitForReceived(c, s, text);
+        await c.snapshot("after a turn");
+        // One Ctrl+C leaves both the harness and porch launch running.
+        await c.driver.interrupt(s);
+        await new Promise((r) => setTimeout(r, INTERRUPT_SETTLE_MS));
+        check(c.driver.launchRunning(s), "porch launch ended after one Ctrl+C");
+        const after = await observeRaw(c, s.id);
+        check(after !== null && after.status !== "gone", `after one Ctrl+C the session showed ${after?.status ?? "not found"}`);
+        // Exiting the harness passes its exit code back through porch launch, and the inside part removes the record.
+        const end = await c.driver.exitInteractive(s);
+        check(end.code === 0 && end.signal === null, `porch launch ended with ${JSON.stringify(end)} after the harness exited cleanly, expected code 0`);
+        await waitFor("the record to be removed after the session ended", c.driver.timeouts.changeMs, async () =>
+          (await c.porch.ctx.records.read(c.adapter.harness, s.id)) === null,
+        );
+      } finally {
+        controller.abort();
+        await watching;
+      }
     },
   },
   {
