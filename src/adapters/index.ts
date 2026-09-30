@@ -5,7 +5,8 @@
 import type { Adapter } from "../adapter.js";
 import { createClaudeAdapter } from "./claude/index.js";
 import { createFakeAdapter } from "./fake/index.js";
+import { createPiAdapter } from "./pi/index.js";
 
 export function builtinAdapters(): Adapter[] {
-  return [createClaudeAdapter(), createFakeAdapter()];
+  return [createClaudeAdapter(), createPiAdapter(), createFakeAdapter()];
 }

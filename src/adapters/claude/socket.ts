@@ -8,46 +8,15 @@
  * socket closes a connection that sends no complete line within 30 seconds, so a
  * connection is opened only once the text is ready. CLAUDE_CODE_MESSAGING_TOKEN is
  * never used (decision 10 in TRV-1133). Before connecting, deliver checks the path
- * is a socket this user owns (checkSocketOwner).
+ * is a socket this user owns (checkSocketOwner, in src/unix-socket.ts).
  */
-import { promises as fs, type Stats } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 
-export class SocketMissingError extends Error {}
-/** The path exists but is not a socket this user owns, so nothing is written to it. */
-export class SocketRefusedError extends Error {}
+import { SocketMissingError } from "../../unix-socket.js";
 
-/** How deliver looks at a socket path before connecting. Replaceable in tests. */
-export interface SocketCheckOptions {
-  /** Default: fs.lstat (a symlink is looked at, not followed). */
-  lstat?: (file: string) => Promise<Pick<Stats, "uid" | "isSocket" | "isSymbolicLink">>;
-  /** The user who must own the socket. Default: this process's uid; null skips the owner check (no uids on this platform). */
-  uid?: number | null;
-}
-
-/**
- * Check that `address` is a socket owned by this user, and not a symlink, before
- * anything is written to it. /tmp is shared, so on a machine with other users
- * someone else could create /tmp/cc-socks/<pid>.sock (or the folder) first and
- * receive the message. Rejects with SocketMissingError when nothing is there, and
- * SocketRefusedError when something is there that Porch must not write to.
- */
-export async function checkSocketOwner(address: string, options: SocketCheckOptions = {}): Promise<void> {
-  const lstat = options.lstat ?? ((f: string) => fs.lstat(f));
-  const uid = options.uid !== undefined ? options.uid : typeof process.getuid === "function" ? process.getuid() : null;
-  let st: Pick<Stats, "uid" | "isSocket" | "isSymbolicLink">;
-  try {
-    st = await lstat(address);
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === "ENOENT" || code === "ENOTDIR") throw new SocketMissingError(`nothing is listening on ${address} (${code})`);
-    throw new SocketRefusedError(`could not check ${address}: ${(err as Error).message}`);
-  }
-  if (st.isSymbolicLink()) throw new SocketRefusedError(`refused ${address}: it is a symlink, not a socket`);
-  if (!st.isSocket()) throw new SocketRefusedError(`refused ${address}: it is not a socket`);
-  if (uid !== null && st.uid !== uid) throw new SocketRefusedError(`refused ${address}: the socket belongs to another user (uid ${st.uid})`);
-}
+// The pre-send check is shared with the Pi adapter (src/unix-socket.ts).
+export { checkSocketOwner, SocketMissingError, SocketRefusedError, type SocketCheckOptions } from "../../unix-socket.js";
 
 /** The line Claude Code reads from its socket for one message. */
 export function socketLine(text: string): string {

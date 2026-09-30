@@ -1,0 +1,229 @@
+{
+  "schema": 1,
+  "harness": "pi",
+  "harnessVersion": "0.87.1",
+  "case": "held-at-prompt",
+  "recordedAt": "2026-09-30T09:46:56.547Z",
+  "snapshots": [
+    {
+      "label": "held",
+      "at": "2026-09-30T09:46:56.523Z",
+      "records": {
+        "pi-porch-conformance-6661caea.json": {
+          "schema": 1,
+          "harness": "pi",
+          "session": "porch-conformance-6661caea",
+          "createdAt": "2026-09-30T09:46:56.370Z",
+          "updatedAt": "2026-09-30T09:46:56.415Z",
+          "inside": {
+            "pid": 40777,
+            "status": "idle",
+            "delivery": {
+              "via": "socket",
+              "address": "/tmp/porch-501/pi-40777.sock"
+            },
+            "cwd": "/private$WORK/cwd-6661caea",
+            "data": {
+              "processStartedAt": "2026-09-30T09:46:56.189Z",
+              "sessionFile": "$WORK/sessions/2026-09-30T09-46-56-324Z_porch-conformance-6661caea.jsonl",
+              "mode": "rpc",
+              "source": "startup",
+              "prompt": {
+                "kind": "confirm",
+                "title": "Porch conformance",
+                "since": "2026-09-30T09:46:56.415Z"
+              },
+              "lastError": null
+            },
+            "since": "2026-09-30T09:46:56.370Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "run",
+          "cmd": "ps",
+          "args": [
+            "-o",
+            "pid=,etime=",
+            "-p",
+            "40777"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "40777 00:00\n",
+            "stderr": ""
+          }
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "pi",
+          "session": "porch-conformance-6661caea",
+          "status": "waiting-on-prompt",
+          "since": "2026-09-30T09:46:56.415Z",
+          "detail": {
+            "pid": 40777,
+            "cwd": "/private$WORK/cwd-6661caea",
+            "mode": "rpc",
+            "sessionFile": "$WORK/sessions/2026-09-30T09-46-56-324Z_porch-conformance-6661caea.jsonl",
+            "prompt": {
+              "kind": "confirm",
+              "title": "Porch conformance"
+            },
+            "hasInsidePart": true,
+            "lastTurnStart": null,
+            "lastTurnEnd": null
+          },
+          "raw": {
+            "record": {
+              "schema": 1,
+              "harness": "pi",
+              "session": "porch-conformance-6661caea",
+              "createdAt": "2026-09-30T09:46:56.370Z",
+              "updatedAt": "2026-09-30T09:46:56.415Z",
+              "inside": {
+                "pid": 40777,
+                "status": "idle",
+                "delivery": {
+                  "via": "socket",
+                  "address": "/tmp/porch-501/pi-40777.sock"
+                },
+                "cwd": "/private$WORK/cwd-6661caea",
+                "data": {
+                  "processStartedAt": "2026-09-30T09:46:56.189Z",
+                  "sessionFile": "$WORK/sessions/2026-09-30T09-46-56-324Z_porch-conformance-6661caea.jsonl",
+                  "mode": "rpc",
+                  "source": "startup",
+                  "prompt": {
+                    "kind": "confirm",
+                    "title": "Porch conformance",
+                    "since": "2026-09-30T09:46:56.415Z"
+                  },
+                  "lastError": null
+                },
+                "since": "2026-09-30T09:46:56.370Z"
+              },
+              "self": null
+            },
+            "ps": "40777 00:00"
+          },
+          "self": null
+        }
+      ]
+    },
+    {
+      "label": "after delivery",
+      "at": "2026-09-30T09:46:56.543Z",
+      "records": {
+        "pi-porch-conformance-6661caea.json": {
+          "schema": 1,
+          "harness": "pi",
+          "session": "porch-conformance-6661caea",
+          "createdAt": "2026-09-30T09:46:56.370Z",
+          "updatedAt": "2026-09-30T09:46:56.542Z",
+          "inside": {
+            "pid": 40777,
+            "status": "busy",
+            "delivery": {
+              "via": "socket",
+              "address": "/tmp/porch-501/pi-40777.sock"
+            },
+            "cwd": "/private$WORK/cwd-6661caea",
+            "data": {
+              "processStartedAt": "2026-09-30T09:46:56.189Z",
+              "sessionFile": "$WORK/sessions/2026-09-30T09-46-56-324Z_porch-conformance-6661caea.jsonl",
+              "mode": "rpc",
+              "source": "startup",
+              "prompt": {
+                "kind": "confirm",
+                "title": "Porch conformance",
+                "since": "2026-09-30T09:46:56.415Z"
+              },
+              "lastError": null
+            },
+            "since": "2026-09-30T09:46:56.542Z",
+            "lastTurnStart": "2026-09-30T09:46:56.540Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "run",
+          "cmd": "ps",
+          "args": [
+            "-o",
+            "pid=,etime=",
+            "-p",
+            "40777"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "40777 00:00\n",
+            "stderr": ""
+          }
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "pi",
+          "session": "porch-conformance-6661caea",
+          "status": "waiting-on-prompt",
+          "since": "2026-09-30T09:46:56.415Z",
+          "detail": {
+            "pid": 40777,
+            "cwd": "/private$WORK/cwd-6661caea",
+            "mode": "rpc",
+            "sessionFile": "$WORK/sessions/2026-09-30T09-46-56-324Z_porch-conformance-6661caea.jsonl",
+            "prompt": {
+              "kind": "confirm",
+              "title": "Porch conformance"
+            },
+            "hasInsidePart": true,
+            "lastTurnStart": "2026-09-30T09:46:56.540Z",
+            "lastTurnEnd": null
+          },
+          "raw": {
+            "record": {
+              "schema": 1,
+              "harness": "pi",
+              "session": "porch-conformance-6661caea",
+              "createdAt": "2026-09-30T09:46:56.370Z",
+              "updatedAt": "2026-09-30T09:46:56.542Z",
+              "inside": {
+                "pid": 40777,
+                "status": "busy",
+                "delivery": {
+                  "via": "socket",
+                  "address": "/tmp/porch-501/pi-40777.sock"
+                },
+                "cwd": "/private$WORK/cwd-6661caea",
+                "data": {
+                  "processStartedAt": "2026-09-30T09:46:56.189Z",
+                  "sessionFile": "$WORK/sessions/2026-09-30T09-46-56-324Z_porch-conformance-6661caea.jsonl",
+                  "mode": "rpc",
+                  "source": "startup",
+                  "prompt": {
+                    "kind": "confirm",
+                    "title": "Porch conformance",
+                    "since": "2026-09-30T09:46:56.415Z"
+                  },
+                  "lastError": null
+                },
+                "since": "2026-09-30T09:46:56.542Z",
+                "lastTurnStart": "2026-09-30T09:46:56.540Z"
+              },
+              "self": null
+            },
+            "ps": "40777 00:00"
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}

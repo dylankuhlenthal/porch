@@ -10,10 +10,13 @@ import { createClaudeAdapter } from "../../adapters/claude/index.js";
 import { claudeBin } from "../../adapters/claude/listing.js";
 import type { Env } from "../../home.js";
 import { createFakeAdapter } from "../../adapters/fake/index.js";
+import { createPiAdapter } from "../../adapters/pi/index.js";
+import { piBin } from "../../adapters/pi/launch.js";
 import type { HarnessDriver } from "../driver.js";
 import type { Snapshot } from "../recorder.js";
 import { createClaudeDriver } from "./claude.js";
 import { createFakeDriver } from "./fake.js";
+import { createPiDriver, DEFAULT_PI_MODEL } from "./pi.js";
 
 export interface DriverEntry {
   adapter(): Adapter;
@@ -83,6 +86,21 @@ async function claudeUnavailable(env: Env): Promise<string | null> {
   return "Claude Code is not logged in and ANTHROPIC_API_KEY is not set";
 }
 
+/**
+ * Real turns need Pi logged in to the driver's model provider (in Pi's own config
+ * folder, or an API key variable such as OPENAI_API_KEY). `pi auth check` answers
+ * without running a turn.
+ */
+async function piUnavailable(env: Env): Promise<string | null> {
+  const r = await new Promise<{ code: number | null; out: string }>((resolve) => {
+    execFile(piBin(env), ["auth", "check", "--model", DEFAULT_PI_MODEL, "--json"], { env: env as NodeJS.ProcessEnv, timeout: 30000 }, (err, stdout) =>
+      resolve({ code: err ? (typeof err.code === "number" ? err.code : null) : 0, out: stdout ?? "" }),
+    );
+  });
+  if (r.code === 0) return null;
+  return `Pi is not logged in to ${DEFAULT_PI_MODEL} (\`pi auth check\` said ${r.out.trim() || `exit ${r.code}`})`;
+}
+
 export const DRIVERS: Record<string, DriverEntry> = {
   claude: {
     // Each case's sessions run under its scratch folder (the parent of its
@@ -99,6 +117,15 @@ export const DRIVERS: Record<string, DriverEntry> = {
     // the suite from a checkout inside a trusted folder (docs/patterns/conformance.md).
     // .conformance-tmp/ is ignored by git.
     workRoot: () => path.join(process.cwd(), ".conformance-tmp"),
+  },
+  pi: {
+    adapter: () => createPiAdapter({ pollIntervalMs: 1000 }),
+    driver: () => createPiDriver(),
+    requiredEnv: [],
+    // Pi also reads provider keys from the environment; a logged-in Pi needs none.
+    optionalEnv: ["OPENAI_API_KEY"],
+    unavailableReason: piUnavailable,
+    needsInstalledHarness: true,
   },
   fake: { adapter: () => createFakeAdapter({ pollIntervalMs: 200 }), driver: createFakeDriver, requiredEnv: [], needsInstalledHarness: false },
 };

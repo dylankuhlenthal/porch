@@ -18,6 +18,9 @@ export const BIN = path.join(REPO, "dist", "cli", "main.js");
 /** A `claude` command that does not exist, so the Claude adapter sees no Claude Code installed. */
 export const NO_CLAUDE = "/nonexistent/porch-tests-have-no-claude";
 
+/** A `pi` command that does not exist, so the Pi adapter sees no Pi installed. */
+export const NO_PI = "/nonexistent/porch-tests-have-no-pi";
+
 /** A fresh scratch PORCH_HOME and HOME. Every test that touches files uses one. */
 export function scratchEnv(extra: Env = {}): Env {
   const dir = mkdtempSync(path.join(os.tmpdir(), "porch-scratch-"));
@@ -26,6 +29,7 @@ export function scratchEnv(extra: Env = {}): Env {
     HOME: path.join(dir, "home"),
     PORCH_HOME: path.join(dir, "porch-home"),
     PORCH_CLAUDE_BIN: NO_CLAUDE,
+    PORCH_PI_BIN: NO_PI,
     ...extra,
   };
 }
