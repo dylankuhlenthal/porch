@@ -94,14 +94,27 @@ describe("reading claude agents --json", () => {
 describe("Claude Code adapter: status", () => {
   it("takes busy and idle from the hook record, alive and pid from the listing", async () => {
     const env = scratchEnv();
-    const porch = porchWith(stubIO([row({ status: "idle" })]), env);
+    const porch = porchWith(stubIO([row({ status: "busy" })]), env);
     await hook(porch.ctx, "SessionStart", { source: "startup", cwd: "/work/a" });
     await hook(porch.ctx, "UserPromptSubmit", { prompt: "hi" });
-    // The listing still says idle; the record says a turn started.
     const obs = await porch.observe(SID);
     v.observation!(obs);
     expect(obs).toMatchObject({ harness: "claude", session: SID, status: "busy", since: "2026-09-29T16:00:00.000Z" });
     expect(obs.detail).toMatchObject({ pid: 4242, shortId: SHORT, statusSource: "hooks", hasInsidePart: true, lastTurnStart: "2026-09-29T16:00:00.000Z" });
+    expect(obs.detail).not.toHaveProperty("recordStatus");
+  });
+
+  it("lets the listing's idle win over the record's busy (Stop does not fire on an interrupted turn)", async () => {
+    const porch = porchWith(stubIO([row({ status: "idle" })]));
+    await hook(porch.ctx, "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "UserPromptSubmit", { prompt: "hi" });
+    const obs = await porch.observe(SID);
+    v.observation!(obs);
+    expect(obs).toMatchObject({ status: "idle", since: null });
+    expect(obs.detail).toMatchObject({ statusSource: "listing", recordStatus: "busy", hasInsidePart: true, lastTurnStart: "2026-09-29T16:00:00.000Z" });
+    expect(obs.detail).not.toHaveProperty("recordPid");
+    // list agrees with observe.
+    expect((await porch.list()).sessions[0]).toMatchObject({ status: "idle" });
   });
 
   it("does not trust the listing's busy over the record's idle (the listing's busy can be stale)", async () => {
@@ -110,7 +123,17 @@ describe("Claude Code adapter: status", () => {
     await hook(porch.ctx, "Stop", { background_tasks: [{ id: 1 }, { id: 2 }] });
     const obs = await porch.observe(SID);
     expect(obs.status).toBe("idle");
-    expect(obs.detail).toMatchObject({ lastTurnEnd: "2026-09-29T16:00:00.000Z", backgroundTasks: 2 });
+    expect(obs.detail).toMatchObject({ statusSource: "hooks", lastTurnEnd: "2026-09-29T16:00:00.000Z", backgroundTasks: 2 });
+    expect(obs.detail).not.toHaveProperty("recordStatus");
+  });
+
+  it("keeps the record's busy when the listing gives no busy or idle", async () => {
+    const porch = porchWith(stubIO([row({ status: "starting?" })]));
+    await hook(porch.ctx, "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "UserPromptSubmit", {});
+    const obs = await porch.observe(SID);
+    expect(obs).toMatchObject({ status: "busy", detail: { statusSource: "hooks" } });
+    expect(obs.detail).not.toHaveProperty("recordStatus");
   });
 
   it("does not use the status of a record written by an earlier process of the session", async () => {
@@ -124,8 +147,9 @@ describe("Claude Code adapter: status", () => {
     v.observation!(obs);
     expect(obs).toMatchObject({ status: "idle", since: null, self: { status: "working" } });
     expect(obs.detail).toMatchObject({ pid: 4242, recordPid: 111, statusSource: "listing", hasInsidePart: true, lastTurnStart: "2026-09-29T16:00:00.000Z" });
+    expect(obs.detail).not.toHaveProperty("recordStatus");
     // Same pid: the record's status is used, and there is no recordPid.
-    const same = porchWith(stubIO([row({ status: "idle", pid: 111 })]), env);
+    const same = porchWith(stubIO([row({ status: "busy", pid: 111 })]), env);
     const obs2 = await same.observe(SID);
     expect(obs2).toMatchObject({ status: "busy" });
     expect(obs2.detail).toMatchObject({ statusSource: "hooks" });
@@ -312,6 +336,17 @@ describe("Claude Code adapter: deliver", () => {
     await waitFor(() => got.length === 1);
     expect(got).toEqual([socketLine('[from sous chef] hello "there"\nline two')]);
     expect(JSON.parse(got[0]!)).toEqual({ type: "user", message: { role: "user", content: '[from sous chef] hello "there"\nline two' } });
+  });
+
+  it("reports idle at sending when the listing says idle and the record still says busy", async () => {
+    const dir = sockDir();
+    await listen(path.join(dir, "4242.sock"));
+    const env = { ...scratchEnv(), CLAUDE_CODE_MESSAGING_SOCKET: path.join(dir, "4242.sock"), CLAUDE_PID: "4242" };
+    const porch = porchWith(stubIO([row({ status: "idle" })]), env);
+    await hook({ ...porch.ctx, env }, "SessionStart", { source: "startup" });
+    await hook({ ...porch.ctx, env }, "UserPromptSubmit", {});
+    const r = await porch.deliver(SID, "hi", { from: "x" });
+    expect(r).toMatchObject({ result: "delivered", statusAtSend: "idle", guessed: false });
   });
 
   it("guesses the pid-based socket for a session without the hooks, and says it guessed", async () => {
