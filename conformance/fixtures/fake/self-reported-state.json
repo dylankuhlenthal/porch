@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "self-reported-state",
+  "recordedAt": "2026-09-29T16:28:38.927Z",
+  "snapshots": [
+    {
+      "label": "self reported",
+      "at": "2026-09-29T16:28:38.927Z",
+      "records": {
+        "fake-conf-e5907f2d.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-e5907f2d",
+          "createdAt": "2026-09-29T16:28:38.925Z",
+          "updatedAt": "2026-09-29T16:28:38.926Z",
+          "inside": {
+            "pid": 58503,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-e5907f2d"
+            },
+            "since": "2026-09-29T16:28:38.925Z"
+          },
+          "self": {
+            "status": "needs-input",
+            "text": "which branch?",
+            "since": "2026-09-29T16:28:38.925Z"
+          }
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-e5907f2d\": {\n      \"alive\": true,\n      \"pid\": 58503,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-e5907f2d",
+          "status": "idle",
+          "since": "2026-09-29T16:28:38.925Z",
+          "detail": {
+            "pid": 58503,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": null,
+            "lastTurnEnd": null,
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 58503,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": null,
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-e5907f2d",
+              "createdAt": "2026-09-29T16:28:38.925Z",
+              "updatedAt": "2026-09-29T16:28:38.926Z",
+              "inside": {
+                "pid": 58503,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-e5907f2d"
+                },
+                "since": "2026-09-29T16:28:38.925Z"
+              },
+              "self": {
+                "status": "needs-input",
+                "text": "which branch?",
+                "since": "2026-09-29T16:28:38.925Z"
+              }
+            }
+          },
+          "self": {
+            "status": "needs-input",
+            "text": "which branch?",
+            "since": "2026-09-29T16:28:38.925Z"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/fake-deliveries.schema.json",
+  "title": "Porch fake deliveries output (schema 1)",
+  "description": "Output of porch fake deliveries: every message delivered to fake sessions, oldest first.",
+  "type": "object",
+  "required": ["schema", "deliveries"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "deliveries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["session", "text", "at", "statusAtSend"],
+        "additionalProperties": false,
+        "properties": {
+          "session": { "type": "string", "minLength": 1 },
+          "text": { "type": "string", "description": "The message as the session received it, with its [from <label>] prefix." },
+          "at": { "type": "string", "format": "date-time" },
+          "statusAtSend": {
+            "oneOf": [{ "type": "null" }, { "$ref": "observation.schema.json#/$defs/sessionStatus" }]
+          }
+        }
+      }
+    }
+  }
+}

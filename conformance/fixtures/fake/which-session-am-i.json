@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "which-session-am-i",
+  "recordedAt": "2026-09-29T16:28:38.151Z",
+  "snapshots": [
+    {
+      "label": "started",
+      "at": "2026-09-29T16:28:38.151Z",
+      "records": {
+        "fake-conf-95ec792d.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-95ec792d",
+          "createdAt": "2026-09-29T16:28:38.149Z",
+          "updatedAt": "2026-09-29T16:28:38.149Z",
+          "inside": {
+            "pid": 58503,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-95ec792d"
+            },
+            "since": "2026-09-29T16:28:38.150Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-95ec792d\": {\n      \"alive\": true,\n      \"pid\": 58503,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-95ec792d",
+          "status": "idle",
+          "since": "2026-09-29T16:28:38.150Z",
+          "detail": {
+            "pid": 58503,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": null,
+            "lastTurnEnd": null,
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 58503,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": null,
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-95ec792d",
+              "createdAt": "2026-09-29T16:28:38.149Z",
+              "updatedAt": "2026-09-29T16:28:38.149Z",
+              "inside": {
+                "pid": 58503,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-95ec792d"
+                },
+                "since": "2026-09-29T16:28:38.150Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}

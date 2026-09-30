@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/list.schema.json",
+  "title": "Porch list output (schema 1)",
+  "type": "object",
+  "required": ["schema", "sessions", "errors"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "sessions": { "type": "array", "items": { "$ref": "observation.schema.json" } },
+    "errors": {
+      "description": "One entry per adapter whose listing failed (its sessions are missing from sessions), and one per session record that could not be read (harness is the record's harness, or porch when the records folder itself could not be read).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["harness", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "harness": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}

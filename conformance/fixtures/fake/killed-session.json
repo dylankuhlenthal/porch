@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "killed-session",
+  "recordedAt": "2026-09-29T16:28:38.175Z",
+  "snapshots": [
+    {
+      "label": "killed",
+      "at": "2026-09-29T16:28:38.173Z",
+      "records": {
+        "fake-conf-29434a89.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-29434a89",
+          "createdAt": "2026-09-29T16:28:38.172Z",
+          "updatedAt": "2026-09-29T16:28:38.172Z",
+          "inside": {
+            "pid": 58503,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-29434a89"
+            },
+            "since": "2026-09-29T16:28:38.172Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-29434a89\": {\n      \"alive\": false,\n      \"pid\": 58503,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": \"2026-09-29T16:28:38.172Z\",\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-29434a89",
+          "status": "gone",
+          "since": "2026-09-29T16:28:38.172Z",
+          "detail": {
+            "pid": 58503,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": null,
+            "lastTurnEnd": null,
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": false,
+              "pid": 58503,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": "2026-09-29T16:28:38.172Z",
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-29434a89",
+              "createdAt": "2026-09-29T16:28:38.172Z",
+              "updatedAt": "2026-09-29T16:28:38.172Z",
+              "inside": {
+                "pid": 58503,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-29434a89"
+                },
+                "since": "2026-09-29T16:28:38.172Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}

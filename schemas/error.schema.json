@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/error.schema.json",
+  "title": "Porch error output (schema 1)",
+  "description": "Printed on stdout, instead of the command's normal output, whenever a command fails. The exit code matches the code.",
+  "type": "object",
+  "required": ["schema", "error"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "enum": ["usage", "not-found", "not-in-session", "ambiguous-session", "internal"] },
+        "message": { "type": "string" }
+      }
+    }
+  }
+}

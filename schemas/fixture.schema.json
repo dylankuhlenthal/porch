@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/fixture.schema.json",
+  "title": "Porch conformance fixture (schema 1)",
+  "description": "What a harness returned during one conformance case, at conformance/fixtures/<harness>/<case>.json. Paths use the placeholders $PORCH_HOME, $WORK and $HOME.",
+  "type": "object",
+  "required": ["schema", "harness", "harnessVersion", "case", "recordedAt", "snapshots"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "harness": { "type": "string" },
+    "harnessVersion": { "type": ["string", "null"] },
+    "case": { "type": "string" },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "snapshots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["label", "at", "records", "io", "observations"],
+        "additionalProperties": false,
+        "properties": {
+          "label": { "type": "string" },
+          "at": { "type": "string", "format": "date-time" },
+          "records": {
+            "type": "object",
+            "additionalProperties": { "$ref": "record.schema.json" }
+          },
+          "io": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["op", "cmd", "args", "result"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "op": { "const": "run" },
+                    "cmd": { "type": "string" },
+                    "args": { "type": "array", "items": { "type": "string" } },
+                    "result": {
+                      "type": "object",
+                      "required": ["code", "stdout", "stderr"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": { "type": ["integer", "null"] },
+                        "stdout": { "type": "string" },
+                        "stderr": { "type": "string" }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": ["op", "path", "result"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "op": { "const": "readFile" },
+                    "path": { "type": "string" },
+                    "result": { "type": ["string", "null"] }
+                  }
+                }
+              ]
+            }
+          },
+          "observations": { "type": "array", "items": { "$ref": "observation.schema.json" } }
+        }
+      }
+    }
+  }
+}

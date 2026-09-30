@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dylankuhlenthal/porch/schemas/status-set.schema.json",
+  "title": "Porch status set output (schema 1)",
+  "type": "object",
+  "required": ["schema", "harness", "session", "self"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "harness": { "type": "string" },
+    "session": { "type": "string" },
+    "self": { "$ref": "observation.schema.json#/$defs/selfReport" }
+  }
+}

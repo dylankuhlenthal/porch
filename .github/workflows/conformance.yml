@@ -1,0 +1,107 @@
+# The real-harness conformance suite: on a schedule, on demand, and so within a day
+# of a new harness version (each run installs the latest harness). It runs on this
+# repository only, never on pull requests, because it needs the API key secret.
+# A harness whose required variables (see src/conformance/drivers/index.ts) are not
+# set, or that cannot run real turns (Claude Code: not logged in and no
+# ANTHROPIC_API_KEY), is skipped with a notice, not failed. Each run uploads its report and
+# fixtures; a person commits them in a PR. See docs/operations/ci.md.
+name: conformance
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      harness:
+        description: "Run only this harness (empty: all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  harnesses:
+    name: list harnesses
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - id: list
+        env:
+          ONLY: ${{ inputs.harness }}
+        run: |
+          list=$(node --input-type=module -e '
+            const { DRIVERS } = await import("./dist/conformance/drivers/index.js");
+            const only = process.env.ONLY;
+            const names = Object.keys(DRIVERS).filter((h) => !only || h === only);
+            if (names.length === 0) { console.error("unknown harness: " + only); process.exit(1); }
+            console.log(JSON.stringify(names));
+          ')
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
+  conformance:
+    name: conformance (${{ matrix.harness }})
+    needs: harnesses
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        harness: ${{ fromJSON(needs.harnesses.outputs.list) }}
+    env:
+      # Empty when the secret is not set; the conformance command then exits 3 (skipped).
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      HARNESS: ${{ matrix.harness }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Each real harness adds its install step here.
+      - name: install the latest Claude Code and trust the checkout
+        if: matrix.harness == 'claude'
+        run: |
+          npm install -g @anthropic-ai/claude-code@latest
+          claude --version
+          # Claude Code starts background sessions only in folders the user has
+          # trusted, and the suite runs its sessions under .conformance-tmp/ in this
+          # checkout. On this throwaway runner, mark the checkout trusted and
+          # onboarding done in the runner's own ~/.claude.json. These fields are not
+          # documented by Claude Code (see docs/operations/ci.md).
+          node -e '
+            const fs = require("fs"), path = require("path"), os = require("os");
+            const file = path.join(os.homedir(), ".claude.json");
+            const cfg = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
+            cfg.hasCompletedOnboarding = true;
+            cfg.projects = cfg.projects || {};
+            const dir = process.env.GITHUB_WORKSPACE;
+            cfg.projects[dir] = { ...(cfg.projects[dir] || {}), hasTrustDialogAccepted: true };
+            fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
+          '
+      - name: run the suite
+        run: |
+          set +e
+          npm run conformance -- --harness "$HARNESS" --record
+          code=$?
+          if [ "$code" -eq 3 ]; then
+            echo "::notice::conformance for $HARNESS skipped: a variable the harness requires is not set, or the harness cannot run real turns here (Claude Code: not logged in and ANTHROPIC_API_KEY empty); the step output above gives the reason"
+            exit 0
+          fi
+          exit "$code"
+      - name: upload report and fixtures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-${{ matrix.harness }}
+          path: conformance/
+          if-no-files-found: ignore

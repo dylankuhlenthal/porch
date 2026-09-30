@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "deliver-while-busy",
+  "recordedAt": "2026-09-29T16:28:38.163Z",
+  "snapshots": [
+    {
+      "label": "busy",
+      "at": "2026-09-29T16:28:38.161Z",
+      "records": {
+        "fake-conf-c390fa52.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-c390fa52",
+          "createdAt": "2026-09-29T16:28:38.160Z",
+          "updatedAt": "2026-09-29T16:28:38.160Z",
+          "inside": {
+            "pid": 58503,
+            "status": "busy",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-c390fa52"
+            },
+            "since": "2026-09-29T16:28:38.160Z",
+            "lastTurnStart": "2026-09-29T16:28:38.160Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-c390fa52\": {\n      \"alive\": true,\n      \"pid\": 58503,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-c390fa52",
+          "status": "busy",
+          "since": "2026-09-29T16:28:38.160Z",
+          "detail": {
+            "pid": 58503,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": "2026-09-29T16:28:38.160Z",
+            "lastTurnEnd": null,
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 58503,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": null,
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-c390fa52",
+              "createdAt": "2026-09-29T16:28:38.160Z",
+              "updatedAt": "2026-09-29T16:28:38.160Z",
+              "inside": {
+                "pid": 58503,
+                "status": "busy",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-c390fa52"
+                },
+                "since": "2026-09-29T16:28:38.160Z",
+                "lastTurnStart": "2026-09-29T16:28:38.160Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    },
+    {
+      "label": "idle again",
+      "at": "2026-09-29T16:28:38.163Z",
+      "records": {
+        "fake-conf-c390fa52.json": {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-c390fa52",
+          "createdAt": "2026-09-29T16:28:38.160Z",
+          "updatedAt": "2026-09-29T16:28:38.163Z",
+          "inside": {
+            "pid": 58503,
+            "status": "idle",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-c390fa52"
+            },
+            "since": "2026-09-29T16:28:38.162Z",
+            "lastTurnStart": "2026-09-29T16:28:38.160Z",
+            "lastTurnEnd": "2026-09-29T16:28:38.162Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-c390fa52\": {\n      \"alive\": true,\n      \"pid\": 58503,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null\n    }\n  },\n  \"deliveries\": [\n    {\n      \"session\": \"conf-c390fa52\",\n      \"text\": \"[from porch-conformance] porch conformance busy 18430ab7\",\n      \"at\": \"2026-09-29T16:28:38.162Z\",\n      \"statusAtSend\": \"busy\"\n    }\n  ]\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 1,
+          "harness": "fake",
+          "session": "conf-c390fa52",
+          "status": "idle",
+          "since": "2026-09-29T16:28:38.162Z",
+          "detail": {
+            "pid": 58503,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": "2026-09-29T16:28:38.160Z",
+            "lastTurnEnd": "2026-09-29T16:28:38.162Z",
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": true,
+              "pid": 58503,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": null,
+              "failDeliver": null
+            },
+            "record": {
+              "schema": 1,
+              "harness": "fake",
+              "session": "conf-c390fa52",
+              "createdAt": "2026-09-29T16:28:38.160Z",
+              "updatedAt": "2026-09-29T16:28:38.163Z",
+              "inside": {
+                "pid": 58503,
+                "status": "idle",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-c390fa52"
+                },
+                "since": "2026-09-29T16:28:38.162Z",
+                "lastTurnStart": "2026-09-29T16:28:38.160Z",
+                "lastTurnEnd": "2026-09-29T16:28:38.162Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}
