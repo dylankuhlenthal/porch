@@ -5,10 +5,11 @@
  * through the same record store a real adapter's inside part uses.
  *
  * How it works out status, in order:
- * 1. not in the listing, or "alive": false  -> gone (a left-behind record does not revive it)
- * 2. "prompt" set in the listing            -> waiting-on-prompt
- * 3. the record's inside part has a status  -> that status
- * 4. otherwise (no inside part)             -> unknown
+ * 1. the record's inside part says ended    -> ended (with endReason)
+ * 2. not in the listing, or "alive": false  -> gone (a left-behind record does not revive it)
+ * 3. "prompt" set in the listing            -> waiting-on-prompt
+ * 4. the record's inside part has a status  -> that status
+ * 5. otherwise (no inside part)             -> unknown
  */
 import {
   deliverResult,
@@ -85,7 +86,7 @@ export function createFakeAdapter(options: { pollIntervalMs?: number } = {}): Ad
       return updateState(file, (state) => {
         const row = state.sessions[session];
         const obs = row || rec ? fakeObservation(session, row, rec) : null;
-        if (!obs || obs.status === "gone") {
+        if (!obs || obs.status === "gone" || obs.status === "ended") {
           return deliverResult({
             harness: FAKE_HARNESS,
             session,

@@ -1,3 +1,4 @@
+import { EventEmitter } from "node:events";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -129,10 +130,31 @@ describe("pi adapter: status", () => {
     const porch = porchWith(env, psIO({ 300: later }).io);
     await writeRecord(porch, "dead", { pid: 301, status: "idle", data: { processStartedAt: started } });
     await writeRecord(porch, "reused", { pid: 300, status: "idle", data: { processStartedAt: started } });
-    const byId = Object.fromEntries((await porch.list()).sessions.map((o) => [o.session, o]));
+    const byId = Object.fromEntries((await porch.list(undefined, { all: true })).sessions.map((o) => [o.session, o]));
     expect(byId.dead!.status).toBe("gone");
     expect(byId.dead!.since).toBeNull();
     expect(byId.reused!.status).toBe("gone");
+    // Not running, so hidden without --all.
+    expect((await porch.list()).sessions).toEqual([]);
+  });
+
+  it("shows an ended session as ended with its reason, whether or not its process still runs, and asks ps nothing for it", async () => {
+    const env = scratchEnv();
+    const { io, calls } = psIO({ 400: T0 });
+    const porch = porchWith(env, io);
+    const endedAt = new Date(NOW.getTime() - 1000).toISOString();
+    // The process runs on after /new ended this session: still ended.
+    await writeRecord(porch, "renewed", { pid: 400, status: "ended", endedAt, endReason: "new", data: { processStartedAt: started } });
+    await writeRecord(porch, "quit", { pid: 401, status: "ended", endedAt, endReason: "quit", data: { processStartedAt: started } });
+    const all = await porch.list(undefined, { all: true });
+    for (const o of all.sessions) v.observation!(o);
+    expect(all.sessions.map((o) => [o.session, o.status, o.since, o.endReason])).toEqual([
+      ["quit", "ended", endedAt, "quit"],
+      ["renewed", "ended", endedAt, "new"],
+    ]);
+    expect(calls).toEqual([]);
+    expect((await porch.list()).sessions).toEqual([]);
+    expect(await porch.deliver("quit", "hi", { from: "t" })).toMatchObject({ result: "not-running", reason: "the session has ended" });
   });
 
   it("reads ps output even when ps exits 1 because some pids are not running (as Linux's procps may)", async () => {
@@ -141,7 +163,7 @@ describe("pi adapter: status", () => {
     const started2 = new Date(NOW.getTime() - 5000).toISOString();
     await writeRecord(porch, "alive", { pid: 100, status: "idle", data: { processStartedAt: started2 } });
     await writeRecord(porch, "dead", { pid: 101, status: "idle", data: { processStartedAt: started2 } });
-    const byId = Object.fromEntries((await porch.list()).sessions.map((o) => [o.session, o.status]));
+    const byId = Object.fromEntries((await porch.list(undefined, { all: true })).sessions.map((o) => [o.session, o.status]));
     expect(byId).toEqual({ alive: "idle", dead: "gone" });
   });
 
@@ -280,10 +302,12 @@ describe("pi extension (the inside part)", () => {
     const env = scratchEnv();
     const socketDir = path.join(mkdtempSync(path.join(os.tmpdir(), "pp-")), path.basename(piSocketDir()));
     const pi = fakePi("sess-1", "/work/here/sessions/x_sess-1.jsonl");
-    porchPiExtension(pi.api, { env: env as NodeJS.ProcessEnv, pid: 4242, processStartedAt: T0.toISOString(), socketDir, now: () => NOW, connectionTimeoutMs: 300 });
+    // Stands in for the process: the extension's exit fallback listens to it.
+    const exitEvents = new EventEmitter();
+    porchPiExtension(pi.api, { env: env as NodeJS.ProcessEnv, pid: 4242, processStartedAt: T0.toISOString(), socketDir, now: () => NOW, connectionTimeoutMs: 300, exitEvents });
     const porch = porchWith(env, psIO({ 4242: T0 }).io);
     cleanups.push(() => pi.emit("session_shutdown", { reason: "quit" }));
-    return { env, socketDir, pi, porch };
+    return { env, socketDir, pi, porch, exitEvents };
   }
 
   it("writes the record at session start and opens a private socket", async () => {
@@ -335,18 +359,62 @@ describe("pi extension (the inside part)", () => {
     expect(rec!.inside).toMatchObject({ status: "idle", lastTurnEnd: NOW.toISOString(), data: { prompt: null } });
   });
 
-  it("keeps the record through a reload, and removes it and the socket when the session ends", async () => {
+  it("keeps the record through a reload, and marks it ended with Pi's reason, and removes the socket, when the session ends", async () => {
     const { socketDir, pi, porch } = await setUp();
     const address = path.join(socketDir, "pi-4242.sock");
     await pi.emit("session_start", { reason: "startup" });
     await pi.emit("session_shutdown", { reason: "reload" });
-    expect(await porch.ctx.records.read(PI_HARNESS, "sess-1")).not.toBeNull();
+    expect((await porch.ctx.records.read(PI_HARNESS, "sess-1"))!.inside!.status).toBe("idle");
     expect(existsSync(address)).toBe(false);
     await pi.emit("session_start", { reason: "reload" });
     expect((await porch.ctx.records.read(PI_HARNESS, "sess-1"))!.inside!.data!.source).toBe("reload");
     await pi.emit("session_shutdown", { reason: "quit" });
-    expect(await porch.ctx.records.read(PI_HARNESS, "sess-1")).toBeNull();
+    const rec = await porch.ctx.records.read(PI_HARNESS, "sess-1");
+    v.record!(rec);
+    expect(rec!.inside).toMatchObject({ status: "ended", endedAt: NOW.toISOString(), endReason: "quit" });
     expect(existsSync(address)).toBe(false);
+    expect(await porch.observe("sess-1")).toMatchObject({ status: "ended", endReason: "quit", since: NOW.toISOString() });
+    // A late event does not turn it back into a running session.
+    await pi.emit("agent_settled");
+    expect((await porch.ctx.records.read(PI_HARNESS, "sess-1"))!.inside!.status).toBe("ended");
+  });
+
+  it("ends the old session with reason new when /new replaces it in the same process", async () => {
+    const { pi, porch } = await setUp();
+    await pi.emit("session_start", { reason: "startup" });
+    await pi.emit("session_shutdown", { reason: "new" });
+    expect(await porch.observe("sess-1")).toMatchObject({ status: "ended", endReason: "new" });
+  });
+
+  it("on a normal exit without session_shutdown (the terminal closed mid-turn: code 129), marks the session ended with no reason", async () => {
+    const { pi, porch, exitEvents } = await setUp();
+    await pi.emit("session_start", { reason: "startup" });
+    await pi.emit("agent_start");
+    exitEvents.emit("exit", 129);
+    const rec = await porch.ctx.records.read(PI_HARNESS, "sess-1");
+    v.record!(rec);
+    expect(rec!.inside).toMatchObject({ status: "ended", endedAt: NOW.toISOString(), endReason: null, data: { exitCode: 129 } });
+  });
+
+  it("leaves the record as it is when Pi exits with a crash's code, so the session shows as gone", async () => {
+    const { pi, porch, exitEvents } = await setUp();
+    await pi.emit("session_start", { reason: "startup" });
+    exitEvents.emit("exit", 1);
+    expect((await porch.ctx.records.read(PI_HARNESS, "sess-1"))!.inside!.status).toBe("idle");
+  });
+
+  it("finishes an ended mark session_shutdown started when the process exits before it is written, even under its own lock", async () => {
+    const { env, pi, porch, exitEvents } = await setUp();
+    await pi.emit("session_start", { reason: "startup" });
+    // An unfinished write of this same process holds the lock, as when Pi exits mid-write.
+    const lock = `${porch.ctx.records.recordPath(PI_HARNESS, "sess-1")}.lock`;
+    writeFileSync(lock, `${process.pid}:unfinished`);
+    const shutdown = pi.emit("session_shutdown", { reason: "quit" });
+    exitEvents.emit("exit", 0);
+    const rec = await new Porch({ env }).ctx.records.read(PI_HARNESS, "sess-1");
+    expect(rec!.inside).toMatchObject({ status: "ended", endReason: "quit" });
+    await shutdown;
+    expect(existsSync(lock)).toBe(false);
   });
 
   it("refuses requests it cannot take: not a deliver request, and one over the size limit (counted in bytes)", async () => {
@@ -377,7 +445,7 @@ describe("pi extension (the inside part)", () => {
     const started = Date.now();
     await pi.emit("session_shutdown", { reason: "quit" });
     expect(Date.now() - started).toBeLessThan(250);
-    expect(await porch.ctx.records.read(PI_HARNESS, "sess-1")).toBeNull();
+    expect((await porch.ctx.records.read(PI_HARNESS, "sess-1"))!.inside!.status).toBe("ended");
     stalled.destroy();
   });
 
@@ -419,7 +487,7 @@ describe("porch launch pi and porch extension pi", () => {
     const plain = await cli(["extension", "pi"], env);
     expect(plain.code).toBe(EXIT.ok);
     v["pi-extension"]!(plain.json);
-    expect(plain.json).toEqual({ schema: 1, harness: "pi", extension: piExtensionPath(), porchHome: null, args: ["-e", piExtensionPath()], env: {} });
+    expect(plain.json).toEqual({ schema: 2, harness: "pi", extension: piExtensionPath(), porchHome: null, args: ["-e", piExtensionPath()], env: {} });
     const withHome = await cli(["extension", "pi", "--porch-home", "rel/dir"], env);
     expect(withHome.json).toMatchObject({ porchHome: path.resolve("rel/dir"), env: { PORCH_HOME: path.resolve("rel/dir") } });
     expect((await cli(["extension", "pi", "extra"], env)).code).toBe(EXIT.usage);

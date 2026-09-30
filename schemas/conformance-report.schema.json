@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/conformance-report.schema.json",
-  "title": "Porch conformance report (schema 1)",
+  "title": "Porch conformance report (schema 2)",
   "description": "Written to conformance/reports/<harness>.json by npm run conformance -- --record.",
   "type": "object",
   "required": ["schema", "harness", "harnessVersion", "porchVersion", "platform", "ranAt", "passed", "results"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "harness": { "type": "string" },
     "harnessVersion": { "type": ["string", "null"] },
     "porchVersion": { "type": "string" },

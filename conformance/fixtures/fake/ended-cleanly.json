@@ -1,0 +1,91 @@
+{
+  "schema": 2,
+  "harness": "fake",
+  "harnessVersion": "fake-1",
+  "case": "ended-cleanly",
+  "recordedAt": "2026-09-30T12:10:24.179Z",
+  "snapshots": [
+    {
+      "label": "ended",
+      "at": "2026-09-30T12:10:24.177Z",
+      "records": {
+        "fake-conf-e217b7c9.json": {
+          "schema": 2,
+          "harness": "fake",
+          "session": "conf-e217b7c9",
+          "createdAt": "2026-09-30T12:10:24.175Z",
+          "updatedAt": "2026-09-30T12:10:24.176Z",
+          "inside": {
+            "pid": 46851,
+            "status": "ended",
+            "delivery": {
+              "via": "fake",
+              "address": "fake:conf-e217b7c9"
+            },
+            "since": "2026-09-30T12:10:24.176Z",
+            "endedAt": "2026-09-30T12:10:24.176Z",
+            "endReason": null
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "readFile",
+          "path": "$PORCH_HOME/fake-harness.json",
+          "result": "{\n  \"sessions\": {\n    \"conf-e217b7c9\": {\n      \"alive\": false,\n      \"pid\": 46851,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": \"2026-09-30T12:10:24.175Z\",\n      \"failDeliver\": null,\n      \"exitCode\": 0\n    }\n  },\n  \"deliveries\": []\n}\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 2,
+          "harness": "fake",
+          "session": "conf-e217b7c9",
+          "attached": true,
+          "status": "ended",
+          "since": "2026-09-30T12:10:24.176Z",
+          "endReason": null,
+          "detail": {
+            "pid": 46851,
+            "prompt": null,
+            "hasInsidePart": true,
+            "lastTurnStart": null,
+            "lastTurnEnd": null,
+            "backgroundTasks": null
+          },
+          "raw": {
+            "listing": {
+              "alive": false,
+              "pid": 46851,
+              "prompt": null,
+              "promptSince": null,
+              "goneSince": "2026-09-30T12:10:24.175Z",
+              "failDeliver": null,
+              "exitCode": 0
+            },
+            "record": {
+              "schema": 2,
+              "harness": "fake",
+              "session": "conf-e217b7c9",
+              "createdAt": "2026-09-30T12:10:24.175Z",
+              "updatedAt": "2026-09-30T12:10:24.176Z",
+              "inside": {
+                "pid": 46851,
+                "status": "ended",
+                "delivery": {
+                  "via": "fake",
+                  "address": "fake:conf-e217b7c9"
+                },
+                "since": "2026-09-30T12:10:24.176Z",
+                "endedAt": "2026-09-30T12:10:24.176Z",
+                "endReason": null
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/fixture.schema.json",
-  "title": "Porch conformance fixture (schema 1)",
+  "title": "Porch conformance fixture (schema 2)",
   "description": "What a harness returned during one conformance case, at conformance/fixtures/<harness>/<case>.json. Paths use the placeholders $PORCH_HOME, $WORK and $HOME.",
   "type": "object",
   "required": ["schema", "harness", "harnessVersion", "case", "recordedAt", "snapshots"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "harness": { "type": "string" },
     "harnessVersion": { "type": ["string", "null"] },
     "case": { "type": "string" },

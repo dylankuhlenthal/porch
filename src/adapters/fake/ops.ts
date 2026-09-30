@@ -61,6 +61,8 @@ export async function setInsideStatus(
   // Like the other events, only for a session the fake harness has started.
   requireRow(parseState(await ctx.io.readFile(fakeStatePath(ctx.env))).sessions[session], session);
   await ctx.records.updateInside(HARNESS, session, (current) => {
+    // Like a real inside part's turn events, never for a session that has ended.
+    if (current?.status === "ended") return current;
     const next = { ...(current ?? {}) };
     if (status === "busy" && current?.status !== "busy") next.lastTurnStart = now;
     if (status === "idle" && current?.status === "busy") next.lastTurnEnd = now;
@@ -91,12 +93,17 @@ export async function killSession(ctx: AdapterContext, session: string): Promise
 }
 
 /**
- * The session ends cleanly: its end hook removes the record. A launched session's
- * process (`porch fake run`) then exits with `exitCode` (default 0).
+ * The session ends cleanly: its end hook marks the record `ended`, with `reason`
+ * (null: the harness gave none). A launched session's process (`porch fake run`)
+ * then exits with `exitCode` (default 0).
  */
-export async function endSession(ctx: AdapterContext, session: string, options: { exitCode?: number } = {}): Promise<void> {
+export async function endSession(ctx: AdapterContext, session: string, options: { exitCode?: number; reason?: string | null } = {}): Promise<void> {
   await markGone(ctx, session, options.exitCode ?? 0);
-  await ctx.records.remove(HARNESS, session);
+  await ctx.records.updateInsideIfExists(HARNESS, session, {
+    status: "ended",
+    endedAt: ctx.now().toISOString(),
+    endReason: options.reason ?? null,
+  });
 }
 
 async function markGone(ctx: AdapterContext, session: string, exitCode: number | null): Promise<void> {

@@ -118,9 +118,9 @@ export async function handleHookEvent(ctx: AdapterContext, event: string, input:
       }));
       return;
     }
-    // Every event but SessionStart only changes an existing record: a hook that runs
-    // after SessionEnd removed the record must not bring back a partial one that
-    // nothing would remove.
+    // Every event but SessionStart only changes an existing record whose session has
+    // not ended: a hook that runs after SessionEnd (a late Stop, say) must neither
+    // bring back a partial record nor turn the ended session back into a running one.
     case "UserPromptSubmit":
       // Fires for each prompt, including a message delivered mid-turn (observed with 2.1.284).
       await records.updateInsideIfExists(CLAUDE_HARNESS, session, { status: "busy", lastTurnStart: now });
@@ -144,7 +144,9 @@ export async function handleHookEvent(ctx: AdapterContext, event: string, input:
       await records.updateInsideIfExists(CLAUDE_HARNESS, session, { data: { lastPermissionRequest: { at: now, tool: str(input.tool_name) } } });
       return;
     case "SessionEnd":
-      await records.remove(CLAUDE_HARNESS, session);
+      // The record stays, marked ended, so a tool can tell how the session stopped;
+      // `porch list` and `porch watch` remove it 24 hours later (src/prune.ts).
+      await records.updateInsideIfExists(CLAUDE_HARNESS, session, { status: "ended", endedAt: now, endReason: str(input.reason) });
       return;
   }
 }

@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/fake-deliveries.schema.json",
-  "title": "Porch fake deliveries output (schema 1)",
+  "title": "Porch fake deliveries output (schema 2)",
   "description": "Output of porch fake deliveries: every message delivered to fake sessions, oldest first.",
   "type": "object",
   "required": ["schema", "deliveries"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "deliveries": {
       "type": "array",
       "items": {

@@ -11,8 +11,8 @@
  *   for TURN_MS, then idle); `porch fake end` makes it exit with the code given
  *   there (default 0); `porch fake kill` makes it die of SIGKILL, like a crash.
  * - Like an interactive harness, it ignores SIGINT and SIGQUIT (one Ctrl+C does not
- *   end it). On SIGTERM or SIGHUP it ends cleanly (its record is removed) and dies
- *   of that signal.
+ *   end it). On SIGTERM or SIGHUP it ends cleanly (its record says ended, with the
+ *   signal's name as the reason) and dies of that signal.
  */
 import type { AdapterContext } from "../../adapter.js";
 import { endSession, setInsideStatus, startSession } from "./ops.js";
@@ -44,7 +44,7 @@ export async function runFakeSession(ctx: AdapterContext, session: string, optio
   let seen = deliveredTo(await readState());
   for (;;) {
     if (ending !== null) {
-      await endSession(ctx, session).catch(() => undefined);
+      await endSession(ctx, session, { reason: ending }).catch(() => undefined);
       process.removeAllListeners(ending);
       process.kill(process.pid, ending);
       return 128;
@@ -62,7 +62,7 @@ export async function runFakeSession(ctx: AdapterContext, session: string, optio
       if (options.inside) {
         await setInsideStatus(ctx, session, "busy");
         await sleep(TURN_MS);
-        // Not after the session ended meanwhile: that would bring its removed record back.
+        // Not after the session ended meanwhile (the record would refuse it anyway).
         if ((await readState()).sessions[session]?.alive) await setInsideStatus(ctx, session, "idle");
       }
     }

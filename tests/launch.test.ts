@@ -88,7 +88,7 @@ describe("porch launch: options", () => {
     const r = await bin(["launch", "--dry-run", "fake", "s1", "--no-inside"], env);
     expect(r.code).toBe(EXIT.ok);
     v["launch-plan"]!(r.json);
-    expect(r.json).toEqual({ schema: 1, harness: "fake", command: process.execPath, args: [BIN, "fake", "run", "s1", "--no-inside"] });
+    expect(r.json).toEqual({ schema: 2, harness: "fake", command: process.execPath, args: [BIN, "fake", "run", "s1", "--no-inside"] });
     expect((await bin(["observe", "s1"], env)).code).toBe(EXIT.notFound);
   });
 
@@ -143,8 +143,8 @@ describe("porch launch: running the harness (fake)", () => {
     await listed(env, "s1");
     run.child.kill("SIGTERM");
     expect(await run.exited).toEqual({ code: null, signal: "SIGTERM" });
-    // The fake ended cleanly on SIGTERM, so its record is gone: it got the signal.
-    expect((await bin(["observe", "s1"], env)).json.status).toBe("gone");
+    // The fake ended cleanly on SIGTERM, so its record says ended: it got the signal.
+    expect((await bin(["observe", "s1"], env)).json).toMatchObject({ status: "ended", endReason: "SIGTERM" });
   });
 
   it("passes SIGHUP on too", async () => {

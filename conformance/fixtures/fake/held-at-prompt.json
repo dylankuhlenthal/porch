@@ -1,29 +1,29 @@
 {
-  "schema": 1,
+  "schema": 2,
   "harness": "fake",
   "harnessVersion": "fake-1",
   "case": "held-at-prompt",
-  "recordedAt": "2026-09-30T10:29:51.601Z",
+  "recordedAt": "2026-09-30T12:10:24.162Z",
   "snapshots": [
     {
       "label": "held",
-      "at": "2026-09-30T10:29:51.600Z",
+      "at": "2026-09-30T12:10:24.158Z",
       "records": {
-        "fake-conf-529f6e8d.json": {
-          "schema": 1,
+        "fake-conf-6564613f.json": {
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-529f6e8d",
-          "createdAt": "2026-09-30T10:29:51.598Z",
-          "updatedAt": "2026-09-30T10:29:51.599Z",
+          "session": "conf-6564613f",
+          "createdAt": "2026-09-30T12:10:24.156Z",
+          "updatedAt": "2026-09-30T12:10:24.157Z",
           "inside": {
-            "pid": 63957,
+            "pid": 46851,
             "status": "busy",
             "delivery": {
               "via": "fake",
-              "address": "fake:conf-529f6e8d"
+              "address": "fake:conf-6564613f"
             },
-            "since": "2026-09-30T10:29:51.599Z",
-            "lastTurnStart": "2026-09-30T10:29:51.598Z"
+            "since": "2026-09-30T12:10:24.157Z",
+            "lastTurnStart": "2026-09-30T12:10:24.156Z"
           },
           "self": null
         }
@@ -32,50 +32,51 @@
         {
           "op": "readFile",
           "path": "$PORCH_HOME/fake-harness.json",
-          "result": "{\n  \"sessions\": {\n    \"conf-529f6e8d\": {\n      \"alive\": true,\n      \"pid\": 63957,\n      \"prompt\": \"Allow Bash: rm -rf build?\",\n      \"promptSince\": \"2026-09-30T10:29:51.599Z\",\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+          "result": "{\n  \"sessions\": {\n    \"conf-6564613f\": {\n      \"alive\": true,\n      \"pid\": 46851,\n      \"prompt\": \"Allow Bash: rm -rf build?\",\n      \"promptSince\": \"2026-09-30T12:10:24.157Z\",\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
         }
       ],
       "observations": [
         {
-          "schema": 1,
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-529f6e8d",
+          "session": "conf-6564613f",
           "attached": true,
           "status": "waiting-on-prompt",
-          "since": "2026-09-30T10:29:51.599Z",
+          "since": "2026-09-30T12:10:24.157Z",
+          "endReason": null,
           "detail": {
-            "pid": 63957,
+            "pid": 46851,
             "prompt": "Allow Bash: rm -rf build?",
             "hasInsidePart": true,
-            "lastTurnStart": "2026-09-30T10:29:51.598Z",
+            "lastTurnStart": "2026-09-30T12:10:24.156Z",
             "lastTurnEnd": null,
             "backgroundTasks": null
           },
           "raw": {
             "listing": {
               "alive": true,
-              "pid": 63957,
+              "pid": 46851,
               "prompt": "Allow Bash: rm -rf build?",
-              "promptSince": "2026-09-30T10:29:51.599Z",
+              "promptSince": "2026-09-30T12:10:24.157Z",
               "goneSince": null,
               "failDeliver": null,
               "exitCode": null
             },
             "record": {
-              "schema": 1,
+              "schema": 2,
               "harness": "fake",
-              "session": "conf-529f6e8d",
-              "createdAt": "2026-09-30T10:29:51.598Z",
-              "updatedAt": "2026-09-30T10:29:51.599Z",
+              "session": "conf-6564613f",
+              "createdAt": "2026-09-30T12:10:24.156Z",
+              "updatedAt": "2026-09-30T12:10:24.157Z",
               "inside": {
-                "pid": 63957,
+                "pid": 46851,
                 "status": "busy",
                 "delivery": {
                   "via": "fake",
-                  "address": "fake:conf-529f6e8d"
+                  "address": "fake:conf-6564613f"
                 },
-                "since": "2026-09-30T10:29:51.599Z",
-                "lastTurnStart": "2026-09-30T10:29:51.598Z"
+                "since": "2026-09-30T12:10:24.157Z",
+                "lastTurnStart": "2026-09-30T12:10:24.156Z"
               },
               "self": null
             }
@@ -86,23 +87,23 @@
     },
     {
       "label": "after delivery",
-      "at": "2026-09-30T10:29:51.601Z",
+      "at": "2026-09-30T12:10:24.161Z",
       "records": {
-        "fake-conf-529f6e8d.json": {
-          "schema": 1,
+        "fake-conf-6564613f.json": {
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-529f6e8d",
-          "createdAt": "2026-09-30T10:29:51.598Z",
-          "updatedAt": "2026-09-30T10:29:51.599Z",
+          "session": "conf-6564613f",
+          "createdAt": "2026-09-30T12:10:24.156Z",
+          "updatedAt": "2026-09-30T12:10:24.157Z",
           "inside": {
-            "pid": 63957,
+            "pid": 46851,
             "status": "busy",
             "delivery": {
               "via": "fake",
-              "address": "fake:conf-529f6e8d"
+              "address": "fake:conf-6564613f"
             },
-            "since": "2026-09-30T10:29:51.599Z",
-            "lastTurnStart": "2026-09-30T10:29:51.598Z"
+            "since": "2026-09-30T12:10:24.157Z",
+            "lastTurnStart": "2026-09-30T12:10:24.156Z"
           },
           "self": null
         }
@@ -111,50 +112,51 @@
         {
           "op": "readFile",
           "path": "$PORCH_HOME/fake-harness.json",
-          "result": "{\n  \"sessions\": {\n    \"conf-529f6e8d\": {\n      \"alive\": true,\n      \"pid\": 63957,\n      \"prompt\": \"Allow Bash: rm -rf build?\",\n      \"promptSince\": \"2026-09-30T10:29:51.599Z\",\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": [\n    {\n      \"session\": \"conf-529f6e8d\",\n      \"text\": \"[from porch-conformance] porch conformance held add13911\",\n      \"at\": \"2026-09-30T10:29:51.601Z\",\n      \"statusAtSend\": \"waiting-on-prompt\"\n    }\n  ]\n}\n"
+          "result": "{\n  \"sessions\": {\n    \"conf-6564613f\": {\n      \"alive\": true,\n      \"pid\": 46851,\n      \"prompt\": \"Allow Bash: rm -rf build?\",\n      \"promptSince\": \"2026-09-30T12:10:24.157Z\",\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": [\n    {\n      \"session\": \"conf-6564613f\",\n      \"text\": \"[from porch-conformance] porch conformance held 61a46637\",\n      \"at\": \"2026-09-30T12:10:24.160Z\",\n      \"statusAtSend\": \"waiting-on-prompt\"\n    }\n  ]\n}\n"
         }
       ],
       "observations": [
         {
-          "schema": 1,
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-529f6e8d",
+          "session": "conf-6564613f",
           "attached": true,
           "status": "waiting-on-prompt",
-          "since": "2026-09-30T10:29:51.599Z",
+          "since": "2026-09-30T12:10:24.157Z",
+          "endReason": null,
           "detail": {
-            "pid": 63957,
+            "pid": 46851,
             "prompt": "Allow Bash: rm -rf build?",
             "hasInsidePart": true,
-            "lastTurnStart": "2026-09-30T10:29:51.598Z",
+            "lastTurnStart": "2026-09-30T12:10:24.156Z",
             "lastTurnEnd": null,
             "backgroundTasks": null
           },
           "raw": {
             "listing": {
               "alive": true,
-              "pid": 63957,
+              "pid": 46851,
               "prompt": "Allow Bash: rm -rf build?",
-              "promptSince": "2026-09-30T10:29:51.599Z",
+              "promptSince": "2026-09-30T12:10:24.157Z",
               "goneSince": null,
               "failDeliver": null,
               "exitCode": null
             },
             "record": {
-              "schema": 1,
+              "schema": 2,
               "harness": "fake",
-              "session": "conf-529f6e8d",
-              "createdAt": "2026-09-30T10:29:51.598Z",
-              "updatedAt": "2026-09-30T10:29:51.599Z",
+              "session": "conf-6564613f",
+              "createdAt": "2026-09-30T12:10:24.156Z",
+              "updatedAt": "2026-09-30T12:10:24.157Z",
               "inside": {
-                "pid": 63957,
+                "pid": 46851,
                 "status": "busy",
                 "delivery": {
                   "via": "fake",
-                  "address": "fake:conf-529f6e8d"
+                  "address": "fake:conf-6564613f"
                 },
-                "since": "2026-09-30T10:29:51.599Z",
-                "lastTurnStart": "2026-09-30T10:29:51.598Z"
+                "since": "2026-09-30T12:10:24.157Z",
+                "lastTurnStart": "2026-09-30T12:10:24.156Z"
               },
               "self": null
             }

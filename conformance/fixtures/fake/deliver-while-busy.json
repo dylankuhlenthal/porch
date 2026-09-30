@@ -1,29 +1,29 @@
 {
-  "schema": 1,
+  "schema": 2,
   "harness": "fake",
   "harnessVersion": "fake-1",
   "case": "deliver-while-busy",
-  "recordedAt": "2026-09-30T10:29:51.595Z",
+  "recordedAt": "2026-09-30T12:10:24.152Z",
   "snapshots": [
     {
       "label": "busy",
-      "at": "2026-09-30T10:29:51.593Z",
+      "at": "2026-09-30T12:10:24.147Z",
       "records": {
-        "fake-conf-f096c789.json": {
-          "schema": 1,
+        "fake-conf-dc581d59.json": {
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-f096c789",
-          "createdAt": "2026-09-30T10:29:51.591Z",
-          "updatedAt": "2026-09-30T10:29:51.592Z",
+          "session": "conf-dc581d59",
+          "createdAt": "2026-09-30T12:10:24.145Z",
+          "updatedAt": "2026-09-30T12:10:24.146Z",
           "inside": {
-            "pid": 63957,
+            "pid": 46851,
             "status": "busy",
             "delivery": {
               "via": "fake",
-              "address": "fake:conf-f096c789"
+              "address": "fake:conf-dc581d59"
             },
-            "since": "2026-09-30T10:29:51.592Z",
-            "lastTurnStart": "2026-09-30T10:29:51.592Z"
+            "since": "2026-09-30T12:10:24.146Z",
+            "lastTurnStart": "2026-09-30T12:10:24.146Z"
           },
           "self": null
         }
@@ -32,29 +32,30 @@
         {
           "op": "readFile",
           "path": "$PORCH_HOME/fake-harness.json",
-          "result": "{\n  \"sessions\": {\n    \"conf-f096c789\": {\n      \"alive\": true,\n      \"pid\": 63957,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
+          "result": "{\n  \"sessions\": {\n    \"conf-dc581d59\": {\n      \"alive\": true,\n      \"pid\": 46851,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": []\n}\n"
         }
       ],
       "observations": [
         {
-          "schema": 1,
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-f096c789",
+          "session": "conf-dc581d59",
           "attached": true,
           "status": "busy",
-          "since": "2026-09-30T10:29:51.592Z",
+          "since": "2026-09-30T12:10:24.146Z",
+          "endReason": null,
           "detail": {
-            "pid": 63957,
+            "pid": 46851,
             "prompt": null,
             "hasInsidePart": true,
-            "lastTurnStart": "2026-09-30T10:29:51.592Z",
+            "lastTurnStart": "2026-09-30T12:10:24.146Z",
             "lastTurnEnd": null,
             "backgroundTasks": null
           },
           "raw": {
             "listing": {
               "alive": true,
-              "pid": 63957,
+              "pid": 46851,
               "prompt": null,
               "promptSince": null,
               "goneSince": null,
@@ -62,20 +63,20 @@
               "exitCode": null
             },
             "record": {
-              "schema": 1,
+              "schema": 2,
               "harness": "fake",
-              "session": "conf-f096c789",
-              "createdAt": "2026-09-30T10:29:51.591Z",
-              "updatedAt": "2026-09-30T10:29:51.592Z",
+              "session": "conf-dc581d59",
+              "createdAt": "2026-09-30T12:10:24.145Z",
+              "updatedAt": "2026-09-30T12:10:24.146Z",
               "inside": {
-                "pid": 63957,
+                "pid": 46851,
                 "status": "busy",
                 "delivery": {
                   "via": "fake",
-                  "address": "fake:conf-f096c789"
+                  "address": "fake:conf-dc581d59"
                 },
-                "since": "2026-09-30T10:29:51.592Z",
-                "lastTurnStart": "2026-09-30T10:29:51.592Z"
+                "since": "2026-09-30T12:10:24.146Z",
+                "lastTurnStart": "2026-09-30T12:10:24.146Z"
               },
               "self": null
             }
@@ -86,24 +87,24 @@
     },
     {
       "label": "idle again",
-      "at": "2026-09-30T10:29:51.595Z",
+      "at": "2026-09-30T12:10:24.151Z",
       "records": {
-        "fake-conf-f096c789.json": {
-          "schema": 1,
+        "fake-conf-dc581d59.json": {
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-f096c789",
-          "createdAt": "2026-09-30T10:29:51.591Z",
-          "updatedAt": "2026-09-30T10:29:51.594Z",
+          "session": "conf-dc581d59",
+          "createdAt": "2026-09-30T12:10:24.145Z",
+          "updatedAt": "2026-09-30T12:10:24.149Z",
           "inside": {
-            "pid": 63957,
+            "pid": 46851,
             "status": "idle",
             "delivery": {
               "via": "fake",
-              "address": "fake:conf-f096c789"
+              "address": "fake:conf-dc581d59"
             },
-            "since": "2026-09-30T10:29:51.594Z",
-            "lastTurnStart": "2026-09-30T10:29:51.592Z",
-            "lastTurnEnd": "2026-09-30T10:29:51.594Z"
+            "since": "2026-09-30T12:10:24.149Z",
+            "lastTurnStart": "2026-09-30T12:10:24.146Z",
+            "lastTurnEnd": "2026-09-30T12:10:24.149Z"
           },
           "self": null
         }
@@ -112,29 +113,30 @@
         {
           "op": "readFile",
           "path": "$PORCH_HOME/fake-harness.json",
-          "result": "{\n  \"sessions\": {\n    \"conf-f096c789\": {\n      \"alive\": true,\n      \"pid\": 63957,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": [\n    {\n      \"session\": \"conf-f096c789\",\n      \"text\": \"[from porch-conformance] porch conformance busy 3b586893\",\n      \"at\": \"2026-09-30T10:29:51.594Z\",\n      \"statusAtSend\": \"busy\"\n    }\n  ]\n}\n"
+          "result": "{\n  \"sessions\": {\n    \"conf-dc581d59\": {\n      \"alive\": true,\n      \"pid\": 46851,\n      \"prompt\": null,\n      \"promptSince\": null,\n      \"goneSince\": null,\n      \"failDeliver\": null,\n      \"exitCode\": null\n    }\n  },\n  \"deliveries\": [\n    {\n      \"session\": \"conf-dc581d59\",\n      \"text\": \"[from porch-conformance] porch conformance busy 04048175\",\n      \"at\": \"2026-09-30T12:10:24.149Z\",\n      \"statusAtSend\": \"busy\"\n    }\n  ]\n}\n"
         }
       ],
       "observations": [
         {
-          "schema": 1,
+          "schema": 2,
           "harness": "fake",
-          "session": "conf-f096c789",
+          "session": "conf-dc581d59",
           "attached": true,
           "status": "idle",
-          "since": "2026-09-30T10:29:51.594Z",
+          "since": "2026-09-30T12:10:24.149Z",
+          "endReason": null,
           "detail": {
-            "pid": 63957,
+            "pid": 46851,
             "prompt": null,
             "hasInsidePart": true,
-            "lastTurnStart": "2026-09-30T10:29:51.592Z",
-            "lastTurnEnd": "2026-09-30T10:29:51.594Z",
+            "lastTurnStart": "2026-09-30T12:10:24.146Z",
+            "lastTurnEnd": "2026-09-30T12:10:24.149Z",
             "backgroundTasks": null
           },
           "raw": {
             "listing": {
               "alive": true,
-              "pid": 63957,
+              "pid": 46851,
               "prompt": null,
               "promptSince": null,
               "goneSince": null,
@@ -142,21 +144,21 @@
               "exitCode": null
             },
             "record": {
-              "schema": 1,
+              "schema": 2,
               "harness": "fake",
-              "session": "conf-f096c789",
-              "createdAt": "2026-09-30T10:29:51.591Z",
-              "updatedAt": "2026-09-30T10:29:51.594Z",
+              "session": "conf-dc581d59",
+              "createdAt": "2026-09-30T12:10:24.145Z",
+              "updatedAt": "2026-09-30T12:10:24.149Z",
               "inside": {
-                "pid": 63957,
+                "pid": 46851,
                 "status": "idle",
                 "delivery": {
                   "via": "fake",
-                  "address": "fake:conf-f096c789"
+                  "address": "fake:conf-dc581d59"
                 },
-                "since": "2026-09-30T10:29:51.594Z",
-                "lastTurnStart": "2026-09-30T10:29:51.592Z",
-                "lastTurnEnd": "2026-09-30T10:29:51.594Z"
+                "since": "2026-09-30T12:10:24.149Z",
+                "lastTurnStart": "2026-09-30T12:10:24.146Z",
+                "lastTurnEnd": "2026-09-30T12:10:24.149Z"
               },
               "self": null
             }

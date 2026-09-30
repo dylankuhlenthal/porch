@@ -1,10 +1,10 @@
 {
-  "schema": 1,
+  "schema": 2,
   "harness": "pi",
   "harnessVersion": "0.87.1",
   "porchVersion": "0.1.0",
   "platform": "darwin-arm64 node v22.19.0",
-  "ranAt": "2026-09-30T10:31:07.124Z",
+  "ranAt": "2026-09-30T12:14:16.268Z",
   "passed": true,
   "results": [
     {
@@ -12,35 +12,42 @@
       "title": "which session am I",
       "result": "pass",
       "reason": null,
-      "durationMs": 273
+      "durationMs": 279
     },
     {
       "name": "deliver-while-idle",
       "title": "deliver while idle",
       "result": "pass",
       "reason": null,
-      "durationMs": 2106
+      "durationMs": 2646
     },
     {
       "name": "deliver-while-busy",
       "title": "deliver while busy",
       "result": "pass",
       "reason": null,
-      "durationMs": 24659
+      "durationMs": 24960
     },
     {
       "name": "held-at-prompt",
       "title": "held at a prompt or dialog",
       "result": "pass",
       "reason": null,
-      "durationMs": 452
+      "durationMs": 435
     },
     {
       "name": "killed-session",
       "title": "a killed session",
       "result": "pass",
       "reason": null,
-      "durationMs": 269
+      "durationMs": 279
+    },
+    {
+      "name": "ended-cleanly",
+      "title": "a session that ended cleanly",
+      "result": "pass",
+      "reason": null,
+      "durationMs": 267
     },
     {
       "name": "without-inside-part",
@@ -54,28 +61,28 @@
       "title": "watch delivers each change",
       "result": "pass",
       "reason": null,
-      "durationMs": 24138
+      "durationMs": 25074
     },
     {
       "name": "self-reported-state",
       "title": "self-reported state",
       "result": "pass",
       "reason": null,
-      "durationMs": 271
+      "durationMs": 274
     },
     {
       "name": "launch-background",
       "title": "a background session started through porch launch",
       "result": "pass",
       "reason": null,
-      "durationMs": 1618
+      "durationMs": 1774
     },
     {
       "name": "launch-interactive",
       "title": "an interactive session started through porch launch",
       "result": "pass",
       "reason": null,
-      "durationMs": 4090
+      "durationMs": 4876
     },
     {
       "name": "unknown-session",

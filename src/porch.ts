@@ -11,10 +11,12 @@ import { errorMessage } from "./fsutil.js";
 import { porchHome, sessionsDir, type Env } from "./home.js";
 import { realIO, type HarnessIO } from "./io.js";
 import { runLaunchPlan, type LaunchOutcome } from "./launch.js";
+import { pruneStopped } from "./prune.js";
 import { InvalidIdError, RecordStore } from "./records.js";
 import {
   SCHEMA_VERSION,
   SELF_STATUSES,
+  shownByDefault,
   type CurrentResult,
   type DeliverResult,
   type LaunchPlanResult,
@@ -77,20 +79,26 @@ export class Porch {
   }
 
   /**
-   * The sessions Porch is attached to (`attached: true`), or with `all` every session
-   * every adapter can see, unattached ones included. An adapter that fails is
-   * reported in `errors`, not thrown.
+   * The running sessions Porch is attached to (`attached: true`, not `ended` or
+   * `gone`), or with `all` every session every adapter can see: unattached, ended and
+   * gone ones included. An adapter that fails is reported in `errors`, not thrown.
+   * Reading the records also prunes them: ended and gone sessions' records are removed
+   * 24 hours after they stopped (src/prune.ts).
    */
   async list(harness?: string, options: { all?: boolean } = {}): Promise<ListResult> {
     const adapters = this.adaptersFor(harness);
     const results = await Promise.allSettled(adapters.map((a) => a.list(this.ctx)));
     const sessions: Observation[] = [];
     const errors: ListResult["errors"] = [];
+    const seen: Observation[] = [];
     results.forEach((r, i) => {
       const adapter = adapters[i]!;
-      if (r.status === "fulfilled") sessions.push(...(options.all ? r.value : r.value.filter((o) => o.attached)));
-      else errors.push({ harness: adapter.harness, message: errorMessage(r.reason) });
+      if (r.status === "fulfilled") {
+        seen.push(...r.value);
+        sessions.push(...(options.all ? r.value : r.value.filter(shownByDefault)));
+      } else errors.push({ harness: adapter.harness, message: errorMessage(r.reason) });
     });
+    await pruneStopped(this.ctx.records, seen, this.ctx.now());
     // A record file that cannot be read would otherwise just vanish from the
     // adapter's view (its session showing as if it had no inside part). Say so.
     const wanted = new Set(adapters.map((a) => a.harness));

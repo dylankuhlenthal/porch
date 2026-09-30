@@ -97,6 +97,7 @@ describe("conformance suite against the fake adapter", () => {
       "deliver-while-busy",
       "held-at-prompt",
       "killed-session",
+      "ended-cleanly",
       "without-inside-part",
       "watch-delivers-each-change",
       "self-reported-state",
@@ -128,6 +129,26 @@ describe("conformance suite catches adapters that break the contract", () => {
     });
     const report = await runConformance({ adapter, driver: quickDriver(), cases: ["held-at-prompt"] });
     expect(resultOf(report, "held-at-prompt")).toMatchObject({ result: "fail", reason: expect.stringMatching(/timed out/) });
+  });
+
+  it("fails ended-cleanly when a session that ended cleanly is reported as gone, or with another reason", async () => {
+    const real = createFakeAdapter();
+    const asGone = withAdapter({
+      observe: async (ctx, s) => {
+        const o = await real.observe(ctx, s);
+        return o && o.status === "ended" ? { ...o, status: "gone", endReason: null } : o;
+      },
+    });
+    const report = await runConformance({ adapter: asGone, driver: quickDriver(), cases: ["ended-cleanly"] });
+    expect(resultOf(report, "ended-cleanly")).toMatchObject({ result: "fail", reason: expect.stringMatching(/timed out/) });
+    const wrongReason = withAdapter({
+      observe: async (ctx, s) => {
+        const o = await real.observe(ctx, s);
+        return o && o.status === "ended" ? { ...o, endReason: "made up" } : o;
+      },
+    });
+    const report2 = await runConformance({ adapter: wrongReason, driver: quickDriver(), cases: ["ended-cleanly"] });
+    expect(resultOf(report2, "ended-cleanly")).toMatchObject({ result: "fail", reason: 'the ended session\'s endReason was "made up", expected null' });
   });
 
   it("fails which-session-am-i when current ignores the environment", async () => {
@@ -308,7 +329,7 @@ describe("npm run conformance (the command)", () => {
     const drivers = { keyed: { ...DRIVERS.fake!, requiredEnv: ["PORCH_TEST_API_KEY"], needsInstalledHarness: true } };
     const r = await run(["--harness", "keyed"], drivers);
     expect(r.code).toBe(CONFORMANCE_EXIT.skipped);
-    expect(JSON.parse(r.stdout)).toEqual({ schema: 1, harness: "keyed", skipped: "not set: PORCH_TEST_API_KEY" });
+    expect(JSON.parse(r.stdout)).toEqual({ schema: 2, harness: "keyed", skipped: "not set: PORCH_TEST_API_KEY" });
   });
 
   it("refuses to run a real harness that is not installed", async () => {
@@ -341,7 +362,7 @@ describe("npm run conformance (the command)", () => {
     const env: Record<string, string | undefined> = { ...scratchEnv(), USER: "someone", PORCH_TEST_KEY: "k-0123456789", PORCH_TEST_OTHER: "x" };
     const r = await run(["--harness", "keyed"], { keyed }, env);
     expect(r.code).toBe(CONFORMANCE_EXIT.skipped);
-    expect(JSON.parse(r.stdout)).toEqual({ schema: 1, harness: "keyed", skipped: "not logged in" });
+    expect(JSON.parse(r.stdout)).toEqual({ schema: 2, harness: "keyed", skipped: "not logged in" });
     // Sessions start from PATH, HOME, USER and the optional variables that are set; nothing else.
     expect(seen).toEqual({ PATH: env.PATH, HOME: env.HOME, USER: "someone", PORCH_TEST_KEY: "k-0123456789" });
     const missing = {

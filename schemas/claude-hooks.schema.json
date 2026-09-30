@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/claude-hooks.schema.json",
-  "title": "Porch hooks claude output (schema 1)",
+  "title": "Porch hooks claude output (schema 2)",
   "description": "Output of porch hooks claude. `settings` is in the shape Claude Code's --settings takes; merge `settings.hooks` into your own hooks object event by event.",
   "type": "object",
   "required": [
@@ -15,7 +15,7 @@
   "additionalProperties": false,
   "properties": {
     "schema": {
-      "const": 1
+      "const": 2
     },
     "harness": {
       "const": "claude"

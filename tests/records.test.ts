@@ -29,7 +29,7 @@ describe("RecordStore", () => {
   it("creates a record on first write, at <harness>-<session>.json, matching the record schema", async () => {
     const s = store(() => new Date("2026-01-01T00:00:00.000Z"));
     const rec = await s.updateInside("claude", "abc-123", { pid: 42, status: "idle" });
-    expect(rec).toMatchObject({ schema: 1, harness: "claude", session: "abc-123", self: null });
+    expect(rec).toMatchObject({ schema: 2, harness: "claude", session: "abc-123", self: null });
     expect(rec.inside).toEqual({ pid: 42, status: "idle", since: "2026-01-01T00:00:00.000Z" });
     const text = await fs.readFile(path.join(s.dir, "claude-abc-123.json"), "utf8");
     validators.record!(JSON.parse(text));
@@ -216,5 +216,98 @@ describe("RecordStore", () => {
     await s.updateInside("fake", "a", { status: "idle" });
     const st = await fs.stat(s.recordPath("fake", "a"));
     expect(st.mode & 0o077).toBe(0);
+  });
+});
+
+describe("RecordStore: ended sessions and goneSeenAt", () => {
+  const T = "2026-01-01T00:00:00.000Z";
+
+  it("updateInsideIfExists leaves an ended session as it is; a start (updateInside) begins it again and drops how it ended", async () => {
+    const s = store(() => new Date(T));
+    await s.updateInside("fake", "a", { status: "idle", pid: 3 });
+    await s.updateInsideIfExists("fake", "a", { status: "ended", endedAt: T, endReason: "quit" });
+    const ended = await s.read("fake", "a");
+    validators.record!(ended);
+    expect(ended!.inside).toMatchObject({ status: "ended", endedAt: T, endReason: "quit", since: T });
+    expect(await s.updateInsideIfExists("fake", "a", { status: "idle" })).toBeNull();
+    expect(await s.updateInsideIfExists("fake", "a", (cur) => ({ ...cur, status: "busy" }))).toBeNull();
+    expect(await s.read("fake", "a")).toEqual(ended);
+    const again = await s.updateInside("fake", "a", { status: "idle" });
+    expect(again.inside).toEqual({ status: "idle", pid: 3, since: T });
+  });
+
+  it("markGoneSeen sets goneSeenAt once and never creates a record; any other write drops it", async () => {
+    let now = new Date(T);
+    const s = store(() => now);
+    expect(await s.markGoneSeen("fake", "none")).toBeNull();
+    expect(await s.read("fake", "none")).toBeNull();
+    await s.updateInside("fake", "a", { status: "idle" });
+    await s.markGoneSeen("fake", "a");
+    now = new Date("2026-01-01T05:00:00.000Z");
+    await s.markGoneSeen("fake", "a");
+    const rec = await s.read("fake", "a");
+    validators.record!(rec);
+    expect(rec!.goneSeenAt).toBe(T);
+    await s.setSelf("fake", "a", { status: "done", text: null, since: T });
+    expect(await s.read("fake", "a")).not.toHaveProperty("goneSeenAt");
+    await s.markGoneSeen("fake", "a");
+    await s.updateInsideIfExists("fake", "a", { status: "busy" });
+    expect(await s.read("fake", "a")).not.toHaveProperty("goneSeenAt");
+  });
+
+  it("removeIf deletes the record only when the check still holds under its lock", async () => {
+    const s = store();
+    await s.updateInside("fake", "a", { status: "idle" });
+    expect(await s.removeIf("fake", "a", (r) => r.inside?.status === "ended")).toBe(false);
+    expect(await s.read("fake", "a")).not.toBeNull();
+    expect(await s.removeIf("fake", "a", (r) => r.inside?.status === "idle")).toBe(true);
+    expect(await s.read("fake", "a")).toBeNull();
+    expect(await s.removeIf("fake", "a", () => true)).toBe(false);
+  });
+
+  it("updateInsideIfExistsSync follows the same rules, synchronously", async () => {
+    const s = store(() => new Date(T));
+    expect(s.updateInsideIfExistsSync("fake", "none", { status: "ended" })).toBe(false);
+    expect(await s.read("fake", "none")).toBeNull();
+    await s.updateInside("fake", "a", { status: "busy" });
+    await s.markGoneSeen("fake", "a");
+    expect(s.updateInsideIfExistsSync("fake", "a", { status: "ended", endedAt: T, endReason: null, data: { exitCode: 129 } })).toBe(true);
+    const rec = await s.read("fake", "a");
+    validators.record!(rec);
+    expect(rec!.inside).toMatchObject({ status: "ended", endedAt: T, endReason: null, data: { exitCode: 129 } });
+    expect(rec).not.toHaveProperty("goneSeenAt");
+    // Already ended: nothing more is written.
+    expect(s.updateInsideIfExistsSync("fake", "a", { status: "ended", endReason: "other" })).toBe(false);
+    expect((await s.read("fake", "a"))!.inside!.endReason).toBeNull();
+  });
+
+  it("updateInsideIfExistsSync takes over a lock this process holds, but waits for, and gives up on, another process's live lock", async () => {
+    const s = store(() => new Date(T));
+    await s.updateInside("fake", "a", { status: "idle" });
+    const lock = `${s.recordPath("fake", "a")}.lock`;
+    writeFileSync(lock, `${process.pid}:someone-unfinished`);
+    expect(s.updateInsideIfExistsSync("fake", "a", { status: "ended", endedAt: T })).toBe(true);
+    await expect(fs.stat(lock)).rejects.toThrow();
+    await s.updateInside("fake", "b", { status: "idle" });
+    const lockB = `${s.recordPath("fake", "b")}.lock`;
+    writeFileSync(lockB, `${process.ppid}:another-process`);
+    const started = Date.now();
+    expect(() => s.updateInsideIfExistsSync("fake", "b", { status: "ended" }, { timeoutMs: 100 })).toThrow(/timed out/);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(100);
+    expect((await s.read("fake", "b"))!.inside!.status).toBe("idle");
+  });
+
+  it("reads a schema 1 record (from before ended sessions), and writes it back as schema 2", async () => {
+    const s = store();
+    await fs.mkdir(s.dir, { recursive: true });
+    const rec = { schema: 1, harness: "fake", session: "old", createdAt: T, updatedAt: T, inside: { status: "idle" }, self: null };
+    writeFileSync(s.recordPath("fake", "old"), JSON.stringify(rec));
+    expect((await s.read("fake", "old"))!.inside!.status).toBe("idle");
+    expect((await s.list("fake")).problems).toEqual([]);
+    const written = await s.updateInsideIfExists("fake", "old", { status: "busy" });
+    expect(written).toMatchObject({ schema: 2, inside: { status: "busy" } });
+    validators.record!(written);
+    writeFileSync(s.recordPath("fake", "future"), JSON.stringify({ ...rec, session: "future", schema: 3 }));
+    await expect(s.read("fake", "future")).rejects.toThrow(/not a schema 1 or 2 session record/);
   });
 });

@@ -34,6 +34,9 @@ import type { Env } from "../../home.js";
 import type { DriverContext, DriverSession, HarnessDriver, LaunchEnd } from "../driver.js";
 import { loadPty } from "./pty.js";
 
+/** Every CLAUDE.md-style file, by the glob patterns Claude Code's `claudeMdExcludes` setting takes. */
+export const CLAUDE_MD_EXCLUDES = ["**/CLAUDE.md", "**/CLAUDE.local.md", "**/.claude/rules/**"];
+
 export interface ClaudeDriverOptions {
   /** Cheapest model that can run a Bash command. */
   model?: string;
@@ -133,11 +136,15 @@ export function createClaudeDriver(options: ClaudeDriverOptions = {}): HarnessDr
   async function settingsFile(kind: "porch" | "plain" | "caller", marker: string | null): Promise<string> {
     const c = need();
     const file = path.join(c.workDir, `settings-${kind}-${randomBytes(3).toString("hex")}.json`);
-    const permissions = { allow: ["Bash(sleep *)"] };
+    // `claudeMdExcludes` keeps the person's own CLAUDE.md files out, as `--setting-sources
+    // project` keeps their settings out. It also keeps an interactive session from
+    // stopping at "Allow external CLAUDE.md file imports?" when their user CLAUDE.md
+    // imports a file, a dialog whose answer Claude Code saves in their ~/.claude.json.
+    const common = { permissions: { allow: ["Bash(sleep *)"] }, claudeMdExcludes: CLAUDE_MD_EXCLUDES };
     const settings =
       kind === "caller"
-        ? { hooks: { SessionStart: [{ hooks: [{ type: "command", command: `touch ${shQuote(marker!)}` }] }] }, permissions }
-        : { ...(kind === "porch" ? claudeHookSettings({ porchHome: c.env.PORCH_HOME ?? null }) : {}), crossSessionInbound: "accept", permissions };
+        ? { hooks: { SessionStart: [{ hooks: [{ type: "command", command: `touch ${shQuote(marker!)}` }] }] }, ...common }
+        : { ...(kind === "porch" ? claudeHookSettings({ porchHome: c.env.PORCH_HOME ?? null }) : {}), crossSessionInbound: "accept", ...common };
     await fs.writeFile(file, JSON.stringify(settings, null, 2));
     return file;
   }
@@ -305,6 +312,8 @@ export function createClaudeDriver(options: ClaudeDriverOptions = {}): HarnessDr
   return {
     harness: CLAUDE_HARNESS,
     supports: { holdAtPrompt: true, withoutInside: true },
+    // `claude stop` gives SessionEnd reason other; /exit gives prompt_input_exit (2.1.285).
+    endReasons: { stop: "other", exitInteractive: "prompt_input_exit" },
     timeouts,
     async version() {
       const r = await run(claudeBin(process.env), ["--version"], { env: process.env });

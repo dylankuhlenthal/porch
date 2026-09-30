@@ -58,6 +58,8 @@ export function createFakeDriver(): HarnessDriver {
   return {
     harness: "fake",
     supports: { holdAtPrompt: true, withoutInside: true },
+    // `stop` gives no reason, so the null path is checked too; exitInteractive says quit.
+    endReasons: { stop: null, exitInteractive: "quit" },
     timeouts: { changeMs: 5000, deliveryMs: 5000, caseMs: 30000 },
     async version() {
       return "fake-1";
@@ -116,7 +118,7 @@ export function createFakeDriver(): HarnessDriver {
       return child.exitCode === null && child.signalCode === null;
     },
     async exitInteractive(s: DriverSession) {
-      await fake.endSession(need(), s.id, { exitCode: 0 });
+      await fake.endSession(need(), s.id, { exitCode: 0, reason: "quit" });
       return launchedOf(s).ended;
     },
     async cleanup() {

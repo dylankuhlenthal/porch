@@ -1,10 +1,10 @@
 /**
- * The shapes Porch writes and prints. Every one carries `schema: 1`; a breaking
+ * The shapes Porch writes and prints. Every one carries `schema: 2`; a breaking
  * change to any of them bumps SCHEMA_VERSION. The matching JSON Schema files are
  * in schemas/, and the tests check real output against them (schemaValidators in tests/helpers.ts).
  */
 
-export const SCHEMA_VERSION = 1 as const;
+export const SCHEMA_VERSION = 2 as const;
 export type SchemaVersion = typeof SCHEMA_VERSION;
 
 /**
@@ -13,11 +13,19 @@ export type SchemaVersion = typeof SCHEMA_VERSION;
  * - busy: a turn is running
  * - idle: no turn is running; a delivered message starts one
  * - waiting-on-prompt: held mid-turn by something only a person can answer
- * - gone: the session is not running any more (or its record was left behind)
+ * - ended: the session ended cleanly; its inside part recorded when and, where the
+ *   harness says, why (`endReason`)
+ * - gone: the session is not running and did not end cleanly (a crash, kill -9, a
+ *   close that ran no end hook)
  * - unknown: Porch cannot tell. Never a guess dressed up as an answer.
  */
-export const SESSION_STATUSES = ["starting", "busy", "idle", "waiting-on-prompt", "gone", "unknown"] as const;
+export const SESSION_STATUSES = ["starting", "busy", "idle", "waiting-on-prompt", "ended", "gone", "unknown"] as const;
 export type SessionStatus = (typeof SESSION_STATUSES)[number];
+
+/** A session that is not running: it ended cleanly (`ended`) or not (`gone`). */
+export function notRunning(status: SessionStatus): boolean {
+  return status === "ended" || status === "gone";
+}
 
 /** What a session says about itself with `porch status set`. */
 export const SELF_STATUSES = ["working", "needs-input", "blocked", "done", "failed"] as const;
@@ -42,8 +50,14 @@ export interface Observation {
    */
   attached: boolean;
   status: SessionStatus;
-  /** ISO 8601 time the session entered `status`, or null when Porch cannot tell. */
+  /** ISO 8601 time the session entered `status`, or null when Porch cannot tell. For `ended`, when it ended. */
   since: string | null;
+  /**
+   * Why an `ended` session ended, as the harness said it (Claude Code: the SessionEnd
+   * hook's `reason`; Pi: the session_shutdown `reason`). Null when the harness gave none,
+   * and for every other status.
+   */
+  endReason: string | null;
   /** Adapter-specific, documented per adapter. Keep it small and stable: watch compares it. */
   detail: Record<string, unknown> | null;
   /** What the harness returned, as it returned it, for debugging. Watch ignores it when comparing. */
@@ -56,6 +70,14 @@ export const DELIVER_RESULTS = ["delivered", "not-running", "failed"] as const;
 export type DeliverResultKind = (typeof DELIVER_RESULTS)[number];
 
 /** `porch deliver` output. Only says what Porch can know: see decision 0001 and the adapter contract. */
+/**
+ * Whether `porch list` and `porch watch` show a session without `--all`: Porch is
+ * attached to it and it is running (decision 0012; decision 0013 for ended and gone).
+ */
+export function shownByDefault(obs: Observation): boolean {
+  return obs.attached && !notRunning(obs.status);
+}
+
 export interface DeliverResult {
   schema: SchemaVersion;
   /** Null when no adapter knows the session. */

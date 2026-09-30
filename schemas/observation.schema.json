@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/observation.schema.json",
-  "title": "Porch observation (schema 1)",
+  "title": "Porch observation (schema 2)",
   "description": "Output of porch observe, each element of porch list's sessions, and each line of porch watch.",
   "type": "object",
-  "required": ["schema", "harness", "session", "attached", "status", "since", "detail", "raw", "self"],
+  "required": ["schema", "harness", "session", "attached", "status", "since", "endReason", "detail", "raw", "self"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "harness": { "type": "string", "pattern": "^[a-z][a-z0-9]{0,31}$" },
     "session": { "type": "string", "minLength": 1 },
     "attached": {
@@ -15,7 +15,15 @@
       "type": "boolean"
     },
     "status": { "$ref": "#/$defs/sessionStatus" },
-    "since": { "type": ["string", "null"], "format": "date-time" },
+    "since": {
+      "description": "When the session entered its status, or null when Porch cannot tell. For ended, when it ended.",
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "endReason": {
+      "description": "Why an ended session ended, as the harness said it (Claude Code: the SessionEnd hook's reason; Pi: the session_shutdown reason). Null when the harness gave none, and for every other status.",
+      "type": ["string", "null"]
+    },
     "detail": { "type": ["object", "null"] },
     "raw": { "type": ["object", "null"] },
     "self": {
@@ -24,7 +32,8 @@
   },
   "$defs": {
     "sessionStatus": {
-      "enum": ["starting", "busy", "idle", "waiting-on-prompt", "gone", "unknown"]
+      "description": "ended: the session ended cleanly. gone: it is not running and did not end cleanly.",
+      "enum": ["starting", "busy", "idle", "waiting-on-prompt", "ended", "gone", "unknown"]
     },
     "selfReport": {
       "type": "object",

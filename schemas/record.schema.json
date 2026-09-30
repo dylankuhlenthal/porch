@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dylankuhlenthal/porch/schemas/record.schema.json",
-  "title": "Porch session record (schema 1)",
+  "title": "Porch session record (schema 2)",
   "description": "One file per session at <PORCH_HOME>/sessions/<harness>-<session>.json. The inside part is written only by the adapter's inside part; the self part only by porch status set.",
   "type": "object",
   "required": ["schema", "harness", "session", "createdAt", "updatedAt", "inside", "self"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 2 },
     "harness": { "type": "string", "pattern": "^[a-z][a-z0-9]{0,31}$" },
     "session": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$" },
     "createdAt": { "type": "string", "format": "date-time" },
@@ -42,6 +42,15 @@
             "lastTurnStart": { "type": ["string", "null"], "format": "date-time" },
             "lastTurnEnd": { "type": ["string", "null"], "format": "date-time" },
             "backgroundTasks": { "type": ["integer", "null"], "minimum": 0 },
+            "endedAt": {
+              "description": "When the session ended cleanly. Present only while status is ended.",
+              "type": ["string", "null"],
+              "format": "date-time"
+            },
+            "endReason": {
+              "description": "Why the session ended, as the harness said it; null when it gave none. Present only while status is ended.",
+              "type": ["string", "null"]
+            },
             "data": { "type": "object" }
           }
         }
@@ -49,6 +58,11 @@
     },
     "self": {
       "oneOf": [{ "type": "null" }, { "$ref": "observation.schema.json#/$defs/selfReport" }]
+    },
+    "goneSeenAt": {
+      "description": "When porch list or porch watch first saw the session gone, for removing the record 24 hours later. Written only by them; any other write removes it.",
+      "type": ["string", "null"],
+      "format": "date-time"
     }
   }
 }

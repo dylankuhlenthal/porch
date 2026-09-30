@@ -11,8 +11,18 @@
  *   can be followed by retries, compaction or queued messages).
  * - ui_prompt_start / ui_prompt_end: an extension dialog opens or closes; the open
  *   one is `data.prompt` (Porch reports it as waiting-on-prompt).
- * - session_shutdown: close the socket and remove the record. On a reload the record
- *   stays (the next session_start rewrites it), so the session does not seem to end.
+ * - session_shutdown: mark the record ended (with Pi's reason: quit, new, resume,
+ *   fork), then close the socket. On a reload the record is left as it is (the next
+ *   session_start rewrites it), so the session does not seem to end.
+ * - The process exiting (Node's `exit` event) without session_shutdown having
+ *   finished: when Pi closes the terminal UI because the terminal went away while it
+ *   was writing to it (a terminal window closed mid-turn), it exits with code 129
+ *   without running session_shutdown. So on exit with code 0, 129 or 143 (a normal
+ *   close: done, terminal gone or SIGHUP, SIGTERM), a session still open is marked
+ *   ended synchronously, with no reason (Pi gave none) and the exit code in
+ *   `data.exitCode`; and an ended mark session_shutdown started but could not finish
+ *   is written synchronously too. Any other exit code (1: Pi crashed) leaves the
+ *   record as it is, so the session shows as gone.
  * - A message on the socket goes to `pi.sendUserMessage(text, { deliverAs: "followUp" })`:
  *   it starts a turn when Pi is idle and waits for the current run when busy.
  *
@@ -71,10 +81,40 @@ export interface ExtensionOptions {
   socketDir?: string;
   /** How long a connection may take to send its request line before it is closed. */
   connectionTimeoutMs?: number;
+  /** Where to listen for the process exiting (Node's `process`; tests pass their own). */
+  exitEvents?: Pick<NodeJS.EventEmitter, "on">;
+}
+
+const EXIT_HANDLERS = Symbol.for("porch.pi.exitHandlers");
+
+/**
+ * Run `handler` when `events` (the process) exits. Pi loads the extension again on
+ * every /reload, so one listener per emitter runs every handler added to it, rather
+ * than a new listener each time (Node warns past ten).
+ */
+function onExit(events: Pick<NodeJS.EventEmitter, "on">, handler: (code: number) => void): void {
+  const holder = events as { [EXIT_HANDLERS]?: ((code: number) => void)[] };
+  let handlers = holder[EXIT_HANDLERS];
+  if (handlers === undefined) {
+    const list: ((code: number) => void)[] = [];
+    handlers = list;
+    holder[EXIT_HANDLERS] = list;
+    events.on("exit", (code: number) => {
+      for (const h of list) h(code);
+    });
+  }
+  handlers.push(handler);
 }
 
 /** How long a client of the socket may take to send its request line. */
 export const CONNECTION_TIMEOUT_MS = 5000;
+
+/**
+ * Exit codes of a normal close of Pi (0.87.1): 0 (quit, Ctrl+C twice, Ctrl+D, SIGTERM
+ * and SIGHUP in the terminal UI), 129 (the terminal went away) and 143 (SIGTERM in
+ * print and RPC mode). Pi exits with 1 when it crashes.
+ */
+export const CLEAN_EXIT_CODES: readonly number[] = [0, 129, 143];
 
 interface Live {
   session: string;
@@ -98,6 +138,8 @@ export default function porchPiExtension(pi: PiExtensionAPI, options: ExtensionO
   const connectionTimeoutMs = options.connectionTimeoutMs ?? CONNECTION_TIMEOUT_MS;
   const records = new RecordStore(sessionsDir(env), { now });
   let live: Live | null = null;
+  // Set while session_shutdown's ended mark has not been written yet.
+  let ending: { session: string; reason: string | null; at: string } | null = null;
   // Record writes run one after another, in event order.
   let queue: Promise<unknown> = Promise.resolve();
   const enqueue = (work: () => Promise<unknown>): Promise<void> => {
@@ -279,9 +321,35 @@ export default function porchPiExtension(pi: PiExtensionAPI, options: ExtensionO
       const l = live;
       if (!l) return;
       live = null;
+      if (event.reason !== "reload") {
+        // Marked before the socket is closed, so it is already queued if Pi exits early.
+        const end = { session: l.session, reason: event.reason ?? null, at: now().toISOString() };
+        ending = end;
+        void update(l.session, { status: "ended", endedAt: end.at, endReason: end.reason }).then(() => {
+          if (ending === end) ending = null;
+        });
+      }
       await closeSocket(l);
-      if (event.reason === "reload") return;
-      await enqueue(() => records.remove(PI_HARNESS, l.session));
+      await queue;
     }),
   );
+
+  // The exit fallback (see the top of this file). Synchronous: nothing asynchronous
+  // runs once the process is exiting.
+  onExit(options.exitEvents ?? process, (code: number) => {
+    try {
+      if (ending !== null) {
+        records.updateInsideIfExistsSync(PI_HARNESS, ending.session, { status: "ended", endedAt: ending.at, endReason: ending.reason });
+      } else if (live !== null && CLEAN_EXIT_CODES.includes(code)) {
+        records.updateInsideIfExistsSync(PI_HARNESS, live.session, {
+          status: "ended",
+          endedAt: now().toISOString(),
+          endReason: null,
+          data: { exitCode: code },
+        });
+      }
+    } catch {
+      // never disturb the session, even as it exits
+    }
+  });
 }

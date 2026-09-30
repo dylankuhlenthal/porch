@@ -167,8 +167,33 @@ export const CASES: ConformanceCase[] = [
       await c.snapshot("killed");
       const r = await c.porch.deliver(s.id, uniqueText("killed"), { from: c.from });
       check(r.result === "not-running", `deliver to a killed session returned ${r.result}, expected not-running`);
+      // Not running: left out of the default list, shown as gone by list --all.
       const listed = (await c.porch.list()).sessions.find((o) => o.session === s.id);
-      check(listed === undefined || listed.status === "gone", `list showed the killed session as ${listed?.status}`);
+      check(listed === undefined, `the default list showed the killed session (${listed?.status})`);
+      const all = (await c.porch.list(undefined, { all: true })).sessions.find((o) => o.session === s.id);
+      check(all?.status === "gone", `list --all showed the killed session as ${all?.status ?? "missing"}, expected gone`);
+    },
+  },
+  {
+    name: "ended-cleanly",
+    title: "a session that ended cleanly",
+    async run(c) {
+      const s = await c.driver.start();
+      await waitForStatus(c, s.id, ["idle", "busy"]);
+      await c.driver.stop(s);
+      const obs = await waitForStatus(c, s.id, ["ended"]);
+      await c.snapshot("ended");
+      const want = c.driver.endReasons.stop;
+      check(obs.endReason === want, `the ended session's endReason was ${JSON.stringify(obs.endReason)}, expected ${JSON.stringify(want)}`);
+      check(obs.since !== null, "the ended session has no since (when it ended)");
+      check(obs.attached, "the ended session is no longer attached");
+      const r = await c.porch.deliver(s.id, uniqueText("ended"), { from: c.from });
+      check(r.result === "not-running", `deliver to an ended session returned ${r.result}, expected not-running`);
+      // Not running: left out of the default list, shown as ended by list --all.
+      const listed = (await c.porch.list()).sessions.find((o) => o.session === s.id);
+      check(listed === undefined, `the default list showed the ended session (${listed?.status})`);
+      const all = (await c.porch.list(undefined, { all: true })).sessions.find((o) => o.session === s.id);
+      check(all?.status === "ended", `list --all showed the ended session as ${all?.status ?? "missing"}, expected ended`);
     },
   },
   {
@@ -296,12 +321,17 @@ export const CASES: ConformanceCase[] = [
         check(c.driver.launchRunning(s), "porch launch ended after one Ctrl+C");
         const after = await observeRaw(c, s.id);
         check(after !== null && after.status !== "gone", `after one Ctrl+C the session showed ${after?.status ?? "not found"}`);
-        // Exiting the harness passes its exit code back through porch launch, and the inside part removes the record.
+        // Exiting the harness passes its exit code back through porch launch, and the
+        // inside part marks the session ended, which watch reports.
         const end = await c.driver.exitInteractive(s);
         check(end.code === 0 && end.signal === null, `porch launch ended with ${JSON.stringify(end)} after the harness exited cleanly, expected code 0`);
-        await waitFor("the record to be removed after the session ended", c.driver.timeouts.changeMs, async () =>
-          (await c.porch.ctx.records.read(c.adapter.harness, s.id)) === null,
+        const ended = await waitForStatus(c, s.id, ["ended"]);
+        const want = c.driver.endReasons.exitInteractive;
+        check(ended.endReason === want, `the session's endReason was ${JSON.stringify(ended.endReason)}, expected ${JSON.stringify(want)}`);
+        await waitFor("watch to report the session ended", c.driver.timeouts.changeMs, async () =>
+          isSubsequence(["idle", "busy", "idle", "ended"], statuses()),
         );
+        await c.snapshot("ended");
       } finally {
         controller.abort();
         await watching;
