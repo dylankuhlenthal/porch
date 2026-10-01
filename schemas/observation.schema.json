@@ -21,7 +21,7 @@
       "format": "date-time"
     },
     "endReason": {
-      "description": "Why an ended session ended, as the harness said it (Claude Code: the SessionEnd hook's reason; Pi: the session_shutdown reason). Null when the harness gave none, and for every other status.",
+      "description": "Why an ended session ended: the harness's own reason (Claude Code: the SessionEnd hook's reason; Pi: the session_shutdown reason), or, where the harness skipped its end hook, a reason Porch read from the harness (Claude Code: idle, stopped for being idle, read from its daemon log). Null when there is none, and for every other status.",
       "type": ["string", "null"]
     },
     "detail": { "type": ["object", "null"] },

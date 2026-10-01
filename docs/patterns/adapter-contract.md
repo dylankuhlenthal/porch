@@ -14,7 +14,7 @@ Register the adapter in `builtinAdapters()` (`src/adapters/index.ts`) and its dr
 ## The inside part
 
 - Write the record only through `RecordStore` (`src/records.ts`): `updateInside(harness, session, patch)` for the session's start, and `updateInsideIfExists` for every other event, so an event that arrives after the session ended (Claude Code hooks can) neither brings back a record nor turns an ended session back into a running one. Never write the file yourself, and never touch the `self` part: `porch status set` owns it (decision 0004, Porch writes self-reported state).
-- When the session ends cleanly, do not remove the record: set `status: "ended"`, `endedAt` (now) and `endReason`, the reason exactly as the harness gives it, or null when it gives none (never a guess) (decision 0013, ended sessions keep their records for a day). `porch list` and `porch watch` remove it 24 hours later. Find out by running it which ways of closing a session skip the harness's end hook, cover each one you can (the Pi extension also marks the session ended on a clean process exit), and list the rest in the adapter's doc: a session closed that way shows as `gone`.
+- When the session ends cleanly, do not remove the record: set `status: "ended"`, `endedAt` (now) and `endReason`, the reason exactly as the harness gives it, or null when it gives none (never a guess) (decision 0013, ended sessions keep their records for a day). `porch list` and `porch watch` remove it 24 hours later. Find out by running it which ways of closing a session skip the harness's end hook, cover each one you can (the Pi extension also marks the session ended on a clean process exit; the Claude adapter's outside part reads Claude Code's idle stop from its daemon log, below), and list the rest in the adapter's doc: a session closed that way shows as `gone`.
 - Use the shared fields where they fit: `pid`, `status` (`starting`, `busy` or `idle`; `since` is filled in when status changes), `delivery` (`{ via, address }`), `cwd`, `lastTurnStart`, `lastTurnEnd`, `backgroundTasks`. Put anything else in `data`.
 - If the inside part is a set of commands the harness runs (hooks), add them as adapter commands (below), so they run as `porch ...` and get a `CommandContext` whose `adapter.records` is the record store for the right `PORCH_HOME`.
 - Anything the inside part installs is printed or installed only when a person or tool asks (`porch hooks claude`, `porch extension pi`, `porch launch`). Porch changes no harness settings by itself, except in what a launch plan passes to the one session it starts (below).
@@ -37,6 +37,16 @@ Delivery is the one exception: sending a message in `deliver` does not go throug
 - `commands` (optional): CLI subcommands, each with a `path` such as `["hooks", "claude"]` (run as `porch hooks claude`). Longer paths win, so `["hooks", "claude", "x"]` can sit beside `["hooks", "claude"]`. Print JSON on stdout like every other command and throw `PorchError` for failures, so the CLI turns them into the standard error output and exit code.
 
 Use the `observation()` and `deliverResult()` helpers from `src/adapter.ts`; they fill in `schema` and the defaults.
+
+### Marking a session ended from outside
+
+The outside part never writes the record, with one exception (decision 0014, which amends decision 0001): when the harness stopped a session on purpose without running its end hook, and left evidence of it that the outside part can read, the outside part marks the record ended itself. The canonical example is the Claude adapter's idle stop (`src/adapters/claude/daemon-log.ts`).
+
+- Write only through `ctx.records.markInsideEnded`, with `endedAt` the stop's own time from the evidence, never now, and pass a `stillApplies` check that re-tests the evidence against the record as it is under the lock, so a session that started again since is not marked.
+- `endReason` is a reason Porch read from the harness, named for what happened (Claude Code's idle stop: `idle`), and listed in `docs/reference/cli-output.md`. Put the harness's own details in `data` and, if a consumer needs them, in `detail`.
+- Mark only on evidence. When the evidence is missing, unreadable or in a format you do not recognise, leave the record alone: the session shows as `gone`. Never guess `ended`.
+- Read the evidence through `ctx.io`, only for sessions that need it (not running, not already ended), and at most once per call, since `list` runs every few seconds.
+- Mark on the first look that finds the evidence (`list`, `observe` or `deliver`), so the answer no longer depends on the evidence still being there.
 
 ### Working out status
 

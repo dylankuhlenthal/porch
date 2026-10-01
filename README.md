@@ -40,7 +40,7 @@ A tool that builds its own settings can instead use `porch hooks claude`, which 
 
 For Pi, Porch's inside part is a Pi extension, loaded for one session with `pi -e`. Start Pi with `porch launch pi` (or `alias pi='porch launch pi'`), or pass the arguments `porch extension pi` prints. Porch installs nothing into Pi's own folders. Pi has no list of its sessions that Porch could read, so a Pi session started without the extension is invisible to Porch. See [docs/domains/pi-adapter.md](docs/domains/pi-adapter.md).
 
-A session that stops shows as `ended` when it ended cleanly (with `endReason`, why, where the harness says) and `gone` when it did not (a crash, `kill -9`). `porch list` and `porch watch` leave both out unless given `--all`, though `watch` reports the end of a session it was showing; `porch observe` still answers for them. Their records are removed 24 hours later.
+A session that stops shows as `ended` when it ended cleanly (with `endReason`, why, where the harness says; `idle` for a Claude Code background session that Claude Code stopped for being idle) and `gone` when it did not (a crash, `kill -9`). `porch list` and `porch watch` leave both out unless given `--all`, though `watch` reports the end of a session it was showing; `porch observe` still answers for them. Their records are removed 24 hours later.
 
 `porch --help` lists every command, including the harness commands. All output is JSON with `"schema": 2`; errors are JSON too, with documented exit codes. Session records live in `~/.porch/sessions/` (set `PORCH_HOME` to move them).
 
