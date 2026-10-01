@@ -4,7 +4,9 @@
  *
  * A record has two parts, each with exactly one writer:
  * - `inside`: written only by the adapter's inside part (Claude Code hooks, the Pi
- *   extension, the fake adapter's `porch fake` commands).
+ *   extension, the fake adapter's `porch fake` commands), with one exception: an
+ *   adapter's outside part may mark it ended when the harness skipped its end hook
+ *   and left evidence of a clean stop (`markInsideEnded`, decision 0014).
  * - `self`: written only by `porch status set`, run inside the session.
  *
  * Every write takes a short lock on the record, reads it, changes only its own part
@@ -42,8 +44,9 @@ export interface InsidePart {
   /** Background tasks still running at the end of the last turn, where the harness reports it. */
   backgroundTasks?: number | null;
   /**
-   * When the session ended cleanly (ISO 8601) and why, as the harness said (null when
-   * it gave no reason). Kept only while `status` is `ended`: a write that changes the
+   * When the session ended cleanly (ISO 8601) and why: the harness's own reason (null
+   * when it gave none), or, where the harness skipped its end hook, a reason Porch
+   * read from the harness (Claude Code's idle stop: "idle", decision 0014). Kept only while `status` is `ended`: a write that changes the
    * status to anything else drops both (a resumed session starts again).
    */
   endedAt?: string | null;
@@ -248,6 +251,27 @@ export class RecordStore {
     }
     rec.inside = next;
     return true;
+  }
+
+  /**
+   * Mark the inside part ended, for an adapter's outside part that found the harness
+   * skipped its end hook and left evidence of a clean stop (decision 0014: Claude
+   * Code's idle stop). Writes the fields the end hook would have written, with
+   * `since` and `endedAt` the stop's own time, and merges `data`. Only when the
+   * record exists, has an inside part whose session has not ended, and
+   * `stillApplies` (checked under the lock) says the evidence still fits it; returns
+   * null and writes nothing otherwise.
+   */
+  async markInsideEnded(
+    harness: string,
+    session: string,
+    end: { endedAt: string; endReason: string | null; data?: Record<string, unknown> },
+    stillApplies: (inside: InsidePart) => boolean = () => true,
+  ): Promise<SessionRecord | null> {
+    return this.mutate(harness, session, false, (rec) => {
+      if (rec.inside === null || hasEnded(rec) || !stillApplies(structuredClone(rec.inside))) return false;
+      return this.applyInside(rec, { status: "ended", since: end.endedAt, endedAt: end.endedAt, endReason: end.endReason, data: end.data }, true);
+    });
   }
 
   /**
