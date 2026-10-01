@@ -1,7 +1,8 @@
 /**
  * The Claude Code adapter. Its inside part is hook commands (hooks.ts) that write
  * the session record; its outside part combines those records with
- * `claude agents --json` and Claude Code's job files (listing.ts, observe.ts), and
+ * `claude agents --json` and Claude Code's job files (listing.ts, observe.ts), reads
+ * Claude Code's daemon log for a session stopped for being idle (daemon-log.ts), and
  * delivers through the session's messaging socket (socket.ts). `porch launch claude`
  * starts Claude Code with the hooks merged into its settings (launch.ts).
  * docs/domains/claude-adapter.md describes it, including what it relies on.
@@ -10,6 +11,7 @@ import { deliverResult, type Adapter, type AdapterContext, type Capabilities } f
 import type { SessionRecord } from "../../records.js";
 import { validateSessionId } from "../../records.js";
 import type { DeliverResult, Observation } from "../../types.js";
+import { applyIdleStop, readDaemonLogs } from "./daemon-log.js";
 import { claudeCommands } from "./hooks.js";
 import { claudeLaunchPlan } from "./launch.js";
 import { claudeBin, readJob, readListing, type Listing, type ListingRow } from "./listing.js";
@@ -72,10 +74,28 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
     return rows === null || dir === null ? rows : rows.filter((r) => isUnder(r.cwd, dir));
   };
 
-  /** Job files are read only for running sessions: a gone session has no activity. */
-  const observeOne = async (ctx: AdapterContext, id: string, row: ListingRow | null, rec: SessionRecord | null): Promise<Observation> => {
+  /**
+   * Job files are read only for running sessions: a gone session has no activity.
+   * A session whose process has gone without SessionEnd is looked up in Claude Code's
+   * daemon log, read at most once per call through `logs`: if Claude Code stopped it
+   * for being idle, its record is marked ended first (decision 0014, daemon-log.ts).
+   */
+  const observeOne = async (
+    ctx: AdapterContext,
+    id: string,
+    row: ListingRow | null,
+    rec: SessionRecord | null,
+    logs: () => Promise<string[]>,
+  ): Promise<Observation> => {
     const job = row !== null && row.pid !== null ? await readJob(ctx, row) : null;
-    return claudeObservation(id, row, rec, job);
+    const current = await applyIdleStop(ctx, id, row, rec, logs, CLAUDE_HARNESS);
+    return claudeObservation(id, row, current, job);
+  };
+
+  /** Claude Code's daemon log, read the first time it is asked for and kept for the rest of one call. */
+  const daemonLogs = (ctx: AdapterContext): (() => Promise<string[]>) => {
+    let read: Promise<string[]> | null = null;
+    return () => (read ??= readDaemonLogs(ctx));
   };
 
   /** One session by full session id or short id: its row, record and canonical id, or null. */
@@ -122,12 +142,13 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
       const recs = new Map(records.map((r) => [r.session, r]));
       const byId = new Map(rows.map((r) => [r.sessionId, r]));
       const ids = [...new Set([...byId.keys(), ...recs.keys()])].sort();
-      return Promise.all(ids.map((id) => observeOne(ctx, id, byId.get(id) ?? null, recs.get(id) ?? null)));
+      const logs = daemonLogs(ctx);
+      return Promise.all(ids.map((id) => observeOne(ctx, id, byId.get(id) ?? null, recs.get(id) ?? null, logs)));
     },
 
     async observe(ctx, session) {
       const found = await find(ctx, session);
-      return found === null ? null : observeOne(ctx, found.id, found.row, found.rec);
+      return found === null ? null : observeOne(ctx, found.id, found.row, found.rec, daemonLogs(ctx));
     },
 
     sessionIdIn(id, observations) {
@@ -150,7 +171,7 @@ export function createClaudeAdapter(options: ClaudeAdapterOptions = {}): Adapter
         return deliverResult({ harness: CLAUDE_HARNESS, session, result: "not-running", reason: "Claude Code has no such session" });
       }
       const { id, row, rec } = found;
-      const obs = await observeOne(ctx, id, row, rec);
+      const obs = await observeOne(ctx, id, row, rec, daemonLogs(ctx));
       if (obs.status === "ended") {
         return deliverResult({ harness: CLAUDE_HARNESS, session: id, result: "not-running", reason: "the session has ended" });
       }

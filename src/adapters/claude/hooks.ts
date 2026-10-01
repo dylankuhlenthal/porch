@@ -77,6 +77,10 @@ function sessionPid(env: AdapterContext["env"]): number | null {
   return m ? positiveInt(m[1]) : null;
 }
 
+function withoutKey(data: Record<string, unknown>, key: string): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(data).filter(([k]) => k !== key));
+}
+
 function str(v: unknown): string | null {
   return typeof v === "string" && v !== "" ? v : null;
 }
@@ -108,7 +112,8 @@ export async function handleHookEvent(ctx: AdapterContext, event: string, input:
         // lastTurnStart and lastTurnEnd are kept as history either way.
         ...(pid !== null && current?.pid === pid ? {} : { backgroundTasks: null }),
         data: {
-          ...(current?.data ?? {}),
+          // How an earlier process was stopped for being idle belongs to that stop only.
+          ...withoutKey(current?.data ?? {}, "idleStop"),
           source,
           transcriptPath: str(input.transcript_path),
           shortId: jobDir ? path.basename(jobDir) : (current?.data?.shortId ?? null),
