@@ -1,37 +1,37 @@
 {
   "schema": 2,
   "harness": "claude",
-  "harnessVersion": "2.1.285",
+  "harnessVersion": "2.1.286",
   "case": "ended-cleanly",
-  "recordedAt": "2026-09-30T12:11:58.165Z",
+  "recordedAt": "2026-10-01T10:36:53.294Z",
   "snapshots": [
     {
       "label": "ended",
-      "at": "2026-09-30T12:11:57.401Z",
+      "at": "2026-10-01T10:36:52.516Z",
       "records": {
-        "claude-7ad58156-e649-4c8f-9905-7da813a0fac8.json": {
+        "claude-27976db7-2eec-44be-aa79-64d8759f75ca.json": {
           "schema": 2,
           "harness": "claude",
-          "session": "7ad58156-e649-4c8f-9905-7da813a0fac8",
-          "createdAt": "2026-09-30T12:11:55.325Z",
-          "updatedAt": "2026-09-30T12:11:56.070Z",
+          "session": "27976db7-2eec-44be-aa79-64d8759f75ca",
+          "createdAt": "2026-10-01T10:36:50.488Z",
+          "updatedAt": "2026-10-01T10:36:51.207Z",
           "inside": {
-            "pid": 49809,
+            "pid": 17185,
             "delivery": {
               "via": "socket",
-              "address": "/tmp/cc-socks/49809.sock"
+              "address": "/tmp/cc-socks/17185.sock"
             },
-            "cwd": "$WORK/cwd-07ea5c74",
+            "cwd": "$WORK/cwd-4a647039",
             "status": "ended",
-            "since": "2026-09-30T12:11:56.071Z",
+            "since": "2026-10-01T10:36:51.207Z",
             "backgroundTasks": null,
             "data": {
               "source": "startup",
-              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-07ea5c74/7ad58156-e649-4c8f-9905-7da813a0fac8.jsonl",
-              "shortId": "7ad58156",
-              "startedAt": "2026-09-30T12:11:55.322Z"
+              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-4a647039/27976db7-2eec-44be-aa79-64d8759f75ca.jsonl",
+              "shortId": "27976db7",
+              "startedAt": "2026-10-01T10:36:50.486Z"
             },
-            "endedAt": "2026-09-30T12:11:56.069Z",
+            "endedAt": "2026-10-01T10:36:51.205Z",
             "endReason": "other"
           },
           "self": null
@@ -56,16 +56,16 @@
         {
           "schema": 2,
           "harness": "claude",
-          "session": "7ad58156-e649-4c8f-9905-7da813a0fac8",
+          "session": "27976db7-2eec-44be-aa79-64d8759f75ca",
           "attached": true,
           "status": "ended",
-          "since": "2026-09-30T12:11:56.069Z",
+          "since": "2026-10-01T10:36:51.205Z",
           "endReason": "other",
           "detail": {
             "pid": null,
-            "shortId": "7ad58156",
+            "shortId": "27976db7",
             "name": null,
-            "cwd": "$WORK/cwd-07ea5c74",
+            "cwd": "$WORK/cwd-4a647039",
             "prompt": null,
             "promptNeeds": null,
             "hasInsidePart": true,
@@ -81,26 +81,26 @@
             "record": {
               "schema": 2,
               "harness": "claude",
-              "session": "7ad58156-e649-4c8f-9905-7da813a0fac8",
-              "createdAt": "2026-09-30T12:11:55.325Z",
-              "updatedAt": "2026-09-30T12:11:56.070Z",
+              "session": "27976db7-2eec-44be-aa79-64d8759f75ca",
+              "createdAt": "2026-10-01T10:36:50.488Z",
+              "updatedAt": "2026-10-01T10:36:51.207Z",
               "inside": {
-                "pid": 49809,
+                "pid": 17185,
                 "delivery": {
                   "via": "socket",
-                  "address": "/tmp/cc-socks/49809.sock"
+                  "address": "/tmp/cc-socks/17185.sock"
                 },
-                "cwd": "$WORK/cwd-07ea5c74",
+                "cwd": "$WORK/cwd-4a647039",
                 "status": "ended",
-                "since": "2026-09-30T12:11:56.071Z",
+                "since": "2026-10-01T10:36:51.207Z",
                 "backgroundTasks": null,
                 "data": {
                   "source": "startup",
-                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-07ea5c74/7ad58156-e649-4c8f-9905-7da813a0fac8.jsonl",
-                  "shortId": "7ad58156",
-                  "startedAt": "2026-09-30T12:11:55.322Z"
+                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-4a647039/27976db7-2eec-44be-aa79-64d8759f75ca.jsonl",
+                  "shortId": "27976db7",
+                  "startedAt": "2026-10-01T10:36:50.486Z"
                 },
-                "endedAt": "2026-09-30T12:11:56.069Z",
+                "endedAt": "2026-10-01T10:36:51.205Z",
                 "endReason": "other"
               },
               "self": null

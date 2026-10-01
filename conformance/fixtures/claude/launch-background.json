@@ -1,35 +1,35 @@
 {
   "schema": 2,
   "harness": "claude",
-  "harnessVersion": "2.1.285",
+  "harnessVersion": "2.1.286",
   "case": "launch-background",
-  "recordedAt": "2026-09-30T12:12:55.285Z",
+  "recordedAt": "2026-10-01T11:38:37.145Z",
   "snapshots": [
     {
       "label": "launched",
-      "at": "2026-09-30T12:12:54.322Z",
+      "at": "2026-10-01T11:38:36.316Z",
       "records": {
-        "claude-0f825cb5-8413-4f2d-9914-e1c3ac9d177c.json": {
+        "claude-ce2e9352-3dcc-4414-946d-76e7a701d458.json": {
           "schema": 2,
           "harness": "claude",
-          "session": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-          "createdAt": "2026-09-30T12:12:53.823Z",
-          "updatedAt": "2026-09-30T12:12:53.823Z",
+          "session": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+          "createdAt": "2026-10-01T11:38:35.832Z",
+          "updatedAt": "2026-10-01T11:38:35.832Z",
           "inside": {
-            "pid": 52221,
+            "pid": 6533,
             "delivery": {
               "via": "socket",
-              "address": "/tmp/cc-socks/52221.sock"
+              "address": "/tmp/cc-socks/6533.sock"
             },
-            "cwd": "$WORK/cwd-dcb1bfba",
+            "cwd": "$WORK/cwd-5c0c096e",
             "status": "idle",
-            "since": "2026-09-30T12:12:53.821Z",
+            "since": "2026-10-01T11:38:35.828Z",
             "backgroundTasks": null,
             "data": {
               "source": "startup",
-              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-dcb1bfba/0f825cb5-8413-4f2d-9914-e1c3ac9d177c.jsonl",
-              "shortId": "0f825cb5",
-              "startedAt": "2026-09-30T12:12:53.821Z"
+              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-5c0c096e/ce2e9352-3dcc-4414-946d-76e7a701d458.jsonl",
+              "shortId": "ce2e9352",
+              "startedAt": "2026-10-01T11:38:35.828Z"
             }
           },
           "self": null
@@ -45,30 +45,30 @@
           ],
           "result": {
             "code": 0,
-            "stdout": "[\n  {\n    \"pid\": 52221,\n    \"id\": \"0f825cb5\",\n    \"cwd\": \"$WORK/cwd-dcb1bfba\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790770373751,\n    \"sessionId\": \"0f825cb5-8413-4f2d-9914-e1c3ac9d177c\",\n    \"name\": \"porch-conformance-dcb1bfba\",\n    \"status\": \"idle\",\n    \"state\": \"blocked\"\n  }\n]\n",
+            "stdout": "[\n  {\n    \"pid\": 6533,\n    \"id\": \"ce2e9352\",\n    \"cwd\": \"$WORK/cwd-5c0c096e\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790854715762,\n    \"sessionId\": \"ce2e9352-3dcc-4414-946d-76e7a701d458\",\n    \"name\": \"porch-conformance-5c0c096e\",\n    \"status\": \"idle\",\n    \"state\": \"blocked\"\n  }\n]\n",
             "stderr": ""
           }
         },
         {
           "op": "readFile",
-          "path": "$HOME/.claude/jobs/0f825cb5/state.json",
-          "result": "{\n  \"state\": \"working\",\n  \"detail\": \"(idle — send a prompt to start)\",\n  \"tempo\": \"blocked\",\n  \"needs\": \"send a prompt to start\",\n  \"output\": null,\n  \"children\": null,\n  \"linkScanOffset\": 0,\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"--settings\",\n    \"{\\\"hooks\\\":{\\\"SessionStart\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"touch '$WORK/marker-dcb1bfba'\\\"}]},{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on SessionStart\\\",\\\"timeout\\\":10}]}],\\\"UserPromptSubmit\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on UserPromptSubmit\\\",\\\"timeout\\\":10}]}],\\\"Stop\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on Stop\\\",\\\"timeout\\\":10}]}],\\\"StopFailure\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on StopFailure\\\",\\\"timeout\\\":10}]}],\\\"PermissionRequest\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on PermissionRequest\\\",\\\"timeout\\\":10}]}],\\\"SessionEnd\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on SessionEnd\\\",\\\"timeout\\\":10}]}]},\\\"permissions\\\":{\\\"allow\\\":[\\\"Bash(sleep *)\\\"]},\\\"claudeMdExcludes\\\":[\\\"**/CLAUDE.md\\\",\\\"**/CLAUDE.local.md\\\",\\\"**/.claude/rules/**\\\"],\\\"crossSessionInbound\\\":\\\"accept\\\"}\",\n    \"-n\",\n    \"porch-conformance-dcb1bfba\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"providerEnv\": {},\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-dcb1bfba\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"0f825cb5-8413-4f2d-9914-e1c3ac9d177c\",\n  \"resumeSessionId\": \"0f825cb5-8413-4f2d-9914-e1c3ac9d177c\",\n  \"daemonShort\": \"0f825cb5\",\n  \"cwd\": \"$WORK/cwd-dcb1bfba\",\n  \"createdAt\": \"2026-09-30T12:12:53.373Z\",\n  \"updatedAt\": \"2026-09-30T12:12:53.758Z\",\n  \"firstTerminalAt\": null,\n  \"backend\": \"daemon\"\n}"
+          "path": "$HOME/.claude/jobs/ce2e9352/state.json",
+          "result": "{\n  \"state\": \"working\",\n  \"detail\": \"(idle — send a prompt to start)\",\n  \"tempo\": \"blocked\",\n  \"needs\": \"send a prompt to start\",\n  \"output\": null,\n  \"children\": null,\n  \"linkScanOffset\": 0,\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"--settings\",\n    \"{\\\"hooks\\\":{\\\"SessionStart\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"touch '$WORK/marker-5c0c096e'\\\"}]},{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on SessionStart\\\",\\\"timeout\\\":10}]}],\\\"UserPromptSubmit\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on UserPromptSubmit\\\",\\\"timeout\\\":10}]}],\\\"Stop\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on Stop\\\",\\\"timeout\\\":10}]}],\\\"StopFailure\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on StopFailure\\\",\\\"timeout\\\":10}]}],\\\"PermissionRequest\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on PermissionRequest\\\",\\\"timeout\\\":10}]}],\\\"SessionEnd\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on SessionEnd\\\",\\\"timeout\\\":10}]}]},\\\"permissions\\\":{\\\"allow\\\":[\\\"Bash(sleep *)\\\"]},\\\"claudeMdExcludes\\\":[\\\"**/CLAUDE.md\\\",\\\"**/CLAUDE.local.md\\\",\\\"**/.claude/rules/**\\\"],\\\"crossSessionInbound\\\":\\\"accept\\\"}\",\n    \"-n\",\n    \"porch-conformance-5c0c096e\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"providerEnv\": {},\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-5c0c096e\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"ce2e9352-3dcc-4414-946d-76e7a701d458\",\n  \"resumeSessionId\": \"ce2e9352-3dcc-4414-946d-76e7a701d458\",\n  \"daemonShort\": \"ce2e9352\",\n  \"cwd\": \"$WORK/cwd-5c0c096e\",\n  \"createdAt\": \"2026-10-01T11:38:35.419Z\",\n  \"updatedAt\": \"2026-10-01T11:38:35.771Z\",\n  \"firstTerminalAt\": null,\n  \"backend\": \"daemon\"\n}"
         }
       ],
       "observations": [
         {
           "schema": 2,
           "harness": "claude",
-          "session": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
+          "session": "ce2e9352-3dcc-4414-946d-76e7a701d458",
           "attached": true,
           "status": "idle",
-          "since": "2026-09-30T12:12:53.821Z",
+          "since": "2026-10-01T11:38:35.828Z",
           "endReason": null,
           "detail": {
-            "pid": 52221,
-            "shortId": "0f825cb5",
-            "name": "porch-conformance-dcb1bfba",
-            "cwd": "$WORK/cwd-dcb1bfba",
+            "pid": 6533,
+            "shortId": "ce2e9352",
+            "name": "porch-conformance-5c0c096e",
+            "cwd": "$WORK/cwd-5c0c096e",
             "prompt": null,
             "promptNeeds": null,
             "hasInsidePart": true,
@@ -84,13 +84,13 @@
           },
           "raw": {
             "listing": {
-              "pid": 52221,
-              "id": "0f825cb5",
-              "cwd": "$WORK/cwd-dcb1bfba",
+              "pid": 6533,
+              "id": "ce2e9352",
+              "cwd": "$WORK/cwd-5c0c096e",
               "kind": "background",
-              "startedAt": 1790770373751,
-              "sessionId": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-              "name": "porch-conformance-dcb1bfba",
+              "startedAt": 1790854715762,
+              "sessionId": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+              "name": "porch-conformance-5c0c096e",
               "status": "idle",
               "state": "blocked"
             },
@@ -105,9 +105,9 @@
               "template": "bg",
               "respawnFlags": [
                 "--settings",
-                "{\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"touch '$WORK/marker-dcb1bfba'\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on SessionStart\",\"timeout\":10}]}],\"UserPromptSubmit\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on UserPromptSubmit\",\"timeout\":10}]}],\"Stop\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on Stop\",\"timeout\":10}]}],\"StopFailure\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on StopFailure\",\"timeout\":10}]}],\"PermissionRequest\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on PermissionRequest\",\"timeout\":10}]}],\"SessionEnd\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on SessionEnd\",\"timeout\":10}]}]},\"permissions\":{\"allow\":[\"Bash(sleep *)\"]},\"claudeMdExcludes\":[\"**/CLAUDE.md\",\"**/CLAUDE.local.md\",\"**/.claude/rules/**\"],\"crossSessionInbound\":\"accept\"}",
+                "{\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"touch '$WORK/marker-5c0c096e'\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on SessionStart\",\"timeout\":10}]}],\"UserPromptSubmit\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on UserPromptSubmit\",\"timeout\":10}]}],\"Stop\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on Stop\",\"timeout\":10}]}],\"StopFailure\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on StopFailure\",\"timeout\":10}]}],\"PermissionRequest\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on PermissionRequest\",\"timeout\":10}]}],\"SessionEnd\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on SessionEnd\",\"timeout\":10}]}]},\"permissions\":{\"allow\":[\"Bash(sleep *)\"]},\"claudeMdExcludes\":[\"**/CLAUDE.md\",\"**/CLAUDE.local.md\",\"**/.claude/rules/**\"],\"crossSessionInbound\":\"accept\"}",
                 "-n",
-                "porch-conformance-dcb1bfba",
+                "porch-conformance-5c0c096e",
                 "--permission-mode",
                 "default",
                 "--setting-sources",
@@ -119,38 +119,38 @@
               ],
               "providerEnv": {},
               "intent": "",
-              "name": "porch-conformance-dcb1bfba",
+              "name": "porch-conformance-5c0c096e",
               "nameSource": "user",
-              "sessionId": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-              "resumeSessionId": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-              "daemonShort": "0f825cb5",
-              "cwd": "$WORK/cwd-dcb1bfba",
-              "createdAt": "2026-09-30T12:12:53.373Z",
-              "updatedAt": "2026-09-30T12:12:53.758Z",
+              "sessionId": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+              "resumeSessionId": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+              "daemonShort": "ce2e9352",
+              "cwd": "$WORK/cwd-5c0c096e",
+              "createdAt": "2026-10-01T11:38:35.419Z",
+              "updatedAt": "2026-10-01T11:38:35.771Z",
               "firstTerminalAt": null,
               "backend": "daemon"
             },
             "record": {
               "schema": 2,
               "harness": "claude",
-              "session": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-              "createdAt": "2026-09-30T12:12:53.823Z",
-              "updatedAt": "2026-09-30T12:12:53.823Z",
+              "session": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+              "createdAt": "2026-10-01T11:38:35.832Z",
+              "updatedAt": "2026-10-01T11:38:35.832Z",
               "inside": {
-                "pid": 52221,
+                "pid": 6533,
                 "delivery": {
                   "via": "socket",
-                  "address": "/tmp/cc-socks/52221.sock"
+                  "address": "/tmp/cc-socks/6533.sock"
                 },
-                "cwd": "$WORK/cwd-dcb1bfba",
+                "cwd": "$WORK/cwd-5c0c096e",
                 "status": "idle",
-                "since": "2026-09-30T12:12:53.821Z",
+                "since": "2026-10-01T11:38:35.828Z",
                 "backgroundTasks": null,
                 "data": {
                   "source": "startup",
-                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-dcb1bfba/0f825cb5-8413-4f2d-9914-e1c3ac9d177c.jsonl",
-                  "shortId": "0f825cb5",
-                  "startedAt": "2026-09-30T12:12:53.821Z"
+                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-5c0c096e/ce2e9352-3dcc-4414-946d-76e7a701d458.jsonl",
+                  "shortId": "ce2e9352",
+                  "startedAt": "2026-10-01T11:38:35.828Z"
                 }
               },
               "self": null
@@ -162,31 +162,31 @@
     },
     {
       "label": "after delivery",
-      "at": "2026-09-30T12:12:55.112Z",
+      "at": "2026-10-01T11:38:36.981Z",
       "records": {
-        "claude-0f825cb5-8413-4f2d-9914-e1c3ac9d177c.json": {
+        "claude-ce2e9352-3dcc-4414-946d-76e7a701d458.json": {
           "schema": 2,
           "harness": "claude",
-          "session": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-          "createdAt": "2026-09-30T12:12:53.823Z",
-          "updatedAt": "2026-09-30T12:12:54.882Z",
+          "session": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+          "createdAt": "2026-10-01T11:38:35.832Z",
+          "updatedAt": "2026-10-01T11:38:36.839Z",
           "inside": {
-            "pid": 52221,
+            "pid": 6533,
             "delivery": {
               "via": "socket",
-              "address": "/tmp/cc-socks/52221.sock"
+              "address": "/tmp/cc-socks/6533.sock"
             },
-            "cwd": "$WORK/cwd-dcb1bfba",
+            "cwd": "$WORK/cwd-5c0c096e",
             "status": "busy",
-            "since": "2026-09-30T12:12:54.882Z",
+            "since": "2026-10-01T11:38:36.840Z",
             "backgroundTasks": null,
             "data": {
               "source": "startup",
-              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-dcb1bfba/0f825cb5-8413-4f2d-9914-e1c3ac9d177c.jsonl",
-              "shortId": "0f825cb5",
-              "startedAt": "2026-09-30T12:12:53.821Z"
+              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-5c0c096e/ce2e9352-3dcc-4414-946d-76e7a701d458.jsonl",
+              "shortId": "ce2e9352",
+              "startedAt": "2026-10-01T11:38:35.828Z"
             },
-            "lastTurnStart": "2026-09-30T12:12:54.872Z"
+            "lastTurnStart": "2026-10-01T11:38:36.837Z"
           },
           "self": null
         }
@@ -201,35 +201,35 @@
           ],
           "result": {
             "code": 0,
-            "stdout": "[\n  {\n    \"pid\": 52221,\n    \"id\": \"0f825cb5\",\n    \"cwd\": \"$WORK/cwd-dcb1bfba\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790770373751,\n    \"sessionId\": \"0f825cb5-8413-4f2d-9914-e1c3ac9d177c\",\n    \"name\": \"porch-conformance-dcb1bfba\",\n    \"status\": \"busy\",\n    \"state\": \"working\"\n  }\n]\n",
+            "stdout": "[\n  {\n    \"pid\": 6533,\n    \"id\": \"ce2e9352\",\n    \"cwd\": \"$WORK/cwd-5c0c096e\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790854715762,\n    \"sessionId\": \"ce2e9352-3dcc-4414-946d-76e7a701d458\",\n    \"name\": \"porch-conformance-5c0c096e\",\n    \"status\": \"busy\",\n    \"state\": \"working\"\n  }\n]\n",
             "stderr": ""
           }
         },
         {
           "op": "readFile",
-          "path": "$HOME/.claude/jobs/0f825cb5/state.json",
-          "result": "{\n  \"state\": \"working\",\n  \"detail\": \"(idle — send a prompt to start)\",\n  \"tempo\": \"active\",\n  \"output\": null,\n  \"children\": null,\n  \"linkScanOffset\": 0,\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"--settings\",\n    \"{\\\"hooks\\\":{\\\"SessionStart\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"touch '$WORK/marker-dcb1bfba'\\\"}]},{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on SessionStart\\\",\\\"timeout\\\":10}]}],\\\"UserPromptSubmit\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on UserPromptSubmit\\\",\\\"timeout\\\":10}]}],\\\"Stop\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on Stop\\\",\\\"timeout\\\":10}]}],\\\"StopFailure\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on StopFailure\\\",\\\"timeout\\\":10}]}],\\\"PermissionRequest\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on PermissionRequest\\\",\\\"timeout\\\":10}]}],\\\"SessionEnd\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on SessionEnd\\\",\\\"timeout\\\":10}]}]},\\\"permissions\\\":{\\\"allow\\\":[\\\"Bash(sleep *)\\\"]},\\\"claudeMdExcludes\\\":[\\\"**/CLAUDE.md\\\",\\\"**/CLAUDE.local.md\\\",\\\"**/.claude/rules/**\\\"],\\\"crossSessionInbound\\\":\\\"accept\\\"}\",\n    \"-n\",\n    \"porch-conformance-dcb1bfba\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"providerEnv\": {},\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-dcb1bfba\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"0f825cb5-8413-4f2d-9914-e1c3ac9d177c\",\n  \"resumeSessionId\": \"0f825cb5-8413-4f2d-9914-e1c3ac9d177c\",\n  \"daemonShort\": \"0f825cb5\",\n  \"cwd\": \"$WORK/cwd-dcb1bfba\",\n  \"createdAt\": \"2026-09-30T12:12:53.373Z\",\n  \"updatedAt\": \"2026-09-30T12:12:54.916Z\",\n  \"firstTerminalAt\": null,\n  \"backend\": \"daemon\",\n  \"inFlight\": {\n    \"tasks\": 0,\n    \"queued\": 0,\n    \"kinds\": [],\n    \"drainableMonitors\": 0\n  }\n}"
+          "path": "$HOME/.claude/jobs/ce2e9352/state.json",
+          "result": "{\n  \"state\": \"working\",\n  \"detail\": \"(idle — send a prompt to start)\",\n  \"tempo\": \"active\",\n  \"output\": null,\n  \"children\": null,\n  \"linkScanOffset\": 0,\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"--settings\",\n    \"{\\\"hooks\\\":{\\\"SessionStart\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"touch '$WORK/marker-5c0c096e'\\\"}]},{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on SessionStart\\\",\\\"timeout\\\":10}]}],\\\"UserPromptSubmit\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on UserPromptSubmit\\\",\\\"timeout\\\":10}]}],\\\"Stop\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on Stop\\\",\\\"timeout\\\":10}]}],\\\"StopFailure\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on StopFailure\\\",\\\"timeout\\\":10}]}],\\\"PermissionRequest\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on PermissionRequest\\\",\\\"timeout\\\":10}]}],\\\"SessionEnd\\\":[{\\\"hooks\\\":[{\\\"type\\\":\\\"command\\\",\\\"command\\\":\\\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on SessionEnd\\\",\\\"timeout\\\":10}]}]},\\\"permissions\\\":{\\\"allow\\\":[\\\"Bash(sleep *)\\\"]},\\\"claudeMdExcludes\\\":[\\\"**/CLAUDE.md\\\",\\\"**/CLAUDE.local.md\\\",\\\"**/.claude/rules/**\\\"],\\\"crossSessionInbound\\\":\\\"accept\\\"}\",\n    \"-n\",\n    \"porch-conformance-5c0c096e\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"providerEnv\": {},\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-5c0c096e\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"ce2e9352-3dcc-4414-946d-76e7a701d458\",\n  \"resumeSessionId\": \"ce2e9352-3dcc-4414-946d-76e7a701d458\",\n  \"daemonShort\": \"ce2e9352\",\n  \"cwd\": \"$WORK/cwd-5c0c096e\",\n  \"createdAt\": \"2026-10-01T11:38:35.419Z\",\n  \"updatedAt\": \"2026-10-01T11:38:36.871Z\",\n  \"firstTerminalAt\": null,\n  \"backend\": \"daemon\",\n  \"inFlight\": {\n    \"tasks\": 0,\n    \"queued\": 0,\n    \"kinds\": [],\n    \"drainableMonitors\": 0\n  }\n}"
         }
       ],
       "observations": [
         {
           "schema": 2,
           "harness": "claude",
-          "session": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
+          "session": "ce2e9352-3dcc-4414-946d-76e7a701d458",
           "attached": true,
           "status": "busy",
-          "since": "2026-09-30T12:12:54.882Z",
+          "since": "2026-10-01T11:38:36.840Z",
           "endReason": null,
           "detail": {
-            "pid": 52221,
-            "shortId": "0f825cb5",
-            "name": "porch-conformance-dcb1bfba",
-            "cwd": "$WORK/cwd-dcb1bfba",
+            "pid": 6533,
+            "shortId": "ce2e9352",
+            "name": "porch-conformance-5c0c096e",
+            "cwd": "$WORK/cwd-5c0c096e",
             "prompt": null,
             "promptNeeds": null,
             "hasInsidePart": true,
             "statusSource": "hooks",
-            "lastTurnStart": "2026-09-30T12:12:54.872Z",
+            "lastTurnStart": "2026-10-01T11:38:36.837Z",
             "lastTurnEnd": null,
             "backgroundTasks": null,
             "activity": {
@@ -240,13 +240,13 @@
           },
           "raw": {
             "listing": {
-              "pid": 52221,
-              "id": "0f825cb5",
-              "cwd": "$WORK/cwd-dcb1bfba",
+              "pid": 6533,
+              "id": "ce2e9352",
+              "cwd": "$WORK/cwd-5c0c096e",
               "kind": "background",
-              "startedAt": 1790770373751,
-              "sessionId": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-              "name": "porch-conformance-dcb1bfba",
+              "startedAt": 1790854715762,
+              "sessionId": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+              "name": "porch-conformance-5c0c096e",
               "status": "busy",
               "state": "working"
             },
@@ -260,9 +260,9 @@
               "template": "bg",
               "respawnFlags": [
                 "--settings",
-                "{\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"touch '$WORK/marker-dcb1bfba'\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on SessionStart\",\"timeout\":10}]}],\"UserPromptSubmit\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on UserPromptSubmit\",\"timeout\":10}]}],\"Stop\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on Stop\",\"timeout\":10}]}],\"StopFailure\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on StopFailure\",\"timeout\":10}]}],\"PermissionRequest\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on PermissionRequest\",\"timeout\":10}]}],\"SessionEnd\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.14.0/bin/node' '$HOME/porch-ended/dist/cli/main.js' hooks claude on SessionEnd\",\"timeout\":10}]}]},\"permissions\":{\"allow\":[\"Bash(sleep *)\"]},\"claudeMdExcludes\":[\"**/CLAUDE.md\",\"**/CLAUDE.local.md\",\"**/.claude/rules/**\"],\"crossSessionInbound\":\"accept\"}",
+                "{\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"touch '$WORK/marker-5c0c096e'\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on SessionStart\",\"timeout\":10}]}],\"UserPromptSubmit\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on UserPromptSubmit\",\"timeout\":10}]}],\"Stop\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on Stop\",\"timeout\":10}]}],\"StopFailure\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on StopFailure\",\"timeout\":10}]}],\"PermissionRequest\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on PermissionRequest\",\"timeout\":10}]}],\"SessionEnd\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"PORCH_HOME='$PORCH_HOME' '$HOME/.nvm/versions/node/v22.19.0/bin/node' '$HOME/porch-idle/dist/cli/main.js' hooks claude on SessionEnd\",\"timeout\":10}]}]},\"permissions\":{\"allow\":[\"Bash(sleep *)\"]},\"claudeMdExcludes\":[\"**/CLAUDE.md\",\"**/CLAUDE.local.md\",\"**/.claude/rules/**\"],\"crossSessionInbound\":\"accept\"}",
                 "-n",
-                "porch-conformance-dcb1bfba",
+                "porch-conformance-5c0c096e",
                 "--permission-mode",
                 "default",
                 "--setting-sources",
@@ -274,14 +274,14 @@
               ],
               "providerEnv": {},
               "intent": "",
-              "name": "porch-conformance-dcb1bfba",
+              "name": "porch-conformance-5c0c096e",
               "nameSource": "user",
-              "sessionId": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-              "resumeSessionId": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-              "daemonShort": "0f825cb5",
-              "cwd": "$WORK/cwd-dcb1bfba",
-              "createdAt": "2026-09-30T12:12:53.373Z",
-              "updatedAt": "2026-09-30T12:12:54.916Z",
+              "sessionId": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+              "resumeSessionId": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+              "daemonShort": "ce2e9352",
+              "cwd": "$WORK/cwd-5c0c096e",
+              "createdAt": "2026-10-01T11:38:35.419Z",
+              "updatedAt": "2026-10-01T11:38:36.871Z",
               "firstTerminalAt": null,
               "backend": "daemon",
               "inFlight": {
@@ -294,26 +294,26 @@
             "record": {
               "schema": 2,
               "harness": "claude",
-              "session": "0f825cb5-8413-4f2d-9914-e1c3ac9d177c",
-              "createdAt": "2026-09-30T12:12:53.823Z",
-              "updatedAt": "2026-09-30T12:12:54.882Z",
+              "session": "ce2e9352-3dcc-4414-946d-76e7a701d458",
+              "createdAt": "2026-10-01T11:38:35.832Z",
+              "updatedAt": "2026-10-01T11:38:36.839Z",
               "inside": {
-                "pid": 52221,
+                "pid": 6533,
                 "delivery": {
                   "via": "socket",
-                  "address": "/tmp/cc-socks/52221.sock"
+                  "address": "/tmp/cc-socks/6533.sock"
                 },
-                "cwd": "$WORK/cwd-dcb1bfba",
+                "cwd": "$WORK/cwd-5c0c096e",
                 "status": "busy",
-                "since": "2026-09-30T12:12:54.882Z",
+                "since": "2026-10-01T11:38:36.840Z",
                 "backgroundTasks": null,
                 "data": {
                   "source": "startup",
-                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-dcb1bfba/0f825cb5-8413-4f2d-9914-e1c3ac9d177c.jsonl",
-                  "shortId": "0f825cb5",
-                  "startedAt": "2026-09-30T12:12:53.821Z"
+                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-5c0c096e/ce2e9352-3dcc-4414-946d-76e7a701d458.jsonl",
+                  "shortId": "ce2e9352",
+                  "startedAt": "2026-10-01T11:38:35.828Z"
                 },
-                "lastTurnStart": "2026-09-30T12:12:54.872Z"
+                "lastTurnStart": "2026-10-01T11:38:36.837Z"
               },
               "self": null
             }
