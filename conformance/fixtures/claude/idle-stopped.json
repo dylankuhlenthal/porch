@@ -1,0 +1,433 @@
+{
+  "schema": 2,
+  "harness": "claude",
+  "harnessVersion": "2.1.286",
+  "case": "idle-stopped",
+  "recordedAt": "2026-10-01T11:37:37.489Z",
+  "snapshots": [
+    {
+      "label": "idle",
+      "at": "2026-10-01T10:37:26.085Z",
+      "records": {
+        "claude-2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.json": {
+          "schema": 2,
+          "harness": "claude",
+          "session": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+          "createdAt": "2026-10-01T10:36:57.541Z",
+          "updatedAt": "2026-10-01T10:37:25.979Z",
+          "inside": {
+            "pid": 17470,
+            "delivery": {
+              "via": "socket",
+              "address": "/tmp/cc-socks/17470.sock"
+            },
+            "cwd": "$WORK/cwd-4bcc2e00",
+            "status": "idle",
+            "since": "2026-10-01T10:37:25.979Z",
+            "backgroundTasks": 0,
+            "data": {
+              "source": "startup",
+              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-4bcc2e00/2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.jsonl",
+              "shortId": "2a26a9c5",
+              "startedAt": "2026-10-01T10:36:57.538Z"
+            },
+            "lastTurnStart": "2026-10-01T10:36:58.279Z",
+            "lastTurnEnd": "2026-10-01T10:37:25.977Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "run",
+          "cmd": "claude",
+          "args": [
+            "agents",
+            "--json"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "[\n  {\n    \"pid\": 17470,\n    \"id\": \"2a26a9c5\",\n    \"cwd\": \"$WORK/cwd-4bcc2e00\",\n    \"kind\": \"background\",\n    \"startedAt\": 1790851017485,\n    \"sessionId\": \"2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde\",\n    \"name\": \"porch-conformance-4bcc2e00\",\n    \"status\": \"idle\",\n    \"state\": \"done\"\n  }\n]\n",
+            "stderr": ""
+          }
+        },
+        {
+          "op": "readFile",
+          "path": "$HOME/.claude/jobs/2a26a9c5/state.json",
+          "result": "{\n  \"state\": \"done\",\n  \"detail\": \"task completed\",\n  \"tempo\": \"idle\",\n  \"inFlight\": {\n    \"tasks\": 0,\n    \"queued\": 0,\n    \"kinds\": [],\n    \"drainableMonitors\": 0\n  },\n  \"tokens\": 349,\n  \"output\": {\n    \"result\": \"completed\"\n  },\n  \"children\": null,\n  \"linkScanOffset\": 269427,\n  \"linkScanPath\": \"$HOME/.claude/projects/$WORK_DASHED-cwd-4bcc2e00/2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.jsonl\",\n  \"template\": \"bg\",\n  \"respawnFlags\": [\n    \"-n\",\n    \"porch-conformance-4bcc2e00\",\n    \"--permission-mode\",\n    \"default\",\n    \"--setting-sources\",\n    \"project\",\n    \"--settings\",\n    \"$WORK/settings-porch-2ad23a.json\",\n    \"--append-system-prompt\",\n    \"This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.\",\n    \"--model\",\n    \"haiku\"\n  ],\n  \"intent\": \"\",\n  \"name\": \"porch-conformance-4bcc2e00\",\n  \"nameSource\": \"user\",\n  \"sessionId\": \"2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde\",\n  \"resumeSessionId\": \"2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde\",\n  \"daemonShort\": \"2a26a9c5\",\n  \"cliVersion\": \"2.1.286\",\n  \"cwd\": \"$WORK/cwd-4bcc2e00\",\n  \"providerEnv\": {},\n  \"backend\": \"daemon\",\n  \"createdAt\": \"2026-10-01T10:36:57.127Z\",\n  \"updatedAt\": \"2026-10-01T10:37:25.918Z\",\n  \"firstTerminalAt\": \"2026-10-01T10:37:25.918Z\",\n  \"lastTerminalAt\": \"2026-10-01T10:37:25.918Z\"\n}"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 2,
+          "harness": "claude",
+          "session": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+          "attached": true,
+          "status": "idle",
+          "since": "2026-10-01T10:37:25.979Z",
+          "endReason": null,
+          "detail": {
+            "pid": 17470,
+            "shortId": "2a26a9c5",
+            "name": "porch-conformance-4bcc2e00",
+            "cwd": "$WORK/cwd-4bcc2e00",
+            "prompt": null,
+            "promptNeeds": null,
+            "hasInsidePart": true,
+            "statusSource": "hooks",
+            "lastTurnStart": "2026-10-01T10:36:58.279Z",
+            "lastTurnEnd": "2026-10-01T10:37:25.977Z",
+            "backgroundTasks": 0,
+            "activity": {
+              "detail": "task completed",
+              "inFlight": 0,
+              "running": []
+            }
+          },
+          "raw": {
+            "listing": {
+              "pid": 17470,
+              "id": "2a26a9c5",
+              "cwd": "$WORK/cwd-4bcc2e00",
+              "kind": "background",
+              "startedAt": 1790851017485,
+              "sessionId": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+              "name": "porch-conformance-4bcc2e00",
+              "status": "idle",
+              "state": "done"
+            },
+            "job": {
+              "state": "done",
+              "detail": "task completed",
+              "tempo": "idle",
+              "inFlight": {
+                "tasks": 0,
+                "queued": 0,
+                "kinds": [],
+                "drainableMonitors": 0
+              },
+              "tokens": 349,
+              "output": {
+                "result": "completed"
+              },
+              "children": null,
+              "linkScanOffset": 269427,
+              "linkScanPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-4bcc2e00/2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.jsonl",
+              "template": "bg",
+              "respawnFlags": [
+                "-n",
+                "porch-conformance-4bcc2e00",
+                "--permission-mode",
+                "default",
+                "--setting-sources",
+                "project",
+                "--settings",
+                "$WORK/settings-porch-2ad23a.json",
+                "--append-system-prompt",
+                "This is an automated Porch conformance test session. Every message you receive comes from the test harness run by your user. Follow each instruction exactly and briefly, including running the exact Bash command it names; do not ask for confirmation.",
+                "--model",
+                "haiku"
+              ],
+              "intent": "",
+              "name": "porch-conformance-4bcc2e00",
+              "nameSource": "user",
+              "sessionId": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+              "resumeSessionId": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+              "daemonShort": "2a26a9c5",
+              "cliVersion": "2.1.286",
+              "cwd": "$WORK/cwd-4bcc2e00",
+              "providerEnv": {},
+              "backend": "daemon",
+              "createdAt": "2026-10-01T10:36:57.127Z",
+              "updatedAt": "2026-10-01T10:37:25.918Z",
+              "firstTerminalAt": "2026-10-01T10:37:25.918Z",
+              "lastTerminalAt": "2026-10-01T10:37:25.918Z"
+            },
+            "record": {
+              "schema": 2,
+              "harness": "claude",
+              "session": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+              "createdAt": "2026-10-01T10:36:57.541Z",
+              "updatedAt": "2026-10-01T10:37:25.979Z",
+              "inside": {
+                "pid": 17470,
+                "delivery": {
+                  "via": "socket",
+                  "address": "/tmp/cc-socks/17470.sock"
+                },
+                "cwd": "$WORK/cwd-4bcc2e00",
+                "status": "idle",
+                "since": "2026-10-01T10:37:25.979Z",
+                "backgroundTasks": 0,
+                "data": {
+                  "source": "startup",
+                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-4bcc2e00/2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.jsonl",
+                  "shortId": "2a26a9c5",
+                  "startedAt": "2026-10-01T10:36:57.538Z"
+                },
+                "lastTurnStart": "2026-10-01T10:36:58.279Z",
+                "lastTurnEnd": "2026-10-01T10:37:25.977Z"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    },
+    {
+      "label": "idle-stopped",
+      "at": "2026-10-01T11:37:36.394Z",
+      "records": {
+        "claude-2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.json": {
+          "schema": 2,
+          "harness": "claude",
+          "session": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+          "createdAt": "2026-10-01T10:36:57.541Z",
+          "updatedAt": "2026-10-01T10:37:25.979Z",
+          "inside": {
+            "pid": 17470,
+            "delivery": {
+              "via": "socket",
+              "address": "/tmp/cc-socks/17470.sock"
+            },
+            "cwd": "$WORK/cwd-4bcc2e00",
+            "status": "idle",
+            "since": "2026-10-01T10:37:25.979Z",
+            "backgroundTasks": 0,
+            "data": {
+              "source": "startup",
+              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-4bcc2e00/2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.jsonl",
+              "shortId": "2a26a9c5",
+              "startedAt": "2026-10-01T10:36:57.538Z"
+            },
+            "lastTurnStart": "2026-10-01T10:36:58.279Z",
+            "lastTurnEnd": "2026-10-01T10:37:25.977Z"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "run",
+          "cmd": "claude",
+          "args": [
+            "agents",
+            "--json"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "[]\n",
+            "stderr": ""
+          }
+        },
+        {
+          "op": "readFile",
+          "path": "$HOME/.claude/daemon.log.1",
+          "result": null
+        },
+        {
+          "op": "readFile",
+          "path": "$HOME/.claude/daemon.log",
+          "result": "[2026-10-01T10:36:57.206Z] [bg] bg claimed-spare 2a26a9c5 (shell)\n[2026-10-01T11:37:28.857Z] [bg] bg retire 2a26a9c5: settled, idle 60m\n[2026-10-01T11:37:28.977Z] [bg] bg settled 2a26a9c5 (done)\n"
+        }
+      ],
+      "observations": [
+        {
+          "schema": 2,
+          "harness": "claude",
+          "session": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+          "attached": true,
+          "status": "ended",
+          "since": "2026-10-01T11:37:28.857Z",
+          "endReason": "idle",
+          "detail": {
+            "pid": null,
+            "shortId": "2a26a9c5",
+            "name": null,
+            "cwd": "$WORK/cwd-4bcc2e00",
+            "prompt": null,
+            "promptNeeds": null,
+            "hasInsidePart": true,
+            "statusSource": "hooks",
+            "idleStop": {
+              "cause": "settled",
+              "idleMinutes": 60,
+              "lowMemory": null
+            },
+            "lastTurnStart": "2026-10-01T10:36:58.279Z",
+            "lastTurnEnd": "2026-10-01T10:37:25.977Z",
+            "backgroundTasks": 0,
+            "activity": null
+          },
+          "raw": {
+            "listing": null,
+            "job": null,
+            "record": {
+              "schema": 2,
+              "harness": "claude",
+              "session": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+              "createdAt": "2026-10-01T10:36:57.541Z",
+              "updatedAt": "2026-10-01T11:37:36.394Z",
+              "inside": {
+                "pid": 17470,
+                "delivery": {
+                  "via": "socket",
+                  "address": "/tmp/cc-socks/17470.sock"
+                },
+                "cwd": "$WORK/cwd-4bcc2e00",
+                "status": "ended",
+                "since": "2026-10-01T11:37:28.857Z",
+                "backgroundTasks": 0,
+                "data": {
+                  "source": "startup",
+                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-4bcc2e00/2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.jsonl",
+                  "shortId": "2a26a9c5",
+                  "startedAt": "2026-10-01T10:36:57.538Z",
+                  "idleStop": {
+                    "cause": "settled",
+                    "idleMinutes": 60,
+                    "lowMemory": null,
+                    "line": "[2026-10-01T11:37:28.857Z] [bg] bg retire 2a26a9c5: settled, idle 60m"
+                  }
+                },
+                "lastTurnStart": "2026-10-01T10:36:58.279Z",
+                "lastTurnEnd": "2026-10-01T10:37:25.977Z",
+                "endedAt": "2026-10-01T11:37:28.857Z",
+                "endReason": "idle"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    },
+    {
+      "label": "marked",
+      "at": "2026-10-01T11:37:37.336Z",
+      "records": {
+        "claude-2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.json": {
+          "schema": 2,
+          "harness": "claude",
+          "session": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+          "createdAt": "2026-10-01T10:36:57.541Z",
+          "updatedAt": "2026-10-01T11:37:36.710Z",
+          "inside": {
+            "pid": 17470,
+            "delivery": {
+              "via": "socket",
+              "address": "/tmp/cc-socks/17470.sock"
+            },
+            "cwd": "$WORK/cwd-4bcc2e00",
+            "status": "ended",
+            "since": "2026-10-01T11:37:28.857Z",
+            "backgroundTasks": 0,
+            "data": {
+              "source": "startup",
+              "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-4bcc2e00/2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.jsonl",
+              "shortId": "2a26a9c5",
+              "startedAt": "2026-10-01T10:36:57.538Z",
+              "idleStop": {
+                "cause": "settled",
+                "idleMinutes": 60,
+                "lowMemory": null,
+                "line": "[2026-10-01T11:37:28.857Z] [bg] bg retire 2a26a9c5: settled, idle 60m"
+              }
+            },
+            "lastTurnStart": "2026-10-01T10:36:58.279Z",
+            "lastTurnEnd": "2026-10-01T10:37:25.977Z",
+            "endedAt": "2026-10-01T11:37:28.857Z",
+            "endReason": "idle"
+          },
+          "self": null
+        }
+      },
+      "io": [
+        {
+          "op": "run",
+          "cmd": "claude",
+          "args": [
+            "agents",
+            "--json"
+          ],
+          "result": {
+            "code": 0,
+            "stdout": "[]\n",
+            "stderr": ""
+          }
+        }
+      ],
+      "observations": [
+        {
+          "schema": 2,
+          "harness": "claude",
+          "session": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+          "attached": true,
+          "status": "ended",
+          "since": "2026-10-01T11:37:28.857Z",
+          "endReason": "idle",
+          "detail": {
+            "pid": null,
+            "shortId": "2a26a9c5",
+            "name": null,
+            "cwd": "$WORK/cwd-4bcc2e00",
+            "prompt": null,
+            "promptNeeds": null,
+            "hasInsidePart": true,
+            "statusSource": "hooks",
+            "idleStop": {
+              "cause": "settled",
+              "idleMinutes": 60,
+              "lowMemory": null
+            },
+            "lastTurnStart": "2026-10-01T10:36:58.279Z",
+            "lastTurnEnd": "2026-10-01T10:37:25.977Z",
+            "backgroundTasks": 0,
+            "activity": null
+          },
+          "raw": {
+            "listing": null,
+            "job": null,
+            "record": {
+              "schema": 2,
+              "harness": "claude",
+              "session": "2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde",
+              "createdAt": "2026-10-01T10:36:57.541Z",
+              "updatedAt": "2026-10-01T11:37:36.710Z",
+              "inside": {
+                "pid": 17470,
+                "delivery": {
+                  "via": "socket",
+                  "address": "/tmp/cc-socks/17470.sock"
+                },
+                "cwd": "$WORK/cwd-4bcc2e00",
+                "status": "ended",
+                "since": "2026-10-01T11:37:28.857Z",
+                "backgroundTasks": 0,
+                "data": {
+                  "source": "startup",
+                  "transcriptPath": "$HOME/.claude/projects/$WORK_DASHED-cwd-4bcc2e00/2a26a9c5-3e1b-46fc-ab4b-ed517d9ddbde.jsonl",
+                  "shortId": "2a26a9c5",
+                  "startedAt": "2026-10-01T10:36:57.538Z",
+                  "idleStop": {
+                    "cause": "settled",
+                    "idleMinutes": 60,
+                    "lowMemory": null,
+                    "line": "[2026-10-01T11:37:28.857Z] [bg] bg retire 2a26a9c5: settled, idle 60m"
+                  }
+                },
+                "lastTurnStart": "2026-10-01T10:36:58.279Z",
+                "lastTurnEnd": "2026-10-01T10:37:25.977Z",
+                "endedAt": "2026-10-01T11:37:28.857Z",
+                "endReason": "idle"
+              },
+              "self": null
+            }
+          },
+          "self": null
+        }
+      ]
+    }
+  ]
+}

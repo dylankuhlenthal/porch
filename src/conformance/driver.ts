@@ -41,13 +41,21 @@ export interface HarnessDriver {
     holdAtPrompt: boolean;
     /** The driver can start a session without the adapter's inside part. */
     withoutInside: boolean;
+    /**
+     * The harness stops a session by itself once it has been idle long enough, and
+     * the adapter reports that as `ended` with `endReasons.idleStop` (Claude Code's
+     * idle stop, decision 0014). Its case is slow, so it runs only when asked for.
+     */
+    idleStop: boolean;
   };
   /**
    * The `endReason` the harness gives, and the adapter reports, when a session ends
    * the way `stop` ends it and the way `exitInteractive` ends it (null: the harness
-   * gives no reason). The `ended-cleanly` and `launch-interactive` cases check them.
+   * gives no reason), and when the harness stops an idle session by itself (null when
+   * it does not, `supports.idleStop` false). The `ended-cleanly`, `launch-interactive`
+   * and `idle-stopped` cases check them.
    */
-  readonly endReasons: { stop: string | null; exitInteractive: string | null };
+  readonly endReasons: { stop: string | null; exitInteractive: string | null; idleStop: string | null };
   readonly timeouts: {
     /** How long a state change (start, busy, idle, gone) may take to show. */
     changeMs: number;
@@ -55,6 +63,12 @@ export interface HarnessDriver {
     deliveryMs: number;
     /** Hard limit for one case, including setup and cleanup. */
     caseMs: number;
+    /**
+     * How long the harness may take to stop an idle session by itself, counted from
+     * the end of its turn (needed when `supports.idleStop`). A slow case's limit is
+     * `caseMs` plus this.
+     */
+    idleStopMs?: number;
   };
 
   /** The harness version under test, for the report and fixtures. */

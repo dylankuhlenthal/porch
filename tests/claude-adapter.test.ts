@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { AdapterContext } from "../src/adapter.js";
 import { createClaudeAdapter, isUnder } from "../src/adapters/claude/index.js";
 import { claudeHookSettings, handleHookEvent, hookCommand, HOOK_EVENTS, shQuote } from "../src/adapters/claude/hooks.js";
+import { findIdleStop, parseRetireLine } from "../src/adapters/claude/daemon-log.js";
 import { parseListing } from "../src/adapters/claude/listing.js";
 import { jobActivity } from "../src/adapters/claude/observe.js";
 import { socketLine } from "../src/adapters/claude/socket.js";
@@ -16,6 +17,7 @@ import { DRIVERS, scrubClaudeSnapshot } from "../src/conformance/drivers/index.j
 import { dashedPath, fromPlaceholders, replayFixture, toPlaceholders, type Fixture, type Snapshot } from "../src/conformance/recorder.js";
 import type { Env } from "../src/home.js";
 import type { HarnessIO, RunResult } from "../src/io.js";
+import type { SessionRecord } from "../src/records.js";
 import { Porch } from "../src/porch.js";
 import { bin, BIN, cli, REPO, scratchEnv, schemaValidators } from "./helpers.js";
 
@@ -24,11 +26,20 @@ const SID = "5b0e750e-44ca-46ad-a46a-6408e83922b1";
 const SHORT = "5b0e750e";
 const OTHER = "06bb8fe1-860d-4965-8fdd-f81d5796767d";
 
-/** A HarnessIO answering `claude agents --json` and job files from canned values. */
-function stubIO(rows: unknown[] | RunResult | "missing", jobs: Record<string, unknown> = {}): HarnessIO & { runs: string[][] } {
+/**
+ * A HarnessIO answering `claude agents --json`, job files and the daemon log
+ * (`daemon.log`, `daemon.log.1`; an Error is thrown when read) from canned values.
+ */
+function stubIO(
+  rows: unknown[] | RunResult | "missing",
+  jobs: Record<string, unknown> = {},
+  logs: Record<string, string | Error> = {},
+): HarnessIO & { runs: string[][]; reads: string[] } {
   const runs: string[][] = [];
+  const reads: string[] = [];
   return {
     runs,
+    reads,
     async run(cmd, args) {
       runs.push([cmd, ...args]);
       if (args[0] === "--version") return { code: 0, stdout: "2.1.284 (Claude Code)\n", stderr: "" };
@@ -37,6 +48,12 @@ function stubIO(rows: unknown[] | RunResult | "missing", jobs: Record<string, un
       return { code: 0, stdout: JSON.stringify(rows), stderr: "" };
     },
     async readFile(file) {
+      reads.push(file);
+      const log = logs[path.basename(file)];
+      if (/\/\.claude\/daemon\.log(\.1)?$/.test(file) && log !== undefined) {
+        if (log instanceof Error) throw log;
+        return log;
+      }
       const m = /jobs\/([0-9a-f]+)\/state\.json$/.exec(file);
       if (m && jobs[m[1]!] !== undefined) {
         const j = jobs[m[1]!];
@@ -355,6 +372,216 @@ describe("Claude Code adapter: status", () => {
     const porch = porchWith(stubIO([]));
     expect(await adapter.current({ ...porch.ctx, env: { CLAUDE_CODE_SESSION_ID: SID } })).toBe(SID);
     expect(await adapter.current({ ...porch.ctx, env: {} })).toBeNull();
+  });
+});
+
+describe("Claude Code's daemon log: the idle stop line", () => {
+  const AFTER = "2026-09-30T13:00:00.000Z";
+
+  it("reads every form of the retire line Claude Code writes", () => {
+    // Real lines from daemon.log (2.1.285), then forms read from 2.1.286's code.
+    expect(parseRetireLine("[2026-09-30T14:58:56.171Z] [bg] bg retire 3e95c991: settled, idle 61m")).toEqual({
+      short: "3e95c991",
+      at: "2026-09-30T14:58:56.171Z",
+      cause: "settled",
+      idleMinutes: 61,
+      lowMemory: null,
+      line: "[2026-09-30T14:58:56.171Z] [bg] bg retire 3e95c991: settled, idle 61m",
+    });
+    expect(parseRetireLine("[2026-09-30T15:02:56.175Z] [bg] bg retire d8d23018: idle-prompt, idle 61m")).toMatchObject({ cause: "idle-prompt", idleMinutes: 61 });
+    expect(parseRetireLine("[2026-09-12T09:01:00.000Z] [bg] bg retire 0900bcd2: idle-prompt, idle 64m, worker 2.1.278 (daemon 2.1.280)")).toMatchObject({
+      cause: "idle-prompt",
+      idleMinutes: 64,
+      lowMemory: null,
+    });
+    expect(parseRetireLine("[2026-09-30T15:00:00.000Z] [bg] bg retire abcd1234: settled, idle 1m [low memory]")).toMatchObject({ idleMinutes: 1, lowMemory: "low memory" });
+    expect(parseRetireLine("[2026-09-30T15:00:00.000Z] [bg] bg retire abcd1234: settled, idle 3m, worker 2.1.285 (daemon 2.1.286) [low memory, pinned]")).toMatchObject({
+      lowMemory: "low memory, pinned",
+    });
+    expect(parseRetireLine("[2026-09-30T15:00:00.000Z] [bg] bg retire abcd1234: abandoned-stale, idle 2h [low memory, monitoring only]")).toMatchObject({
+      cause: "abandoned-stale",
+      idleMinutes: 120,
+      lowMemory: "low memory, monitoring only",
+    });
+    expect(parseRetireLine("[2026-09-30T15:00:00.000Z] [bg] bg retire abcd1234: empty-idle, idle 5h")).toMatchObject({ cause: "empty-idle", idleMinutes: 300 });
+  });
+
+  it("does not read a kill, a claude stop, another format or garbage as an idle stop", () => {
+    for (const line of [
+      "[2026-09-30T13:59:11.152Z] [bg] bg settled 2c9aceec (killed)",
+      "[2026-09-30T13:59:20.540Z] [bg] bg settled 9269d5b2 (done)",
+      "[2026-09-30T13:59:20.540Z] [bg] bg retire 9269d5b2: settled, idle 61 minutes",
+      "[2026-09-30T13:59:20.540Z] [supervisor] bg retire 9269d5b2: settled, idle 61m",
+      "bg retire 9269d5b2: settled, idle 61m",
+      "[not a time] [bg] bg retire 9269d5b2: settled, idle 61m",
+      "[2026-09-30T13:59:20.540Z] [bg] bg retire 9269d5b2: settled, idle 61m and more",
+      "",
+      "\u0000\u0001 garbage",
+    ]) {
+      expect(parseRetireLine(line), line).toBeNull();
+    }
+  });
+
+  it("finds the session's own line dated after the bound, in daemon.log.1 or daemon.log", () => {
+    const older = [
+      "[2026-09-29T10:00:00.000Z] [bg] bg retire 3e95c991: settled, idle 60m",
+      "[2026-09-30T14:10:00.000Z] [bg] bg retire 3e95c99: settled, idle 60m",
+      "[2026-09-30T14:20:00.000Z] [bg] bg retire 3e95c9910: settled, idle 60m",
+    ].join("\n");
+    const current = [
+      "[2026-09-30T13:59:11.152Z] [bg] bg settled 3e95c991 (killed)",
+      "[2026-09-30T14:58:56.171Z] [bg] bg retire 3e95c991: settled, idle 61m\r",
+      "[2026-09-30T14:58:56.258Z] [bg] bg settled 3e95c991 (done)",
+      "[2026-09-30T15:02:56.175Z] [bg] bg retire d8d23018: idle-prompt, idle 61m",
+      "",
+    ].join("\n");
+    expect(findIdleStop([older, current], "3e95c991", AFTER)).toMatchObject({ at: "2026-09-30T14:58:56.171Z", cause: "settled" });
+    // Only lines dated after the bound count: an earlier stop of a session resumed since.
+    expect(findIdleStop([older, current], "3e95c991", "2026-09-30T14:58:56.171Z")).toBeNull();
+    expect(findIdleStop([older], "3e95c991", AFTER)).toBeNull();
+    expect(findIdleStop([older], "3e95c991", "2026-09-29T09:00:00.000Z")).toMatchObject({ at: "2026-09-29T10:00:00.000Z" });
+    // Another session's line, a short id that only starts the same, and a bad bound.
+    expect(findIdleStop([current], "d8d2301", AFTER)).toBeNull();
+    expect(findIdleStop([older, current], "3e95c99", "2026-09-30T14:00:00.000Z")).toMatchObject({ at: "2026-09-30T14:10:00.000Z" });
+    expect(findIdleStop([current], "3e95c991", "not a time")).toBeNull();
+    expect(findIdleStop([], "3e95c991", AFTER)).toBeNull();
+  });
+});
+
+describe("Claude Code adapter: a session Claude Code stopped for being idle", () => {
+  // The record's startedAt and lastTurnEnd are the porch clock, 2026-09-29T16:00:00Z.
+  const RETIRE = `[2026-09-29T17:01:00.000Z] [bg] bg retire ${SHORT}: idle-prompt, idle 61m`;
+  const SETTLED = `[2026-09-29T17:01:00.090Z] [bg] bg settled ${SHORT} (done)`;
+  const withJobDir = (ctx: AdapterContext) => ({ ...ctx, env: { ...ctx.env, CLAUDE_JOB_DIR: `/h/.claude/jobs/${SHORT}` } });
+  const logReads = (io: { reads: string[] }) => io.reads.filter((f) => /daemon\.log/.test(f));
+
+  async function started(porch: Porch) {
+    await hook(withJobDir(porch.ctx), "SessionStart", { source: "startup" });
+    await hook(porch.ctx, "UserPromptSubmit", {});
+    await hook(porch.ctx, "Stop", {});
+  }
+
+  it("shows it as ended with reason idle, the stop's time and Claude Code's cause, and marks the record", async () => {
+    const env = scratchEnv();
+    const io = stubIO([row({ pid: null, status: null })], {}, { "daemon.log": `${RETIRE}\n${SETTLED}\n` });
+    const porch = porchWith(io, env);
+    await started(porch);
+    const obs = await porch.observe(SID);
+    v.observation!(obs);
+    expect(obs).toMatchObject({ attached: true, status: "ended", since: "2026-09-29T17:01:00.000Z", endReason: "idle" });
+    expect(obs.detail).toMatchObject({ pid: null, statusSource: "hooks", idleStop: { cause: "idle-prompt", idleMinutes: 61, lowMemory: null } });
+    const rec = await porch.ctx.records.read("claude", SID);
+    v.record!(rec);
+    expect(rec!.inside).toMatchObject({
+      status: "ended",
+      since: "2026-09-29T17:01:00.000Z",
+      endedAt: "2026-09-29T17:01:00.000Z",
+      endReason: "idle",
+      data: { shortId: SHORT, idleStop: { cause: "idle-prompt", idleMinutes: 61, lowMemory: null, line: RETIRE } },
+    });
+    // Not running: deliver says it ended, the default list leaves it out, list --all shows it.
+    expect(await porch.deliver(SID, "hi", { from: "x" })).toMatchObject({ result: "not-running", reason: "the session has ended" });
+    expect((await porch.list()).sessions).toEqual([]);
+    expect((await porch.list(undefined, { all: true })).sessions.map((o) => [o.status, o.endReason])).toEqual([["ended", "idle"]]);
+    // Once marked, the answer no longer depends on the log: rotated away, it stays ended, and the log is not read.
+    const later = stubIO([], {}, {});
+    const again = await porchWith(later, env).observe(SHORT);
+    expect(again).toMatchObject({ status: "ended", endReason: "idle", since: "2026-09-29T17:01:00.000Z" });
+    expect(again.detail).toMatchObject({ idleStop: { cause: "idle-prompt" } });
+    expect(logReads(later)).toEqual([]);
+  });
+
+  it("deliver is the first look that finds it: it marks the record and says the session has ended", async () => {
+    const env = scratchEnv();
+    const porch = porchWith(stubIO([], {}, { "daemon.log.1": `${RETIRE}\n` }), env);
+    await started(porch);
+    expect(await porch.deliver(SHORT, "hi", { from: "x" })).toMatchObject({ result: "not-running", session: SID, reason: "the session has ended" });
+    expect((await porch.ctx.records.read("claude", SID))!.inside).toMatchObject({ status: "ended", endReason: "idle" });
+  });
+
+  it("keeps a killed session gone: the log has no retire line for it", async () => {
+    const io = stubIO([row({ pid: null, status: null })], {}, { "daemon.log": `${SETTLED}\n[2026-09-29T17:02:00.000Z] [bg] bg retire 0badbeef: settled, idle 61m\n` });
+    const porch = porchWith(io);
+    await started(porch);
+    const before = await porch.ctx.records.read("claude", SID);
+    const obs = await porch.observe(SID);
+    expect(obs).toMatchObject({ status: "gone", endReason: null });
+    expect(obs.detail).not.toHaveProperty("idleStop");
+    expect(await porch.ctx.records.read("claude", SID)).toEqual(before);
+    expect(logReads(io).map((f) => path.basename(f))).toEqual(["daemon.log.1", "daemon.log"]);
+  });
+
+  it("keeps gone a session stopped for idling earlier, resumed since, then killed", async () => {
+    const env = scratchEnv();
+    const porch = porchWith(stubIO([]), env);
+    await started(porch);
+    // The retire line is older than the resume's SessionStart (startedAt 18:00).
+    const resumed = new Porch({ env: { ...env, PORCH_CLAUDE_BIN: "claude" }, adapters: porch.adapters, io: stubIO([]), now: () => new Date("2026-09-29T18:00:00Z") });
+    await hook(withJobDir(resumed.ctx), "SessionStart", { source: "resume" });
+    expect(await porchWith(stubIO([], {}, { "daemon.log": `${RETIRE}\n` }), env).observe(SID)).toMatchObject({ status: "gone" });
+  });
+
+  it("keeps gone a session whose retire line is older than its last turn's end", async () => {
+    const env = scratchEnv();
+    const porch = porchWith(stubIO([]), env);
+    await hook(withJobDir(porch.ctx), "SessionStart", { source: "startup" });
+    const afterTurn = new Porch({ env: { ...env, PORCH_CLAUDE_BIN: "claude" }, adapters: porch.adapters, io: stubIO([]), now: () => new Date("2026-09-29T17:30:00Z") });
+    await hook(afterTurn.ctx, "Stop", {});
+    expect(await porchWith(stubIO([], {}, { "daemon.log": `${RETIRE}\n` }), env).observe(SID)).toMatchObject({ status: "gone" });
+  });
+
+  it("keeps it gone when the log cannot be read, and marks it on a later look that can read it", async () => {
+    const env = scratchEnv();
+    const porch = porchWith(stubIO([], {}, { "daemon.log": new Error("EACCES: permission denied") }), env);
+    await started(porch);
+    expect(await porch.observe(SID)).toMatchObject({ status: "gone" });
+    expect((await porch.ctx.records.read("claude", SID))!.inside!.status).toBe("idle");
+    expect(await porchWith(stubIO([], {}, { "daemon.log": `${RETIRE}\n` }), env).observe(SID)).toMatchObject({ status: "ended", endReason: "idle" });
+  });
+
+  it("never reads the log for a running session or an interactive one (no short id)", async () => {
+    const running = stubIO([row()], {}, { "daemon.log": `${RETIRE}\n` });
+    const porch = porchWith(running);
+    await started(porch);
+    expect(await porch.observe(SID)).toMatchObject({ status: "idle" });
+    expect(logReads(running)).toEqual([]);
+    const interactive = stubIO([], {}, { "daemon.log": `${RETIRE}\n` });
+    const p2 = porchWith(interactive);
+    await hook(p2.ctx, "SessionStart", { source: "startup" });
+    expect((await p2.ctx.records.read("claude", SID))!.inside!.data!.shortId).toBeNull();
+    expect(await p2.observe(SID)).toMatchObject({ status: "gone" });
+    expect((await p2.list(undefined, { all: true })).sessions.map((o) => o.status)).toEqual(["gone"]);
+    expect(logReads(interactive)).toEqual([]);
+  });
+
+  it("list reads the log once, however many sessions it looks up", async () => {
+    const env = scratchEnv();
+    const second = "0badbeef-0000-4000-8000-000000000000";
+    const io = stubIO([], {}, { "daemon.log": `${RETIRE}\n[2026-09-29T17:05:00.000Z] [bg] bg retire 0badbeef: settled, idle 62m\n` });
+    const porch = porchWith(io, env);
+    await started(porch);
+    await handleHookEvent({ ...porch.ctx, env: { ...porch.ctx.env, CLAUDE_JOB_DIR: "/h/.claude/jobs/0badbeef" } }, "SessionStart", { session_id: second, source: "startup" });
+    const all = (await porch.list(undefined, { all: true })).sessions;
+    expect(all.map((o) => [o.session, o.status, o.since, o.detail?.idleStop])).toEqual([
+      [second, "ended", "2026-09-29T17:05:00.000Z", { cause: "settled", idleMinutes: 62, lowMemory: null }],
+      [SID, "ended", "2026-09-29T17:01:00.000Z", { cause: "idle-prompt", idleMinutes: 61, lowMemory: null }],
+    ]);
+    expect(logReads(io)).toHaveLength(2);
+  });
+
+  it("a resume's SessionStart makes it a running session again and drops how it was stopped", async () => {
+    const env = scratchEnv();
+    const porch = porchWith(stubIO([], {}, { "daemon.log": `${RETIRE}\n` }), env);
+    await started(porch);
+    expect((await porch.observe(SID)).status).toBe("ended");
+    await hook(withJobDir(porch.ctx), "SessionStart", { source: "resume" });
+    const rec = await porch.ctx.records.read("claude", SID);
+    expect(rec!.inside!.status).toBe("idle");
+    expect(rec!.inside).not.toHaveProperty("endReason");
+    expect(rec!.inside!.data).not.toHaveProperty("idleStop");
+    const obs = await porchWith(stubIO([row()]), env).observe(SID);
+    expect(obs).toMatchObject({ status: "idle", endReason: null });
+    expect(obs.detail).not.toHaveProperty("idleStop");
   });
 });
 
@@ -767,6 +994,42 @@ describe("conformance recordings of Claude Code", () => {
     expect(out.io[1]).toEqual(snap.io[1]);
   });
 
+  it("keep only the daemon log lines naming the case's own sessions", () => {
+    const log = [
+      "[2026-09-30T14:00:00.000Z] [supervisor] auth: scheduling proactive refresh in 9028s",
+      `[2026-09-30T14:00:01.000Z] [bg] bg claimed-spare ${SHORT} (shell)`,
+      "[2026-09-30T14:00:02.000Z] [bg] bg claimed-spare 0badbeef (shell)",
+      "[2026-09-30T15:00:00.000Z] [bg] bg retire cafe1234: settled, idle 61m",
+      `[2026-09-30T15:00:01.000Z] [bg] bg retire ${SHORT}0: settled, idle 61m`,
+      "[2026-09-30T15:01:00.000Z] [bg] bg retire 0badbeef: settled, idle 61m",
+      "",
+    ].join("\n");
+    const snap: Snapshot = {
+      label: "x",
+      at: "2026-09-30T16:00:00.000Z",
+      // cafe1234 is the case's too: its record knows it, though it has left the listing.
+      records: { "claude-a.json": { inside: { data: { shortId: "cafe1234" } } } },
+      observations: [],
+      io: [
+        {
+          op: "run",
+          cmd: "claude",
+          args: ["agents", "--json"],
+          result: { code: 0, stderr: "", stdout: JSON.stringify([row({ cwd: "$WORK/cwd-1" }), row({ id: "0badbeef", cwd: "$HOME/elsewhere" })]) },
+        },
+        { op: "readFile", path: "$HOME/.claude/daemon.log.1", result: null },
+        { op: "readFile", path: "$HOME/.claude/daemon.log", result: log },
+        { op: "readFile", path: "$HOME/.claude/jobs/x/state.json", result: "0badbeef" },
+      ],
+    };
+    const out = scrubClaudeSnapshot(snap);
+    expect(out.io[1]).toEqual(snap.io[1]);
+    expect((out.io[2] as { result: string }).result).toBe(
+      `[2026-09-30T14:00:01.000Z] [bg] bg claimed-spare ${SHORT} (shell)\n[2026-09-30T15:00:00.000Z] [bg] bg retire cafe1234: settled, idle 61m\n`,
+    );
+    expect(out.io[3]).toEqual(snap.io[3]);
+  });
+
   it("replay of the recorded prompt case depends on the recorded listing", async () => {
     const fixture = JSON.parse(readFileSync(path.join(REPO, "conformance", "fixtures", "claude", "held-at-prompt.json"), "utf8")) as Fixture;
     const workDir = mkdtempSync(path.join(os.tmpdir(), "porch-replay-"));
@@ -799,8 +1062,19 @@ describe("conformance recordings of Claude Code", () => {
       const text = readFileSync(path.join(dir, name), "utf8");
       expect(text.includes(home) || text.includes(dashedPath(home)), `${name} mentions the home folder`).toBe(false);
       const fixture = JSON.parse(text) as Fixture;
+      const own = new Set<string>();
+      for (const snap of fixture.snapshots) {
+        for (const rec of Object.values(snap.records) as SessionRecord[]) {
+          if (typeof rec.inside?.data?.shortId === "string") own.add(rec.inside.data.shortId);
+        }
+      }
       for (const snap of fixture.snapshots) {
         for (const call of snap.io) {
+          if (call.op === "readFile" && /daemon\.log/.test(call.path)) {
+            for (const line of (call.result ?? "").split("\n").filter(Boolean)) {
+              expect([...own].some((id) => line.includes(id)), `${name}: a daemon log line about another session (${line})`).toBe(true);
+            }
+          }
           if (call.op !== "run" || call.args[0] !== "agents") continue;
           for (const r of JSON.parse(call.result.stdout) as { cwd?: string }[]) {
             expect(r.cwd === "$WORK" || r.cwd?.startsWith("$WORK/"), `${name}: a session outside the case (${r.cwd})`).toBe(true);

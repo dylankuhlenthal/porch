@@ -58,9 +58,12 @@ describe("conformance suite against the fake adapter", () => {
       },
     });
     v["conformance-report"]!(report);
-    expect(report.results.map((r) => [r.name, r.result, r.reason])).toEqual(CASES.map((c) => [c.name, "pass", null]));
+    // The slow case runs only when asked for.
+    expect(report.results.map((r) => [r.name, r.result, r.reason])).toEqual(
+      CASES.map((c) => (c.slow ? [c.name, "skip", "a slow case: run with --slow, or name it with --case"] : [c.name, "pass", null])),
+    );
     expect(report.passed).toBe(true);
-    expect(fixtures.map((f) => f.case).sort()).toEqual(CASES.map((c) => c.name).filter((n) => n !== "unknown-session").sort());
+    expect(fixtures.map((f) => f.case).sort()).toEqual(CASES.filter((c) => !c.slow && c.name !== "unknown-session").map((c) => c.name).sort());
     for (const f of fixtures) {
       v.fixture!(f);
       expect(await replayFixture(f, createFakeAdapter(), replayScratch())).toEqual([]);
@@ -98,6 +101,7 @@ describe("conformance suite against the fake adapter", () => {
       "held-at-prompt",
       "killed-session",
       "ended-cleanly",
+      "idle-stopped",
       "without-inside-part",
       "watch-delivers-each-change",
       "self-reported-state",
@@ -167,10 +171,92 @@ describe("conformance suite catches adapters that break the contract", () => {
   });
 
   it("reports a case the driver cannot take part in as skipped, without failing the run", async () => {
-    const driver = quickDriver({ supports: { holdAtPrompt: false, withoutInside: false } });
+    const driver = quickDriver({ supports: { holdAtPrompt: false, withoutInside: false, idleStop: false } });
     const report = await runConformance({ adapter: createFakeAdapter(), driver, cases: ["held-at-prompt", "without-inside-part"] });
     expect(report.results.map((r) => r.result)).toEqual(["skip", "skip"]);
     expect(report.passed).toBe(true);
+  });
+
+  /**
+   * The fake harness does not stop idle sessions; this driver makes it, by marking
+   * the record ended with reason "idle" a moment after the turn ends, the way the
+   * Claude adapter marks it from Claude Code's daemon log.
+   */
+  function idleStoppingDriver(reason: string | null = "idle"): HarnessDriver {
+    const driver = quickDriver({
+      supports: { holdAtPrompt: true, withoutInside: true, idleStop: true },
+      endReasons: { stop: null, exitInteractive: "quit", idleStop: "idle" },
+      timeouts: { changeMs: 400, deliveryMs: 400, caseMs: 5000, idleStopMs: 2000 },
+    });
+    const { setup, makeIdle } = driver;
+    let records: RecordStore | null = null;
+    driver.setup = async (ctx) => {
+      records = ctx.adapterContext.records;
+      await setup(ctx);
+    };
+    driver.makeIdle = async (s) => {
+      await makeIdle(s);
+      setTimeout(() => void records!.markInsideEnded("fake", s.id, { endedAt: new Date().toISOString(), endReason: reason }), 300);
+    };
+    return driver;
+  }
+
+  it("runs the slow idle-stopped case only when asked for, and skips it for a driver without idle stops", async () => {
+    const all = await runConformance({ adapter: createFakeAdapter(), driver: idleStoppingDriver() });
+    expect(resultOf(all, "idle-stopped")).toMatchObject({ result: "skip", reason: expect.stringMatching(/--slow/) });
+    const fixtures: Fixture[] = [];
+    const slow = await runConformance({ adapter: createFakeAdapter(), driver: idleStoppingDriver(), slow: true, onFixture: (f) => void fixtures.push(f) });
+    expect(resultOf(slow, "idle-stopped")).toMatchObject({ result: "pass", reason: null });
+    const named = await runConformance({ adapter: createFakeAdapter(), driver: idleStoppingDriver(), cases: ["idle-stopped"] });
+    expect(named.results.map((r) => [r.name, r.result])).toEqual([["idle-stopped", "pass"]]);
+    const unsupported = await runConformance({ adapter: createFakeAdapter(), driver: quickDriver(), cases: ["idle-stopped"] });
+    expect(resultOf(unsupported, "idle-stopped")).toMatchObject({ result: "skip", reason: expect.stringMatching(/supports.idleStop is false/) });
+    // Snapshots: idle, the first look that sees the stop (taken before the record is marked), and after.
+    const fixture = fixtures.find((f) => f.case === "idle-stopped")!;
+    expect(fixture.snapshots.map((s) => [s.label, s.observations[0]?.status])).toEqual([
+      ["idle", "idle"],
+      ["idle-stopped", "ended"],
+      ["marked", "ended"],
+    ]);
+    expect(await replayFixture(fixture, createFakeAdapter(), replayScratch())).toEqual([]);
+  });
+
+  it("fails idle-stopped when an idle stop is reported as gone, or with another reason", async () => {
+    const real = createFakeAdapter();
+    const asGone = withAdapter({
+      observe: async (ctx, s) => {
+        const o = await real.observe(ctx, s);
+        return o && o.status === "ended" ? { ...o, status: "gone", endReason: null } : o;
+      },
+    });
+    const report = await runConformance({ adapter: asGone, driver: idleStoppingDriver(), cases: ["idle-stopped"] });
+    expect(resultOf(report, "idle-stopped")).toMatchObject({ result: "fail", reason: expect.stringMatching(/showed gone once it stopped, expected ended/) });
+    const other = await runConformance({ adapter: createFakeAdapter(), driver: idleStoppingDriver("other"), cases: ["idle-stopped"] });
+    expect(resultOf(other, "idle-stopped")).toMatchObject({ result: "fail", reason: 'the idle-stopped session\'s endReason was "other", expected "idle"' });
+  });
+
+  it("gives a slow case the driver's idleStopMs on top of caseMs, and still fails one that never stops", async () => {
+    const driver = quickDriver({
+      supports: { holdAtPrompt: true, withoutInside: true, idleStop: true },
+      endReasons: { stop: null, exitInteractive: "quit", idleStop: "idle" },
+      timeouts: { changeMs: 400, deliveryMs: 400, caseMs: 5000, idleStopMs: 600 },
+    });
+    const report = await runConformance({ adapter: createFakeAdapter(), driver, cases: ["idle-stopped"] });
+    expect(resultOf(report, "idle-stopped")).toMatchObject({ result: "fail", reason: expect.stringMatching(/timed out after 600 ms waiting for session .* to be stopped for being idle/) });
+  });
+
+  it("fails killed-session when reading what the harness left marks a killed session ended", async () => {
+    const real = createFakeAdapter();
+    const marksEverything = withAdapter({
+      observe: async (ctx, s) => {
+        const o = await real.observe(ctx, s);
+        if (o?.status !== "gone") return o;
+        await ctx.records.markInsideEnded("fake", s, { endedAt: new Date().toISOString(), endReason: "idle" });
+        return o;
+      },
+    });
+    const report = await runConformance({ adapter: marksEverything, driver: quickDriver(), cases: ["killed-session"] });
+    expect(resultOf(report, "killed-session")).toMatchObject({ result: "fail" });
   });
 
   it("stops a case that hangs at the driver's time limit and still cleans up", async () => {

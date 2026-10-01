@@ -297,6 +297,42 @@ describe("RecordStore: ended sessions and goneSeenAt", () => {
     expect((await s.read("fake", "b"))!.inside!.status).toBe("idle");
   });
 
+  it("markInsideEnded marks a running inside part ended once, with the given time, and never creates or overwrites", async () => {
+    const STOP = "2025-12-31T23:00:00.000Z";
+    const end = { endedAt: STOP, endReason: "idle", data: { idleStop: { cause: "settled" } } };
+    const s = store(() => new Date(T));
+    expect(await s.markInsideEnded("claude", "none", end)).toBeNull();
+    expect(await s.read("claude", "none")).toBeNull();
+    // A record with only a self part has no inside part to mark.
+    await s.setSelf("claude", "self-only", { status: "done", text: null, since: T });
+    expect(await s.markInsideEnded("claude", "self-only", end)).toBeNull();
+    await s.updateInside("claude", "a", { status: "idle", pid: 7, data: { shortId: "abcd1234" } });
+    await s.markGoneSeen("claude", "a");
+    // The check runs under the lock, against the record as it is then.
+    expect(await s.markInsideEnded("claude", "a", end, (inside) => inside.pid === 8)).toBeNull();
+    expect((await s.read("claude", "a"))!.inside!.status).toBe("idle");
+    const marked = await s.markInsideEnded("claude", "a", end, (inside) => inside.pid === 7);
+    validators.record!(marked);
+    expect(marked!.inside).toEqual({
+      status: "ended",
+      pid: 7,
+      since: STOP,
+      endedAt: STOP,
+      endReason: "idle",
+      data: { shortId: "abcd1234", idleStop: { cause: "settled" } },
+    });
+    expect(marked).not.toHaveProperty("goneSeenAt");
+    // Already ended: neither a second mark nor a late hook changes it.
+    expect(await s.markInsideEnded("claude", "a", { ...end, endReason: "other" })).toBeNull();
+    expect(await s.updateInsideIfExists("claude", "a", { status: "idle", lastTurnEnd: T })).toBeNull();
+    expect(await s.read("claude", "a")).toEqual(marked);
+    // A start (a resume) makes it a running session again and drops how it ended.
+    const again = await s.updateInside("claude", "a", { status: "idle" });
+    expect(again.inside).toMatchObject({ status: "idle", since: T });
+    expect(again.inside).not.toHaveProperty("endedAt");
+    expect(again.inside).not.toHaveProperty("endReason");
+  });
+
   it("reads a schema 1 record (from before ended sessions), and writes it back as schema 2", async () => {
     const s = store();
     await fs.mkdir(s.dir, { recursive: true });

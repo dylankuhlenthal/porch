@@ -7,6 +7,10 @@
  * hung harness cannot leave the run waiting forever. After a timeout the runner
  * waits up to caseMs more for the case to finish before cleanup, so a session the
  * case was still starting is stopped too.
+ *
+ * Slow cases (the harness stopping an idle session, an hour or more) run only when
+ * asked for: with `slow`, or named in `cases`. Otherwise they are reported as
+ * skipped. Their time limit is caseMs plus the driver's idleStopMs.
  */
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -47,8 +51,10 @@ export interface ConformanceReport {
 export interface ConformanceOptions {
   adapter: Adapter;
   driver: HarnessDriver;
-  /** Run only these cases (by name). */
+  /** Run only these cases (by name). A slow case named here runs. */
   cases?: string[];
+  /** Also run the slow cases when running every case. */
+  slow?: boolean;
   /**
    * The environment sessions start from. Defaults to PATH, HOME and USER from this
    * process (the harness may need HOME and USER for its login); the runner adds a scratch
@@ -82,8 +88,11 @@ export async function runConformance(options: ConformanceOptions): Promise<Confo
   const results: CaseResult[] = [];
   for (const c of selected) {
     const started = Date.now();
-    options.log?.(`… ${c.name}`);
-    const outcome = await runCase(c, options, baseEnv, harnessVersion);
+    options.log?.(`… ${c.name}${c.slow ? " (slow)" : ""}`);
+    const outcome =
+      c.slow && !options.cases && !options.slow
+        ? { result: "skip" as const, reason: "a slow case: run with --slow, or name it with --case" }
+        : await runCase(c, options, baseEnv, harnessVersion);
     results.push({ name: c.name, title: c.title, ...outcome, durationMs: Date.now() - started });
     options.log?.(`${outcome.result === "pass" ? "✓" : outcome.result === "skip" ? "-" : "✗"} ${c.name}${outcome.reason ? `: ${outcome.reason}` : ""}`);
   }
@@ -129,9 +138,10 @@ async function runCase(
     },
     from: options.from ?? "porch-conformance",
   };
+  const limitMs = driver.timeouts.caseMs + (c.slow ? (driver.timeouts.idleStopMs ?? 0) : 0);
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`case took longer than ${driver.timeouts.caseMs} ms`)), driver.timeouts.caseMs);
+    timer = setTimeout(() => reject(new Error(`case took longer than ${limitMs} ms`)), limitMs);
   });
   const work = (async () => {
     await driver.setup({ env, workDir, adapter, adapterContext: porch.ctx });

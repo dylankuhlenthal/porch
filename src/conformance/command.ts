@@ -2,11 +2,13 @@
  * The conformance command's logic, separate from main.ts so tests can run it with
  * their own drivers and environment.
  *
- * `npm run conformance -- --harness <h> [--record] [--case <name>]...`
+ * `npm run conformance -- --harness <h> [--record] [--slow] [--case <name>]...`
  *
  * Runs the conformance suite against one harness on this machine and prints the
  * report as JSON on stdout (progress goes to stderr). With --record, also writes
- * the fixtures and the report into conformance/ under `root`. Exit codes:
+ * the fixtures and the report into conformance/ under `root`. With --slow, also
+ * runs the slow cases (an hour or more each); a slow case named with --case runs
+ * without it. Exit codes:
  *   0 no case failed
  *   1 a case failed
  *   2 usage error, or the harness is not available here
@@ -41,11 +43,11 @@ async function writeJson(file: string, value: unknown): Promise<void> {
 }
 
 export async function conformanceCommand(argv: string[], io: ConformanceCommandIO): Promise<number> {
-  let values: { harness?: string; record?: boolean; case?: string[] };
+  let values: { harness?: string; record?: boolean; slow?: boolean; case?: string[] };
   try {
     ({ values } = parseArgs({
       args: argv,
-      options: { harness: { type: "string" }, record: { type: "boolean" }, case: { type: "string", multiple: true } },
+      options: { harness: { type: "string" }, record: { type: "boolean" }, slow: { type: "boolean" }, case: { type: "string", multiple: true } },
     }));
   } catch (err) {
     io.stderr(`${errorMessage(err)}\n`);
@@ -54,7 +56,7 @@ export async function conformanceCommand(argv: string[], io: ConformanceCommandI
   const harness = values.harness;
   const entry = harness === undefined ? undefined : io.drivers[harness];
   if (harness === undefined || entry === undefined) {
-    io.stderr(`usage: npm run conformance -- --harness <${Object.keys(io.drivers).join("|")}> [--record] [--case <name>]...\n`);
+    io.stderr(`usage: npm run conformance -- --harness <${Object.keys(io.drivers).join("|")}> [--record] [--slow] [--case <name>]...\n`);
     return CONFORMANCE_EXIT.usage;
   }
   const missing = entry.requiredEnv.filter((k) => !io.env[k]);
@@ -92,6 +94,7 @@ export async function conformanceCommand(argv: string[], io: ConformanceCommandI
       adapter,
       driver: entry.driver(),
       cases: values.case,
+      slow: values.slow,
       workRoot: entry.workRoot?.(),
       scrubSnapshot: entry.scrubSnapshot,
       baseEnv,

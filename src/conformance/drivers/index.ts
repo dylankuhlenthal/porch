@@ -52,9 +52,25 @@ export interface DriverEntry {
   scrubSnapshot?(snapshot: Snapshot): Snapshot;
 }
 
-/** Keep only the case's own sessions (working folder under $WORK) in recorded `claude agents --json` output. */
+/** The short ids of the case's own sessions: from the kept listing rows and the case's records. */
+function caseShortIds(snapshot: Snapshot, keptRows: unknown[]): Set<string> {
+  const ids = new Set<string>();
+  const add = (v: unknown) => {
+    if (typeof v === "string" && /^[0-9a-f]{4,64}$/.test(v)) ids.add(v);
+  };
+  for (const r of keptRows) add((r as { id?: unknown } | null)?.id);
+  for (const rec of Object.values(snapshot.records)) add((rec as { inside?: { data?: { shortId?: unknown } } | null } | null)?.inside?.data?.shortId);
+  return ids;
+}
+
+/**
+ * Keep only the case's own sessions (working folder under $WORK) in recorded
+ * `claude agents --json` output, and only the lines naming those sessions' short
+ * ids in Claude Code's daemon log (`daemon.log`, `daemon.log.1`).
+ */
 export function scrubClaudeSnapshot(snapshot: Snapshot): Snapshot {
-  const io = snapshot.io.map((call) => {
+  const keptRows: unknown[] = [];
+  const listed = snapshot.io.map((call) => {
     if (call.op !== "run" || call.args[0] !== "agents" || call.result.code !== 0) return call;
     let rows: unknown;
     try {
@@ -67,7 +83,14 @@ export function scrubClaudeSnapshot(snapshot: Snapshot): Snapshot {
       const cwd = (r as { cwd?: unknown } | null)?.cwd;
       return typeof cwd === "string" && (cwd === "$WORK" || cwd.startsWith("$WORK/"));
     });
+    keptRows.push(...kept);
     return { ...call, result: { ...call.result, stdout: JSON.stringify(kept, null, 2) + "\n" } };
+  });
+  const ids = [...caseShortIds(snapshot, keptRows)];
+  const io = listed.map((call) => {
+    if (call.op !== "readFile" || call.result === null || !/(^|\/)daemon\.log(\.1)?$/.test(call.path)) return call;
+    const lines = call.result.split("\n").filter((line) => ids.some((id) => new RegExp(`\\b${id}\\b`).test(line)));
+    return { ...call, result: lines.length > 0 ? `${lines.join("\n")}\n` : "" };
   });
   return { ...snapshot, io };
 }

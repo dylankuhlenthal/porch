@@ -7,7 +7,9 @@
  *
  * Status, in order:
  * 1. the record's inside part says ended (the  -> ended (statusSource "hooks", with endReason)
- *    SessionEnd hook ran), unless a later
+ *    SessionEnd hook ran, or the adapter
+ *    marked it stopped for being idle from the
+ *    daemon log, daemon-log.ts), unless a later
  *    process of the session is listed, or a
  *    process is listed and the record has no pid
  * 2. no listing row with a pid                 -> gone (a record left behind does not revive it)
@@ -38,6 +40,7 @@
 import { observation } from "../../adapter.js";
 import type { SessionRecord } from "../../records.js";
 import type { Observation, SessionStatus } from "../../types.js";
+import { IDLE_END_REASON } from "./daemon-log.js";
 import type { ListingRow } from "./listing.js";
 
 export const CLAUDE_HARNESS = "claude";
@@ -92,6 +95,14 @@ export function jobActivity(job: Record<string, unknown> | null): Activity | nul
   return { detail, inFlight, running };
 }
 
+/** `{ cause, idleMinutes, lowMemory }` from the record's `data.idleStop`, or null when it has none usable. */
+function idleStopDetail(value: unknown): { cause: string; idleMinutes: number | null; lowMemory: string | null } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const v = value as Record<string, unknown>;
+  if (typeof v.cause !== "string") return null;
+  return { cause: v.cause, idleMinutes: wholeNumber(v.idleMinutes), lowMemory: typeof v.lowMemory === "string" ? v.lowMemory : null };
+}
+
 /** The exact ask of an open prompt, from the job file, when it has one. */
 function jobNeeds(job: Record<string, unknown> | null): string | null {
   return job !== null && job.tempo === "blocked" ? oneLine(job.needs, 300) : null;
@@ -143,6 +154,7 @@ export function claudeObservation(
     status = "unknown";
   }
   const data = inside?.data ?? {};
+  const idleStop = status === "ended" && endReason === IDLE_END_REASON ? idleStopDetail(data.idleStop) : null;
   const detail = {
     // An ended session's process may still be listed for a moment while it exits.
     pid: alive && status !== "ended" ? row.pid : null,
@@ -160,6 +172,9 @@ export function claudeObservation(
     // Only when the listing's idle was used over the record's busy (rule 4). Left out
     // otherwise, for the same reason as recordPid.
     ...(recordStatus !== null ? { recordStatus } : {}),
+    // Only for a session Claude Code stopped for being idle (decision 0014): its cause
+    // from the daemon log. Left out otherwise, for the same reason as recordPid.
+    ...(idleStop !== null ? { idleStop } : {}),
     lastTurnStart: inside?.lastTurnStart ?? null,
     lastTurnEnd: inside?.lastTurnEnd ?? null,
     backgroundTasks: inside?.backgroundTasks ?? null,
