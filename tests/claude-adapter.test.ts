@@ -17,6 +17,7 @@ import { DRIVERS, scrubClaudeSnapshot } from "../src/conformance/drivers/index.j
 import { dashedPath, fromPlaceholders, replayFixture, toPlaceholders, type Fixture, type Snapshot } from "../src/conformance/recorder.js";
 import type { Env } from "../src/home.js";
 import type { HarnessIO, RunResult } from "../src/io.js";
+import type { SessionRecord } from "../src/records.js";
 import { Porch } from "../src/porch.js";
 import { bin, BIN, cli, REPO, scratchEnv, schemaValidators } from "./helpers.js";
 
@@ -993,6 +994,42 @@ describe("conformance recordings of Claude Code", () => {
     expect(out.io[1]).toEqual(snap.io[1]);
   });
 
+  it("keep only the daemon log lines naming the case's own sessions", () => {
+    const log = [
+      "[2026-09-30T14:00:00.000Z] [supervisor] auth: scheduling proactive refresh in 9028s",
+      `[2026-09-30T14:00:01.000Z] [bg] bg claimed-spare ${SHORT} (shell)`,
+      "[2026-09-30T14:00:02.000Z] [bg] bg claimed-spare 0badbeef (shell)",
+      "[2026-09-30T15:00:00.000Z] [bg] bg retire cafe1234: settled, idle 61m",
+      `[2026-09-30T15:00:01.000Z] [bg] bg retire ${SHORT}0: settled, idle 61m`,
+      "[2026-09-30T15:01:00.000Z] [bg] bg retire 0badbeef: settled, idle 61m",
+      "",
+    ].join("\n");
+    const snap: Snapshot = {
+      label: "x",
+      at: "2026-09-30T16:00:00.000Z",
+      // cafe1234 is the case's too: its record knows it, though it has left the listing.
+      records: { "claude-a.json": { inside: { data: { shortId: "cafe1234" } } } },
+      observations: [],
+      io: [
+        {
+          op: "run",
+          cmd: "claude",
+          args: ["agents", "--json"],
+          result: { code: 0, stderr: "", stdout: JSON.stringify([row({ cwd: "$WORK/cwd-1" }), row({ id: "0badbeef", cwd: "$HOME/elsewhere" })]) },
+        },
+        { op: "readFile", path: "$HOME/.claude/daemon.log.1", result: null },
+        { op: "readFile", path: "$HOME/.claude/daemon.log", result: log },
+        { op: "readFile", path: "$HOME/.claude/jobs/x/state.json", result: "0badbeef" },
+      ],
+    };
+    const out = scrubClaudeSnapshot(snap);
+    expect(out.io[1]).toEqual(snap.io[1]);
+    expect((out.io[2] as { result: string }).result).toBe(
+      `[2026-09-30T14:00:01.000Z] [bg] bg claimed-spare ${SHORT} (shell)\n[2026-09-30T15:00:00.000Z] [bg] bg retire cafe1234: settled, idle 61m\n`,
+    );
+    expect(out.io[3]).toEqual(snap.io[3]);
+  });
+
   it("replay of the recorded prompt case depends on the recorded listing", async () => {
     const fixture = JSON.parse(readFileSync(path.join(REPO, "conformance", "fixtures", "claude", "held-at-prompt.json"), "utf8")) as Fixture;
     const workDir = mkdtempSync(path.join(os.tmpdir(), "porch-replay-"));
@@ -1025,8 +1062,19 @@ describe("conformance recordings of Claude Code", () => {
       const text = readFileSync(path.join(dir, name), "utf8");
       expect(text.includes(home) || text.includes(dashedPath(home)), `${name} mentions the home folder`).toBe(false);
       const fixture = JSON.parse(text) as Fixture;
+      const own = new Set<string>();
+      for (const snap of fixture.snapshots) {
+        for (const rec of Object.values(snap.records) as SessionRecord[]) {
+          if (typeof rec.inside?.data?.shortId === "string") own.add(rec.inside.data.shortId);
+        }
+      }
       for (const snap of fixture.snapshots) {
         for (const call of snap.io) {
+          if (call.op === "readFile" && /daemon\.log/.test(call.path)) {
+            for (const line of (call.result ?? "").split("\n").filter(Boolean)) {
+              expect([...own].some((id) => line.includes(id)), `${name}: a daemon log line about another session (${line})`).toBe(true);
+            }
+          }
           if (call.op !== "run" || call.args[0] !== "agents") continue;
           for (const r of JSON.parse(call.result.stdout) as { cwd?: string }[]) {
             expect(r.cwd === "$WORK" || r.cwd?.startsWith("$WORK/"), `${name}: a session outside the case (${r.cwd})`).toBe(true);

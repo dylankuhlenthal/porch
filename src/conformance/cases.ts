@@ -5,9 +5,13 @@
  * fixture files.
  */
 import { randomBytes } from "node:crypto";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 import type { Adapter } from "../adapter.js";
 import type { Porch } from "../porch.js";
+import { RecordStore } from "../records.js";
 import type { Observation, SessionStatus } from "../types.js";
 import type { DriverSession, HarnessDriver } from "./driver.js";
 
@@ -31,6 +35,12 @@ export interface ConformanceCase {
   name: string;
   /** What the list of cases in TRV-1133's decision 15 calls it, in plain words. */
   title: string;
+  /**
+   * The case waits on the harness for a long time (an hour or more). It runs only
+   * when asked for (`--slow`, or named with `--case`), and its time limit is the
+   * driver's caseMs plus its idleStopMs.
+   */
+  slow?: boolean;
   run(c: CaseContext): Promise<void>;
 }
 
@@ -78,6 +88,29 @@ async function waitForReceived(c: CaseContext, s: DriverSession, text: string): 
 
 /** How long to wait after one Ctrl+C before checking nothing ended. */
 const INTERRUPT_SETTLE_MS = 1500;
+
+/** How often, at most, the idle-stopped case looks while it waits (up to an hour for Claude Code). */
+const IDLE_STOP_POLL_MS = 10_000;
+
+/**
+ * Observe the session against a copy of the case's records, so the look writes
+ * nothing to them. An adapter may write a record when it observes (the Claude
+ * adapter marks a session stopped for being idle), and the idle-stopped case
+ * snapshots the moment before that first write, so the fixture replays the
+ * adapter reading the harness's evidence rather than a record already marked.
+ */
+async function observeOnCopy(c: CaseContext, id: string): Promise<Observation | null> {
+  const copy = await fs.mkdtemp(path.join(os.tmpdir(), "porch-observe-copy-"));
+  try {
+    const dir = c.porch.ctx.records.dir;
+    for (const name of await fs.readdir(dir).catch(() => [] as string[])) {
+      if (name.endsWith(".json")) await fs.copyFile(path.join(dir, name), path.join(copy, name)).catch(() => undefined);
+    }
+    return await c.adapter.observe({ ...c.porch.ctx, records: new RecordStore(copy) }, id);
+  } finally {
+    await fs.rm(copy, { recursive: true, force: true });
+  }
+}
 
 function requireSupport(ok: boolean, why: string): void {
   if (!ok) throw new ConformanceSkip(why);
@@ -163,8 +196,15 @@ export const CASES: ConformanceCase[] = [
       const s = await c.driver.start();
       await waitForStatus(c, s.id, ["idle", "busy"]);
       await c.driver.kill(s);
-      await waitForStatus(c, s.id, ["gone"]);
+      const gone = await waitForStatus(c, s.id, ["gone"]);
       await c.snapshot("killed");
+      // Reading what the harness left (the Claude adapter reads Claude Code's daemon
+      // log for an idle stop) must not turn a killed session into an ended one.
+      check(gone.endReason === null, `the killed session has endReason ${JSON.stringify(gone.endReason)}`);
+      const again = await observeRaw(c, s.id);
+      check(again?.status === "gone", `looked at again, the killed session showed ${again?.status ?? "not found"}, expected gone`);
+      const rec = await c.porch.ctx.records.read(c.adapter.harness, s.id);
+      check(rec?.inside?.status !== "ended", "the killed session's record was marked ended");
       const r = await c.porch.deliver(s.id, uniqueText("killed"), { from: c.from });
       check(r.result === "not-running", `deliver to a killed session returned ${r.result}, expected not-running`);
       // Not running: left out of the default list, shown as gone by list --all.
@@ -194,6 +234,50 @@ export const CASES: ConformanceCase[] = [
       check(listed === undefined, `the default list showed the ended session (${listed?.status})`);
       const all = (await c.porch.list(undefined, { all: true })).sessions.find((o) => o.session === s.id);
       check(all?.status === "ended", `list --all showed the ended session as ${all?.status ?? "missing"}, expected ended`);
+    },
+  },
+  {
+    name: "idle-stopped",
+    title: "a session the harness stopped for being idle",
+    slow: true,
+    async run(c) {
+      requireSupport(c.driver.supports.idleStop, "the harness does not stop idle sessions by itself (supports.idleStop is false)");
+      const waitMs = c.driver.timeouts.idleStopMs;
+      requireSupport(waitMs !== undefined && waitMs > 0, "the driver gives no timeouts.idleStopMs");
+      const s = await c.driver.start();
+      await waitForStatus(c, s.id, ["idle"]);
+      // A session the harness stops for idling has had a turn.
+      await c.driver.makeBusy(s);
+      await waitForStatus(c, s.id, ["busy"]);
+      await c.driver.makeIdle(s);
+      await waitForStatus(c, s.id, ["idle"]);
+      await c.snapshot("idle");
+      const stopped = await waitFor(`session ${s.id} to be stopped for being idle`, waitMs!, async () => {
+        const obs = await observeOnCopy(c, s.id);
+        if (obs && obs.status !== "ended" && obs.status !== "gone") {
+          await new Promise((r) => setTimeout(r, Math.min(IDLE_STOP_POLL_MS, Math.max(100, waitMs! / 20))));
+          return null;
+        }
+        return obs;
+      });
+      check(stopped.status === "ended", `the idle session showed ${stopped.status} once it stopped, expected ended`);
+      // The first look that sees it stopped, from the evidence the harness left.
+      await c.snapshot("idle-stopped");
+      const obs = await observeRaw(c, s.id);
+      const want = c.driver.endReasons.idleStop;
+      check(obs?.status === "ended", `the idle-stopped session showed ${obs?.status ?? "not found"}, expected ended`);
+      check(obs.endReason === want, `the idle-stopped session's endReason was ${JSON.stringify(obs.endReason)}, expected ${JSON.stringify(want)}`);
+      check(obs.since !== null, "the idle-stopped session has no since (when it stopped)");
+      check(obs.attached, "the idle-stopped session is no longer attached");
+      const rec = await c.porch.ctx.records.read(c.adapter.harness, s.id);
+      check(rec?.inside?.status === "ended" && rec.inside.endReason === want, `the record says ${rec?.inside?.status} (${rec?.inside?.endReason}), expected ended (${want})`);
+      const r = await c.porch.deliver(s.id, uniqueText("idle-stopped"), { from: c.from });
+      check(r.result === "not-running", `deliver to an idle-stopped session returned ${r.result}, expected not-running`);
+      const listed = (await c.porch.list()).sessions.find((o) => o.session === s.id);
+      check(listed === undefined, `the default list showed the idle-stopped session (${listed?.status})`);
+      const all = (await c.porch.list(undefined, { all: true })).sessions.find((o) => o.session === s.id);
+      check(all?.status === "ended" && all.endReason === want, `list --all showed the idle-stopped session as ${all?.status ?? "missing"} (${all?.endReason})`);
+      await c.snapshot("marked");
     },
   },
   {

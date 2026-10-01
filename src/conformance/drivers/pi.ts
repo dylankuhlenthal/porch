@@ -243,9 +243,11 @@ export default function (pi) {
       holdAtPrompt: true,
       // Pi has no outside listing: a session without Porch's extension cannot be seen at all.
       withoutInside: false,
+      // Pi does not stop idle sessions by itself.
+      idleStop: false,
     },
     // `stop` closes an RPC session's stdin and `exitInteractive` types /quit: Pi says quit for both.
-    endReasons: { stop: "quit", exitInteractive: "quit" },
+    endReasons: { stop: "quit", exitInteractive: "quit", idleStop: null },
     timeouts,
     async version() {
       const out = await new Promise<string>((resolve) => {

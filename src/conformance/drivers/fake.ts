@@ -57,9 +57,9 @@ export function createFakeDriver(): HarnessDriver {
 
   return {
     harness: "fake",
-    supports: { holdAtPrompt: true, withoutInside: true },
+    supports: { holdAtPrompt: true, withoutInside: true, idleStop: false },
     // `stop` gives no reason, so the null path is checked too; exitInteractive says quit.
-    endReasons: { stop: null, exitInteractive: "quit" },
+    endReasons: { stop: null, exitInteractive: "quit", idleStop: null },
     timeouts: { changeMs: 5000, deliveryMs: 5000, caseMs: 30000 },
     async version() {
       return "fake-1";

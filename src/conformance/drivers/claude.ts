@@ -117,7 +117,9 @@ export function createClaudeDriver(options: ClaudeDriverOptions = {}): HarnessDr
     return ctx;
   };
   const bin = () => claudeBin(need().env);
-  const timeouts = { changeMs: 60000, deliveryMs: 60000, caseMs: 240000 };
+  // Claude Code stops a background session idle for an hour, at a sweep that runs
+  // every minute, with no setting to shorten it (2.1.286): 70 minutes leaves room.
+  const timeouts = { changeMs: 60000, deliveryMs: 60000, caseMs: 240000, idleStopMs: 70 * 60_000 };
 
   /** Only this case's sessions: those started under its scratch folder. */
   async function listing(all = false): Promise<ListingRow[]> {
@@ -311,9 +313,10 @@ export function createClaudeDriver(options: ClaudeDriverOptions = {}): HarnessDr
 
   return {
     harness: CLAUDE_HARNESS,
-    supports: { holdAtPrompt: true, withoutInside: true },
+    supports: { holdAtPrompt: true, withoutInside: true, idleStop: true },
     // `claude stop` gives SessionEnd reason other; /exit gives prompt_input_exit (2.1.285).
-    endReasons: { stop: "other", exitInteractive: "prompt_input_exit" },
+    // Claude Code's idle stop runs no SessionEnd; Porch reads it from the daemon log as idle.
+    endReasons: { stop: "other", exitInteractive: "prompt_input_exit", idleStop: "idle" },
     timeouts,
     async version() {
       const r = await run(claudeBin(process.env), ["--version"], { env: process.env });
