@@ -3,8 +3,7 @@
  * each session, which keep the session record up to date, and `porch hooks claude`,
  * which prints the hook settings for callers to pass with `--settings`.
  *
- * Hook commands must never change what the session does (decision 24(a) in
- * TRV-1133). Claude Code reads a hook's exit code 2 as "block" (for Stop, the turn
+ * Hook commands must never change what the session does. Claude Code reads a hook's exit code 2 as "block" (for Stop, the turn
  * keeps going), reads stdout on exit 0 as text to add to the model's context
  * (SessionStart, UserPromptSubmit), and reads JSON on stdout from a
  * PermissionRequest hook as an answer to the prompt. So `porch hooks claude on`

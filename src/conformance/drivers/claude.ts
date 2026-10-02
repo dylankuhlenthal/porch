@@ -4,7 +4,7 @@
  * starts sessions through `porch launch claude` instead: a background one, and an
  * interactive one in a pseudo-terminal.
  *
- * Safety (decision 23 in TRV-1133): sessions get Porch's hooks and
+ * Safety: sessions get Porch's hooks and
  * `crossSessionInbound: accept` only through a per-session `--settings` file in the
  * case's scratch folder (or, for the launch cases, the one `--settings` that
  * `porch launch` builds from such a file), and `--setting-sources project` so the person's own user

@@ -45,7 +45,7 @@ Small repos collapse this to a single `docs/architecture.md`. The structure can 
 
 The canonical file is `AGENTS.md`; `CLAUDE.md` is a symlink to it so every harness loads the same file, and these standards use the two names interchangeably. The same pattern applies to agent tooling directories: the real directory is `.agents/`, with `.claude` as a symlink to it. CLAUDE.md is the operational entrypoint: the one file always in context. `docs/architecture.md` is not a second entrypoint; it is the system overview CLAUDE.md links to, holding the longer descriptive content that has moved out of CLAUDE.md. Canonical section order:
 
-1. **Purpose** — what the project is and its place in the bigger picture (e.g. "the NestJS API backing Traverse Studio"). A paragraph of orientation, not a technical map.
+1. **Purpose** — what the project is and its place in the bigger picture (e.g. "the NestJS API behind the customer web app"). A paragraph of orientation, not a technical map.
 2. **Stack** — the one-line technology list.
 3. **Layout & filing** — repo shape, module layout, and a short summary of these filing rules.
 4. **Terminology** — domain vocabulary an agent cannot infer from code. Wrong vocabulary leads to mistakes in everything built on it, so it belongs in the always-loaded file.

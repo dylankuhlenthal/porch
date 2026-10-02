@@ -7,7 +7,7 @@
  * newline. The socket sends nothing back, so "sent" is all Porch can know. The
  * socket closes a connection that sends no complete line within 30 seconds, so a
  * connection is opened only once the text is ready. CLAUDE_CODE_MESSAGING_TOKEN is
- * never used (decision 10 in TRV-1133). Before connecting, deliver checks the path
+ * never used. Before connecting, deliver checks the path
  * is a socket this user owns (checkSocketOwner, in src/unix-socket.ts).
  */
 import net from "node:net";

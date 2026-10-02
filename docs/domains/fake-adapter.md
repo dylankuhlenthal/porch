@@ -1,6 +1,6 @@
 # The fake adapter
 
-A harness that runs nothing, for tests: Porch's own, and those of tools built on Porch (sous chef's, for example), which can drive it entirely through the CLI. It behaves like a harness with both an inside part and an outside listing, so it exercises every path in the core.
+A harness that runs nothing, for tests: Porch's own, and those of tools built on Porch (in any language), which can drive it entirely through the CLI. It behaves like a harness with both an inside part and an outside listing, so it exercises every path in the core.
 
 Code: `src/adapters/fake/` (`index.ts` the adapter, `observe.ts` how status is worked out, `state.ts` the harness file, `ops.ts` what can happen to a session, `commands.ts` the `porch fake` commands, `run.ts` a fake session as a process). Conformance driver: `src/conformance/drivers/fake.ts`.
 

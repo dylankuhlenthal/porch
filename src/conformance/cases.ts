@@ -33,7 +33,7 @@ export interface CaseContext {
 
 export interface ConformanceCase {
   name: string;
-  /** What the list of cases in TRV-1133's decision 15 calls it, in plain words. */
+  /** What the case checks, in plain words. */
   title: string;
   /**
    * The case waits on the harness for a long time (an hour or more). It runs only

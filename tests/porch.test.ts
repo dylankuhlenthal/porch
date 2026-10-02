@@ -86,14 +86,14 @@ describe("Porch.deliver", () => {
   it("prefixes the message with the sender label", async () => {
     const porch = new Porch({ env: scratchEnv(), adapters: [createFakeAdapter()] });
     await fake.startSession(porch.ctx, "s1");
-    await porch.deliver("s1", "please look at the PR", { from: "sous chef" });
-    expect((await fake.readDeliveries(porch.ctx))[0]?.text).toBe("[from sous chef] please look at the PR");
+    await porch.deliver("s1", "please look at the PR", { from: "reviewer" });
+    expect((await fake.readDeliveries(porch.ctx))[0]?.text).toBe("[from reviewer] please look at the PR");
     expect(formatMessage("a", "b")).toBe("[from a] b");
   });
 
   it("refuses an empty, multi-line, over-long or bracket-closing label, and an empty message", async () => {
     const porch = new Porch({ env: scratchEnv(), adapters: [createFakeAdapter()] });
-    for (const from of ["", "  ", "a\nb", "x".repeat(101), "a] [from dylan"]) {
+    for (const from of ["", "  ", "a\nb", "x".repeat(101), "a] [from someone"]) {
       await expectPorchError(porch.deliver("s1", "hi", { from }), "usage");
     }
     await expectPorchError(porch.deliver("s1", "   ", { from: "a" }), "usage");

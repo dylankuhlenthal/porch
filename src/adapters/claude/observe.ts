@@ -1,9 +1,8 @@
 /**
  * How the Claude Code adapter turns a listing row, the session record and the job
- * file into an Observation (decision 11 in TRV-1133, amended by decision 28: busy
- * and idle from the hook record, except that the listing's idle wins over the
- * record's busy; alive, pid and waiting-on-prompt from `claude agents --json`; the
- * job file only in `detail` and `raw`).
+ * file into an Observation (busy and idle from the hook record, except that the
+ * listing's idle wins over the record's busy; alive, pid and waiting-on-prompt from
+ * `claude agents --json`; the job file only in `detail` and `raw`).
  *
  * Status, in order:
  * 1. the record's inside part says ended (the  -> ended (statusSource "hooks", with endReason)
