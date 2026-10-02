@@ -3,7 +3,8 @@
 # no npm token exists anywhere, and npm attaches provenance (which commit and workflow
 # built the package). npm must list this file as the package's trusted publisher.
 # Nothing is published unless the tag matches package.json's version, the tagged commit
-# is on main, and the full CI gate passes. See docs/operations/releasing.md.
+# is on main, the full CI gate passes and the version is not on npm yet. See
+# docs/operations/releasing.md.
 name: release
 
 on:
@@ -53,4 +54,15 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm pack --dry-run
-      - run: npm publish
+      # A version already on npm is not published again (the first release, 0.2.0, was
+      # published by hand before this workflow became its trusted publisher), so pushing
+      # its tag still runs the gate above and then passes.
+      - name: Publish, unless this version is already on npm
+        run: |
+          name="$(node -p 'require("./package.json").name')"
+          version="$(node -p 'require("./package.json").version')"
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "::notice::$name@$version is already on npm; nothing to publish"
+            exit 0
+          fi
+          npm publish

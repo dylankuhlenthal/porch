@@ -1,6 +1,6 @@
 # Architecture
 
-Porch answers two questions about agent sessions on this machine, whatever harness they run in: "what is this session doing, and does it need something?" and "please give it this message". It is a command (`porch`, JSON output) with a library under it. It also starts a harness with its inside part attached (`porch launch`), so the session is visible from the start; it does not store messages, decide when to launch sessions, resume, stop or judge them. Tools such as sous chef do that on top.
+Porch answers two questions about agent sessions on this machine, whatever harness they run in: "what is this session doing, and does it need something?" and "please give it this message". It is a command (`porch`, JSON output) with a library under it. It also starts a harness with its inside part attached (`porch launch`), so the session is visible from the start; it does not store messages, decide when to launch sessions, resume, stop or judge them. Tools built on Porch do that.
 
 ## The pieces
 
@@ -16,7 +16,7 @@ flowchart LR
   rec --> adapter[adapter<br/>src/adapters/harness/]
   adapter --> core[core<br/>src/porch.ts, src/watch.ts]
   core --> cli[porch CLI<br/>src/cli/]
-  cli --> consumers[sous chef, shape-gui, people]
+  cli --> consumers[tools built on Porch, people]
   adapter -- deliver --> session
 ```
 
@@ -25,6 +25,7 @@ flowchart LR
 - **The core** (`src/porch.ts`): asks every adapter and combines the answers. `list` reports an adapter whose listing fails, and any session record it cannot read, in `errors` instead of failing the whole command or dropping the record silently. `observe` and `deliver` find the one adapter that knows the session; two adapters knowing the same id is an `ambiguous-session` error unless `--harness` picks one. One adapter failing does not hide a session another adapter knows; if no adapter knows the session and one could not be asked, `deliver` says `failed` (not `not-running`, which would be a guess) and `observe` gives an `internal` error naming the harness. `current` asks every adapter's `current`; if more than one claims the process, it refuses to guess (see "Known limits").
 - **Launch** (`src/launch.ts`): runs an adapter's launch plan for `porch launch` (see "Launch" below).
 - **The CLI** (`src/cli/run.ts`, run by `src/cli/main.ts`): thin commands over the core, plus any commands adapters add (`porch hooks claude` and the hook commands it prints, `porch extension pi`, `porch fake ...`). The output contract, error shape and exit codes: `docs/reference/cli-output.md`.
+- **The library** (`src/index.ts`): the operations of `src/porch.ts` for Node consumers. The supported names are split by import path: the main import, test helpers under `/testing` (`src/testing.ts`), and everything else under `/internal` (`src/internal.ts`), which is not supported. The contract and version rules: `docs/reference/library.md`.
 - **The conformance suite** (`src/conformance/`): the same cases run against every adapter through a harness driver, with record and replay of harness output. `docs/patterns/conformance.md`.
 
 ## How the main operations work
@@ -51,21 +52,25 @@ The core then runs the plan (`runLaunchPlan` in `src/launch.ts`): the harness is
 
 - Decision 0001 (each adapter's inside part writes a per-session record, and the CLI reads the records).
 - Decision 0002 (TypeScript on npm, a JSON CLI first with a thin library on top).
-- Decision 0003 (its own repo, private until the second harness passes the shared tests; the timing is changed by decision 0010).
+- Decision 0003 (its own repo, private until the second harness passes the shared tests; the timing is changed by decisions 0010 and 0015).
 - Decision 0004 (Porch writes self-reported state, with one writer per part of the record).
-- Decision 0005 (publishing to npm waits until the second harness passes the shared tests; the timing is changed by decision 0010).
+- Decision 0005 (publishing to npm waits until the second harness passes the shared tests; the timing is changed by decisions 0010 and 0015).
 - Decision 0006 (Porch launches a harness with its inside part attached, and nothing else).
 - Decision 0007 (`porch launch` runs the harness as a child process sharing the terminal).
 - Decision 0008 (`porch launch claude` adds `crossSessionInbound: accept` unless the caller sets it).
 - Decision 0009 (no user-wide hook install for now; `alias claude='porch launch claude'` instead).
-- Decision 0010 (going public and publishing to npm wait until sous chef and shape-gui run on Porch).
+- Decision 0010 (going public and publishing to npm wait until the first two tools built on Porch run on it; changed by decision 0015).
 - Decision 0011 (no user-wide Pi install; `porch extension pi` prints the extension and `porch launch pi` passes it).
 - Decision 0012 (`porch list` and `porch watch` show only attached sessions by default; `--all` adds the others).
 - Decision 0013 (a session that ends cleanly is marked `ended`, with why, instead of having its record deleted; `list` and `watch` hide ended and gone sessions unless `--all`, and remove their records a day later).
+- Decision 0014 (Claude Code's idle stop of a background session, read from its daemon log, ends the session with `endReason: "idle"`).
+- Decision 0015 (going public and publishing to npm no longer wait for a second tool built on Porch; the decision records were cleaned once of private names before going public).
+- Decision 0016 (the library is part of the contract, alongside the CLI output, and its supported names are set by import path).
+- Decision 0017 (releases are published to npm by a GitHub Actions workflow using npm trusted publishing, with no npm token).
+- Decision 0018 (below 1.0, a breaking change bumps the minor version and anything else the patch version).
 
 ## Known limits
 
-- **Required checks are not enforced while the repo is private.** GitHub refuses rulesets and branch protection for private repos on Dylan's plan. CI still runs on every PR. Details, and how to turn it on when the repo goes public: `docs/operations/ci.md`.
 - **Nested sessions.** If a harness session is started from inside another harness's session, a command in the inner one can see both harnesses' session variables. `porch current` then returns an `ambiguous-session` error and `porch status set` refuses, rather than guessing. This could be lifted by having each adapter's `current` also report the harness process id and picking the nearest ancestor process.
 - **Record locks.** A writer that crashes while holding a record's lock leaves a `.lock` file. The next writer breaks it once it is older than 2 seconds and its writer's process is no longer running, or once it is older than 30 seconds whatever the process (`withLock` in `src/fsutil.ts`), so writes to that record are delayed, not lost. Breaking moves the lock aside and checks it is still the stale one, and a writer deletes only a lock holding its own token, so in the normal case writers do not delete each other's fresh locks. One narrow case is left: if three writers race around a stale lock at the same instant, one writer can move aside a lock another has just taken, a third can take the lock before it is put back, and two writers then write at once, losing one change. This is accepted as unlikely.
 - **Real-harness conformance** runs only where the harness is installed and logged in (for Claude Code, also from a checkout inside a folder Claude Code trusts), and in the scheduled workflow once the API key secret exists. Each adapter's own limits are in its doc (`docs/domains/claude-adapter.md`, `docs/domains/pi-adapter.md`).

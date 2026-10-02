@@ -1,22 +1,23 @@
 # CI
 
-Two GitHub Actions workflows, both in `.github/workflows/`.
+Three GitHub Actions workflows, all in `.github/workflows/`.
 
 ## `ci.yml`: every PR
 
 Runs on every pull request, on pushes to the branches listed under `push.branches` in `ci.yml` (the default branch, `main`), and on demand. One job, named **unit and contract tests**: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test` (which builds and runs every per-PR test, including the fake-adapter conformance run and replay of every committed fixture) and `npm pack --dry-run`. It needs no secrets, so it runs the same on PRs from forks.
 
-### Making it a required check
+### Branch rules on `main`
 
-It is meant to be required on the branches listed in `.github/rulesets/required-checks.json` (the default branch), so nothing merges into them without it passing. A long-lived integration branch for a multi-issue effort can be added to both lists while it exists, and removed once it has merged. **This is not enforced yet.** GitHub refuses both rulesets and branch protection on private repositories on Dylan's plan ("Upgrade to GitHub Pro or make this repository public to enable this feature", HTTP 403). Until then the check runs on every PR and reviewers must not merge a PR where it failed.
+`.github/rulesets/main.json` is the one ruleset on `main`: the **unit and contract tests** check must pass, every change arrives through a pull request (no approvals required, since the repo has one maintainer), force pushes and deleting the branch are blocked, and nobody can bypass it. It is applied once, after the repo goes public, as a step of `docs/operations/releasing.md`; GitHub refuses rulesets on private repositories on a free plan. A long-lived integration branch for a multi-issue effort can be added to `push.branches` in `ci.yml` and to the ruleset's `include` list while it exists, and removed once it has merged.
 
-This lifts when the repo goes public (planned for TRV-1146, after sous chef and shape-gui run on Porch; decision 0010, going public waits for the first consumers) or the plan changes. Then apply the prepared ruleset:
+The file is the record of what the live ruleset should be. To change the live one, edit the file in a PR, then after it merges look up the ruleset's id and replace it:
 
 ```sh
-gh api -X POST repos/dylankuhlenthal/porch/rulesets --input .github/rulesets/required-checks.json
+gh api repos/dylankuhlenthal/porch/rulesets --jq '.[] | select(.name == "main") | .id'
+gh api -X PUT repos/dylankuhlenthal/porch/rulesets/<id> --input .github/rulesets/main.json
 ```
 
-The ruleset requires the check by its job name, so renaming the job in `ci.yml` means updating `.github/rulesets/required-checks.json` and the live ruleset too.
+The ruleset requires the check by its job name, so renaming the job in `ci.yml` means updating `.github/rulesets/main.json` and the live ruleset too.
 
 ## `conformance.yml`: real harnesses
 
@@ -31,3 +32,7 @@ Runs the conformance suite (`docs/patterns/conformance.md`) against each harness
 - **Pi**: the job installs the latest `@earendil-works/pi-coding-agent` from npm (it needs Node 22.19 or later; the workflow's Node comes from `.nvmrc`, which says 22, so setup-node picks the latest 22). This has not run on GitHub yet: on the first run, check that `pi --version` works and that Pi finds `OPENAI_API_KEY` from the environment. Without the secret, the driver's `unavailableReason` should skip the run (exit 3): locally, `pi auth check --model openai/gpt-4.1-mini --json` with an empty Pi config folder (`PI_CODING_AGENT_DIR`) and an empty `OPENAI_API_KEY` said `not_ready` with exit 1, but the conformance command's skip on it, and Pi picking up a set `OPENAI_API_KEY`, have not been run.
 - **node-pty**: the interactive launch case runs Claude Code in a pseudo-terminal through the `node-pty` dev dependency, which `npm ci` builds from source on Linux (its prebuilt binaries cover only macOS and Windows), so both workflows need the runner's build tools; `ubuntu-latest` has them. If it ever stops installing there, the planned fallback is Python's built-in `pty` module.
 - **Adding a harness**: add its driver to `DRIVERS` (the workflow reads the list from the built package) and its install step to the conformance job where the workflow's comment shows.
+
+## `release.yml`: publishing to npm
+
+Runs when a tag starting with `v` is pushed, and publishes that version to npm with npm trusted publishing: npm checks the workflow's GitHub identity instead of a token, and attaches provenance (decision 0017). Before publishing it checks that the tag is `v` plus `package.json`'s version and that the tagged commit is on `main`, then runs the same gate as `ci.yml`; if any step fails, nothing is published. It installs npm 11 first, because trusted publishing needs npm 11.5.1 or later and Node 22 comes with npm 10. npm must list this workflow as the package's trusted publisher, so renaming the file means changing that setting on npmjs.com too. How to cut a release: `docs/operations/releasing.md`.
