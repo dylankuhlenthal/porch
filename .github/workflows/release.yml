@@ -1,0 +1,56 @@
+# Publishes a release to npm when a version tag (v1.2.3) is pushed, using npm trusted
+# publishing: npm accepts this workflow's GitHub identity (OIDC) instead of a token, so
+# no npm token exists anywhere, and npm attaches provenance (which commit and workflow
+# built the package). npm must list this file as the package's trusted publisher.
+# Nothing is published unless the tag matches package.json's version, the tagged commit
+# is on main, and the full CI gate passes. See docs/operations/releasing.md.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # Lets the job ask GitHub for the identity token npm checks.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history, to check the tagged commit is on main.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+      - name: Check the tag matches package.json and is on main
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $version (expected v$version)"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::tag $GITHUB_REF_NAME points at a commit that is not on main"
+            exit 1
+          fi
+      # Trusted publishing needs npm 11.5.1 or later; Node 22 comes with npm 10.
+      - run: npm install -g npm@11
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm pack --dry-run
+      - run: npm publish
