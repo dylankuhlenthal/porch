@@ -62,15 +62,23 @@ jobs:
           name="$(node -p 'require("./package.json").name')"
           version="$(node -p 'require("./package.json").version')"
           # npm view prints the version when it exists and fails with E404 when it does
-          # not; any other failure (registry down, network) stops the run without
-          # publishing, rather than being read as "not published".
-          if found="$(npm view "$name@$version" version 2>&1)"; then
+          # not; any other result (registry down, network, unexpected output) stops the
+          # run without publishing, rather than being read as "not published". Only
+          # stdout is compared with the version: npm also writes warnings to stderr (for
+          # example about the always-auth line setup-node puts in .npmrc), so stderr
+          # goes to a file, read only for the E404 check and the error message.
+          err="$(mktemp)"
+          if found="$(npm view "$name@$version" version 2>"$err")"; then
             if [ "$found" = "$version" ]; then
               echo "::notice::$name@$version is already on npm; nothing to publish"
               exit 0
             fi
-          elif ! grep -q E404 <<<"$found"; then
-            echo "::error::could not check whether $name@$version is on npm: $found"
+            cat "$err" >&2
+            echo "::error::npm view $name@$version printed \"$found\", not the version or E404; not publishing"
+            exit 1
+          elif ! grep -q 'code E404' "$err"; then
+            cat "$err" >&2
+            echo "::error::could not check whether $name@$version is on npm; not publishing"
             exit 1
           fi
           npm publish
