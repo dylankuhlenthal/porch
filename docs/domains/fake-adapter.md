@@ -22,6 +22,8 @@ Code: `src/adapters/fake/` (`index.ts` the adapter, `observe.ts` how status is w
 
 Each prints the session's observation afterwards (except `run`, which prints nothing) (`schemas/observation.schema.json`), or the deliveries list (`schemas/fake-deliveries.schema.json`).
 
+From Node, the same operations are the `fake` namespace of `@dylankuhlenthal/porch/testing`, with `createFakeAdapter` to pass in `PorchOptions.adapters` (`src/testing.ts`, `docs/reference/library.md`).
+
 ## How status is worked out
 
 In order (`fakeObservation` in `observe.ts`):
