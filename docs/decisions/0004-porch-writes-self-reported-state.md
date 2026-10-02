@@ -4,7 +4,7 @@
 **Status:** Accepted
 
 ## Context
-Sessions report their own state ("needs input", "blocked", "done") as well as what Porch observes. Either Porch only defines a schema that each tool (such as sous chef's `sc report`) writes into the record itself, or Porch writes it.
+Sessions report their own state ("needs input", "blocked", "done") as well as what Porch observes. Either Porch only defines a schema that each tool (such as a consumer's own report command) writes into the record itself, or Porch writes it.
 
 ## Decision
 `porch status set <working|needs-input|blocked|done|failed> [text]`, run inside the session, writes the self-reported part of that session's record. Porch works out which session is calling by asking each adapter's `current`. The inside part owns the record's `inside` part and `porch status set` owns its `self` part; nothing else writes either. Observations show the two side by side and never combine them.

@@ -46,7 +46,7 @@ export interface Observation {
   /**
    * Porch's inside part runs in the session (for Claude Code, a hook record written by
    * the listed process; for Pi, the extension). `porch list` and `porch watch` show
-   * only attached sessions unless `--all` is given (TRV-1148).
+   * only attached sessions unless `--all` is given (decision 0012).
    */
   attached: boolean;
   status: SessionStatus;

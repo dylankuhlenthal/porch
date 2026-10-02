@@ -1,6 +1,6 @@
 {
   "name": "@dylankuhlenthal/porch",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Wake any agent session with a message and read its state, across harnesses.",
   "license": "MIT",
   "author": "Dylan Kuhlenthal",
@@ -22,6 +22,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    },
+    "./internal": {
+      "types": "./dist/internal.d.ts",
+      "default": "./dist/internal.js"
+    },
     "./conformance": {
       "types": "./dist/conformance/index.d.ts",
       "default": "./dist/conformance/index.js"
@@ -33,7 +41,8 @@
     "dist",
     "!dist/**/*.test.*",
     "schemas",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "//build": "Compile TypeScript from src/ into dist/.",

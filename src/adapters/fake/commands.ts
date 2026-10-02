@@ -1,6 +1,6 @@
 /**
- * `porch fake ...`: drive the fake harness from a shell, so tests in other repos
- * (sous chef's, for example) can use it through the CLI alone. Each command prints
+ * `porch fake ...`: drive the fake harness from a shell, so tests of tools built on
+ * Porch, in any language, can use it through the CLI alone. Each command prints
  * the session's observation afterwards, or the deliveries list.
  */
 import { parseArgs } from "node:util";

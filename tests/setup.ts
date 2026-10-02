@@ -1,6 +1,6 @@
 /**
  * Runs before every test file. Points PORCH_HOME and HOME at scratch folders so no
- * test can write to the real ~/.porch, ~/.claude, ~/.claude.json or ~/.sous-chef,
+ * test can write to the real ~/.porch, ~/.claude, or ~/.claude.json,
  * even one that forgets to pass its own env, and keeps them from running the real
  * `claude` or `pi`.
  */

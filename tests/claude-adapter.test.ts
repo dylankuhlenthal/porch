@@ -619,12 +619,12 @@ describe("Claude Code adapter: deliver", () => {
     const env = { ...scratchEnv(), CLAUDE_CODE_MESSAGING_SOCKET: path.join(dir, "4242.sock"), CLAUDE_PID: "4242" };
     const porch = porchWith(stubIO([row()]), env);
     await hook({ ...porch.ctx, env }, "SessionStart", { source: "startup" });
-    const r = await porch.deliver(SHORT, 'hello "there"\nline two', { from: "sous chef" });
+    const r = await porch.deliver(SHORT, 'hello "there"\nline two', { from: "reviewer" });
     v.deliver!(r);
     expect(r).toMatchObject({ result: "delivered", session: SID, statusAtSend: "idle", via: "socket", guessed: false, reason: null });
     await waitFor(() => got.length === 1);
-    expect(got).toEqual([socketLine('[from sous chef] hello "there"\nline two')]);
-    expect(JSON.parse(got[0]!)).toEqual({ type: "user", message: { role: "user", content: '[from sous chef] hello "there"\nline two' } });
+    expect(got).toEqual([socketLine('[from reviewer] hello "there"\nline two')]);
+    expect(JSON.parse(got[0]!)).toEqual({ type: "user", message: { role: "user", content: '[from reviewer] hello "there"\nline two' } });
   });
 
   it("reports idle at sending when the listing says idle and the record still says busy", async () => {

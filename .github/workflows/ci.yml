@@ -32,5 +32,5 @@ jobs:
       - run: npm run typecheck
       # Builds, then runs unit, contract, replay and fake-adapter conformance tests.
       - run: npm test
-      # The published package must hold only dist/, schemas/ and README.md.
+      # The published package must hold only dist/, schemas/, README.md, CHANGELOG.md and LICENSE.
       - run: npm pack --dry-run

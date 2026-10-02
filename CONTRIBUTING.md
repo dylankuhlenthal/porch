@@ -1,6 +1,6 @@
 # Contributing to Porch
 
-Thanks for helping. Porch is small, and it has consumers in other languages that parse its output, so changes are held to a few firm rules.
+Thanks for helping. To report a security problem, follow [SECURITY.md](SECURITY.md) instead of opening an issue. Porch is small, and it has consumers in other languages that parse its output, so changes are held to a few firm rules.
 
 ## Setup
 
@@ -17,7 +17,9 @@ Node 22 or later. Tests never touch your real `~/.porch`, `~/.claude` or other h
 
 - CI runs lint, type-check, the full test suite and `npm pack --dry-run` (`.github/workflows/ci.yml`). It must pass.
 - If you change a documented flow, contract or pattern, change the doc in the same PR. The docs follow the standard summarised in `AGENTS.md`.
-- Output shapes are a contract. [docs/reference/cli-output.md](docs/reference/cli-output.md) says what counts as a breaking change and what to bump; if you make one, say so in the PR.
+- Output shapes and the supported library are a contract. [docs/reference/cli-output.md](docs/reference/cli-output.md) and [docs/reference/library.md](docs/reference/library.md) say what counts as a breaking change and what to bump; if you make one, say so in the PR.
+- If your change alters behaviour, add a line under "Unreleased" in [CHANGELOG.md](CHANGELOG.md), breaking changes first.
+- Files outside `docs/decisions/` name no particular person, private tool or private ticket; `tests/owner-neutral.test.ts` checks it.
 
 ## A PR that adds or changes an adapter
 
